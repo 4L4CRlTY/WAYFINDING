@@ -1,0 +1,802 @@
+/* =========================================================
+   FUTURISTIC CAMPUS NAVIGATION THEME
+   Primary palette: #18375d
+   Loaded last so the theme stays isolated from legacy layout CSS.
+========================================================= */
+
+:root {
+    --future-primary: #18375d;
+    --future-primary-bright: #285f94;
+    --future-deep: #071522;
+    --future-panel: rgba(8, 25, 41, 0.9);
+    --future-panel-soft: rgba(15, 43, 68, 0.84);
+    --future-cyan: #42d9ff;
+    --future-cyan-soft: rgba(66, 217, 255, 0.16);
+    --future-blue: #6aa8ff;
+    --future-mint: #55f0c0;
+    --future-text: #edf9ff;
+    --future-muted: #9bb5ca;
+    --future-line: rgba(104, 219, 255, 0.28);
+    --future-line-strong: rgba(104, 219, 255, 0.56);
+    --future-shadow: 0 20px 52px rgba(1, 10, 20, 0.38);
+    --future-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body {
+    background: var(--future-deep);
+}
+
+#map {
+    background: #c8d9e2;
+}
+
+#map .leaflet-tile-pane {
+    filter: saturate(0.72) contrast(1.04) brightness(0.94);
+}
+
+#map::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 650;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 50% 48%, transparent 42%, rgba(7, 21, 34, 0.15) 100%),
+        linear-gradient(rgba(24, 55, 93, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 55, 93, 0.045) 1px, transparent 1px);
+    background-size: auto, 72px 72px, 72px 72px;
+}
+
+/* Shared HUD surfaces */
+.campus-brand-wrap,
+.floating-ai-badge,
+.floating-start-bar,
+.floating-action-card,
+.ai-transform-panel,
+.premium-legend,
+.campus-rotate-control,
+.user-profile-menu,
+.campus-event-panel-card,
+.route-building-popup,
+.pick-path-helper,
+.live-gps-status-card {
+    color: var(--future-text) !important;
+    background:
+        linear-gradient(145deg, rgba(24, 55, 93, 0.94), rgba(7, 21, 34, 0.94)) !important;
+    border: 1px solid var(--future-line) !important;
+    box-shadow: var(--future-shadow), var(--future-inner) !important;
+    backdrop-filter: blur(20px) saturate(135%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(135%) !important;
+}
+
+.campus-brand-wrap::before,
+.floating-start-bar::before,
+.floating-action-card::before,
+.ai-transform-panel::before,
+.premium-legend::before,
+.campus-event-panel-card::before,
+.route-building-popup::before,
+.live-gps-status-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+        linear-gradient(105deg, rgba(255, 255, 255, 0.08), transparent 28%),
+        linear-gradient(90deg, transparent, rgba(66, 217, 255, 0.07), transparent);
+    background-size: auto, 220% 100%;
+    opacity: 0.8;
+}
+
+/* Campus identity */
+.campus-brand-wrap {
+    border-radius: 18px 6px 18px 6px !important;
+    padding: 8px 15px 8px 8px !important;
+    overflow: hidden;
+}
+
+.campus-brand-wrap::after {
+    content: "SYSTEM ONLINE";
+    position: absolute;
+    right: 12px;
+    bottom: 4px;
+    color: var(--future-cyan);
+    font-size: 6px;
+    font-weight: 900;
+    letter-spacing: 0.13em;
+    opacity: 0.72;
+}
+
+.campus-brand-logo-shell {
+    background: rgba(237, 249, 255, 0.96) !important;
+    border: 1px solid rgba(66, 217, 255, 0.54);
+    box-shadow: 0 0 22px rgba(66, 217, 255, 0.23) !important;
+}
+
+.campus-brand-title {
+    color: var(--future-text) !important;
+    letter-spacing: 0.01em !important;
+}
+
+.campus-brand-subtitle {
+    color: var(--future-cyan) !important;
+}
+
+/* Leaflet controls */
+.leaflet-control-zoom {
+    overflow: hidden !important;
+    border: 1px solid var(--future-line) !important;
+    border-radius: 14px 5px 14px 5px !important;
+    background: var(--future-panel) !important;
+    box-shadow: 0 14px 34px rgba(1, 10, 20, 0.3) !important;
+}
+
+.leaflet-control-zoom a {
+    color: var(--future-cyan) !important;
+    background: rgba(8, 25, 41, 0.9) !important;
+    border-color: rgba(66, 217, 255, 0.13) !important;
+}
+
+.leaflet-control-zoom a:hover {
+    color: #ffffff !important;
+    background: var(--future-primary) !important;
+}
+
+.campus-rotate-control {
+    border-radius: 18px 6px 18px 6px !important;
+}
+
+.campus-rotate-btn,
+.campus-rotate-reset {
+    color: var(--future-text) !important;
+    background: rgba(66, 217, 255, 0.1) !important;
+    border: 1px solid rgba(66, 217, 255, 0.16) !important;
+}
+
+.campus-rotate-reset {
+    background: linear-gradient(135deg, var(--future-primary-bright), var(--future-primary)) !important;
+    box-shadow: 0 0 20px rgba(66, 217, 255, 0.16);
+}
+
+.campus-rotate-btn:hover,
+.campus-rotate-reset:hover {
+    border-color: var(--future-line-strong) !important;
+    box-shadow: 0 0 20px rgba(66, 217, 255, 0.2) !important;
+}
+
+/* Main navigator */
+.floating-ai-badge {
+    position: relative;
+    padding: 8px 14px !important;
+    border-radius: 14px 4px 14px 4px !important;
+    color: var(--future-text) !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase;
+}
+
+.floating-ai-badge::after {
+    content: "LIVE";
+    margin-left: 9px;
+    padding: 3px 6px;
+    border: 1px solid rgba(85, 240, 192, 0.36);
+    border-radius: 999px;
+    color: var(--future-mint);
+    background: rgba(85, 240, 192, 0.08);
+    font-size: 7px;
+    letter-spacing: 0.1em;
+}
+
+.ai-dot,
+.tap-demo-dot {
+    background: var(--future-cyan) !important;
+    box-shadow: 0 0 0 5px rgba(66, 217, 255, 0.11), 0 0 18px rgba(66, 217, 255, 0.78) !important;
+}
+
+.floating-main-pin {
+    filter: drop-shadow(0 18px 26px rgba(2, 15, 28, 0.46));
+}
+
+.floating-main-pin .pin-disc {
+    background:
+        radial-gradient(circle at 50% 42%, var(--future-primary-bright), var(--future-primary) 46%, var(--future-deep) 72%) !important;
+    border-color: rgba(151, 226, 255, 0.74) !important;
+    box-shadow:
+        0 0 0 7px rgba(24, 55, 93, 0.72),
+        0 0 0 9px rgba(66, 217, 255, 0.32),
+        0 0 38px rgba(66, 217, 255, 0.42),
+        inset 0 0 24px rgba(66, 217, 255, 0.19) !important;
+}
+
+.floating-main-pin:hover .pin-disc,
+.floating-main-pin.active .pin-disc {
+    transform: translateY(-3px) scale(1.035);
+    box-shadow:
+        0 0 0 7px rgba(24, 55, 93, 0.84),
+        0 0 0 10px rgba(66, 217, 255, 0.5),
+        0 0 54px rgba(66, 217, 255, 0.58),
+        inset 0 0 26px rgba(66, 217, 255, 0.26) !important;
+}
+
+.floating-start-bar {
+    position: relative;
+    gap: 7px !important;
+    padding: 7px !important;
+    border-radius: 19px 6px 19px 6px !important;
+    overflow: hidden;
+}
+
+.floating-start-bar .floating-mode-btn,
+.floating-start-bar .floating-mode-btn.pick,
+.floating-start-bar .floating-mode-btn.gps,
+.floating-start-bar .floating-mode-btn.default {
+    position: relative;
+    overflow: hidden;
+    min-height: 40px !important;
+    border: 1px solid rgba(126, 176, 214, 0.22) !important;
+    border-radius: 13px 4px 13px 4px !important;
+    color: #c6d7e4 !important;
+    background: rgba(8, 25, 41, 0.68) !important;
+    box-shadow: none !important;
+    letter-spacing: 0.045em !important;
+}
+
+.floating-mode-btn::after {
+    content: "";
+    position: absolute;
+    left: 16%;
+    right: 16%;
+    bottom: 0;
+    height: 2px;
+    background: var(--future-cyan);
+    box-shadow: 0 0 12px var(--future-cyan);
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+}
+
+.floating-start-bar .floating-mode-btn:hover {
+    color: #ffffff !important;
+    border-color: rgba(66, 217, 255, 0.42) !important;
+    background: rgba(24, 55, 93, 0.88) !important;
+}
+
+.floating-start-bar .floating-mode-btn.active {
+    color: #ffffff !important;
+    border-color: rgba(66, 217, 255, 0.72) !important;
+    background: linear-gradient(135deg, var(--future-primary-bright), var(--future-primary)) !important;
+    box-shadow: inset 0 0 22px rgba(66, 217, 255, 0.14), 0 0 18px rgba(66, 217, 255, 0.16) !important;
+}
+
+.floating-start-bar .floating-mode-btn.active::after {
+    transform: scaleX(1);
+}
+
+/* Assistant, search, and voice panels */
+.floating-action-card,
+.ai-transform-panel {
+    overflow: hidden;
+    border-radius: 22px 7px 22px 7px !important;
+}
+
+.floating-action-kicker,
+.ai-transform-kicker,
+.ai-text-result-label,
+.ai-voice-result-label {
+    color: var(--future-cyan) !important;
+}
+
+.floating-action-title,
+.ai-voice-title,
+.ai-text-result-text,
+.ai-voice-result-text {
+    color: var(--future-text) !important;
+}
+
+.ai-transform-hint,
+.floating-voice-status,
+.ai-text-result-note,
+.ai-voice-result-note,
+.floating-heard-text {
+    color: var(--future-muted) !important;
+}
+
+.floating-action-card .floating-action-btn,
+.floating-action-card .floating-action-btn.dark,
+.floating-action-card .floating-action-btn.blue,
+.ai-search-submit,
+.ai-record-inline-btn,
+.ai-stop-voice,
+.ai-record-again-btn {
+    color: var(--future-text) !important;
+    background: rgba(24, 55, 93, 0.72) !important;
+    border: 1px solid rgba(66, 217, 255, 0.22) !important;
+    box-shadow: none !important;
+}
+
+.floating-action-card .floating-action-btn:hover,
+.floating-action-card .floating-action-btn.dark:hover,
+.floating-action-card .floating-action-btn.blue:hover,
+.ai-search-submit:hover,
+.ai-record-inline-btn:hover,
+.ai-stop-voice:hover,
+.ai-record-again-btn:hover {
+    border-color: var(--future-line-strong) !important;
+    background: var(--future-primary-bright) !important;
+    box-shadow: 0 0 20px rgba(66, 217, 255, 0.18) !important;
+}
+
+.ai-search-input,
+.route-select,
+.browse-search-input {
+    color: var(--future-text) !important;
+    background: rgba(3, 15, 27, 0.74) !important;
+    border-color: rgba(111, 178, 221, 0.3) !important;
+}
+
+.ai-search-input::placeholder,
+.browse-search-input::placeholder {
+    color: #7290a7 !important;
+}
+
+.ai-search-input:focus,
+.route-select:focus,
+.browse-search-input:focus {
+    border-color: var(--future-cyan) !important;
+    box-shadow: 0 0 0 3px rgba(66, 217, 255, 0.13), 0 0 22px rgba(66, 217, 255, 0.12) !important;
+}
+
+.route-select option {
+    color: var(--future-text);
+    background: #102b45;
+}
+
+.ai-transform-close,
+.browse-modal-x,
+.route-building-popup-close,
+.indoor-close,
+.campus-event-panel-close,
+.live-gps-status-x {
+    color: var(--future-cyan) !important;
+    background: rgba(66, 217, 255, 0.09) !important;
+    border: 1px solid rgba(66, 217, 255, 0.18) !important;
+}
+
+/* Destination modal */
+.floating-modal-backdrop,
+.indoor-backdrop {
+    background:
+        radial-gradient(circle at 50% 40%, rgba(24, 55, 93, 0.24), transparent 42%),
+        rgba(1, 9, 17, 0.72) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.browse-destination-card,
+.floating-modal-card {
+    color: var(--future-text) !important;
+    background:
+        radial-gradient(circle at 15% 0%, rgba(66, 217, 255, 0.12), transparent 28%),
+        linear-gradient(145deg, rgba(24, 55, 93, 0.98), rgba(7, 21, 34, 0.98)) !important;
+    border: 1px solid var(--future-line) !important;
+    box-shadow: 0 34px 90px rgba(0, 8, 18, 0.62), var(--future-inner) !important;
+}
+
+.browse-modal-glow {
+    background: rgba(66, 217, 255, 0.15) !important;
+}
+
+.browse-modal-header {
+    border-color: rgba(66, 217, 255, 0.13) !important;
+}
+
+.floating-modal-kicker,
+.room-result-count {
+    color: var(--future-cyan) !important;
+    background: rgba(66, 217, 255, 0.1) !important;
+    border: 1px solid rgba(66, 217, 255, 0.16);
+}
+
+.floating-modal-title,
+.browse-section-title,
+.room-empty-title,
+.room-office-card-main strong,
+.room-floor-group-title {
+    color: var(--future-text) !important;
+}
+
+.floating-modal-subtitle,
+.browse-section-subtitle,
+.room-empty-text,
+.room-office-card-main small,
+.room-floor-group-title small,
+.route-label,
+.room-filter-label {
+    color: var(--future-muted) !important;
+}
+
+.browse-type-card,
+.browse-section,
+.room-office-card,
+.room-empty-state,
+.room-floor-group-title {
+    color: var(--future-text) !important;
+    background: rgba(7, 21, 34, 0.48) !important;
+    border-color: rgba(111, 178, 221, 0.2) !important;
+}
+
+.browse-type-card small {
+    color: var(--future-muted) !important;
+}
+
+.browse-type-card:hover,
+.room-office-card:hover {
+    border-color: rgba(66, 217, 255, 0.48) !important;
+    box-shadow: 0 12px 28px rgba(0, 8, 18, 0.3) !important;
+}
+
+.browse-type-card.active,
+.room-office-card.active {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, rgba(40, 95, 148, 0.94), rgba(24, 55, 93, 0.94)) !important;
+    border-color: rgba(66, 217, 255, 0.68) !important;
+    box-shadow: 0 0 24px rgba(66, 217, 255, 0.13) !important;
+}
+
+.room-floor-chip {
+    color: #bdd2e2 !important;
+    background: rgba(7, 21, 34, 0.62) !important;
+    border-color: rgba(111, 178, 221, 0.25) !important;
+}
+
+.room-floor-chip.active,
+.browse-find-btn,
+.route-btn.success {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, var(--future-primary-bright), var(--future-primary)) !important;
+    border-color: rgba(66, 217, 255, 0.58) !important;
+    box-shadow: 0 0 22px rgba(66, 217, 255, 0.16) !important;
+}
+
+.route-btn.neutral {
+    color: #c7d9e6 !important;
+    background: rgba(7, 21, 34, 0.54) !important;
+    border-color: rgba(111, 178, 221, 0.23) !important;
+}
+
+/* Profile and campus events */
+.user-profile-btn,
+.campus-event-bell-btn {
+    color: var(--future-cyan) !important;
+    background: var(--future-panel) !important;
+    border: 1px solid var(--future-line) !important;
+    box-shadow: 0 14px 34px rgba(1, 10, 20, 0.34), var(--future-inner) !important;
+}
+
+.user-profile-btn:hover,
+.campus-event-bell-btn:hover,
+.user-profile-btn.active {
+    border-color: var(--future-line-strong) !important;
+    box-shadow: 0 0 24px rgba(66, 217, 255, 0.22), var(--future-inner) !important;
+}
+
+.user-profile-name,
+.campus-event-panel-title,
+.campus-event-title {
+    color: var(--future-text) !important;
+}
+
+.user-profile-email,
+.campus-event-panel-subtitle,
+.campus-event-place,
+.campus-event-time,
+.campus-event-target,
+.campus-event-empty {
+    color: var(--future-muted) !important;
+}
+
+.user-profile-avatar {
+    background: rgba(66, 217, 255, 0.1) !important;
+    border-color: rgba(66, 217, 255, 0.24) !important;
+}
+
+.user-logout-btn {
+    color: #ffc4cf !important;
+    background: rgba(255, 88, 123, 0.1) !important;
+    border-color: rgba(255, 88, 123, 0.2) !important;
+}
+
+.campus-event-panel-head {
+    border-color: rgba(66, 217, 255, 0.12) !important;
+}
+
+.campus-event-card {
+    background: rgba(7, 21, 34, 0.5) !important;
+    border-color: rgba(111, 178, 221, 0.18) !important;
+}
+
+.campus-event-route-btn {
+    color: #ffffff !important;
+    background: var(--future-primary-bright) !important;
+}
+
+/* Legend, map popups, and route */
+.premium-legend {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px 5px 18px 5px !important;
+}
+
+.premium-legend .legend-title {
+    color: var(--future-cyan) !important;
+    letter-spacing: 0.12em !important;
+}
+
+.premium-legend .legend-item {
+    color: #c7d9e6 !important;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    color: var(--future-text) !important;
+    background: rgba(8, 25, 41, 0.96) !important;
+}
+
+.leaflet-popup-content-wrapper {
+    border: 1px solid var(--future-line);
+    border-radius: 16px 5px 16px 5px !important;
+    box-shadow: var(--future-shadow) !important;
+}
+
+.leaflet-popup-content-wrapper * {
+    color: inherit;
+}
+
+.route-line-live {
+    stroke: var(--future-cyan) !important;
+    filter: drop-shadow(0 0 7px rgba(66, 217, 255, 0.84)) !important;
+}
+
+/* GPS, route popup, and tap helper */
+.live-gps-status-card {
+    overflow: hidden;
+    border-radius: 20px 6px 20px 6px !important;
+}
+
+.live-gps-status-kicker,
+.live-gps-guidance-title {
+    color: var(--future-cyan) !important;
+}
+
+.live-gps-status-text,
+.live-gps-guidance-meta {
+    color: #b8cede !important;
+}
+
+.live-gps-guidance {
+    background: rgba(66, 217, 255, 0.08) !important;
+    border-color: rgba(66, 217, 255, 0.2) !important;
+}
+
+.live-gps-guidance-arrow {
+    color: var(--future-primary) !important;
+    background: var(--future-cyan) !important;
+    box-shadow: 0 0 20px rgba(66, 217, 255, 0.28);
+}
+
+.live-gps-mini-btn,
+.pick-helper-btn,
+.route-building-popup-btn {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, var(--future-primary-bright), var(--future-primary)) !important;
+    border-color: rgba(66, 217, 255, 0.36) !important;
+}
+
+.pick-helper-title,
+.route-building-popup-title {
+    color: var(--future-text) !important;
+}
+
+.pick-helper-subtitle,
+.tap-demo-text,
+.route-building-popup-hint {
+    color: var(--future-muted) !important;
+}
+
+.pick-helper-tap-demo,
+.route-building-popup-divider {
+    border-color: rgba(66, 217, 255, 0.16) !important;
+    background: rgba(66, 217, 255, 0.06) !important;
+}
+
+/* Indoor navigation HUD */
+.indoor-panel {
+    color: var(--future-text) !important;
+    background:
+        linear-gradient(145deg, rgba(24, 55, 93, 0.98), rgba(7, 21, 34, 0.98)) !important;
+    border-color: var(--future-line) !important;
+    box-shadow: -30px 0 80px rgba(0, 8, 18, 0.52) !important;
+}
+
+.indoor-header,
+.indoor-floor-toolbar,
+.indoor-sidebar,
+.indoor-footer {
+    background: rgba(7, 21, 34, 0.68) !important;
+    border-color: rgba(66, 217, 255, 0.13) !important;
+}
+
+.indoor-title,
+.indoor-sidebar-title,
+.room-name {
+    color: var(--future-text) !important;
+}
+
+.indoor-subtitle,
+.room-meta,
+.indoor-footer {
+    color: var(--future-muted) !important;
+}
+
+.indoor-floor-btn {
+    color: #c7d9e6 !important;
+    background: rgba(24, 55, 93, 0.56) !important;
+    border-color: rgba(111, 178, 221, 0.24) !important;
+}
+
+.indoor-floor-btn.active {
+    color: #ffffff !important;
+    background: var(--future-primary-bright) !important;
+    border-color: var(--future-cyan) !important;
+    box-shadow: 0 0 20px rgba(66, 217, 255, 0.18) !important;
+}
+
+.room-item {
+    color: var(--future-text) !important;
+    background: rgba(24, 55, 93, 0.38) !important;
+    border-color: rgba(111, 178, 221, 0.18) !important;
+}
+
+.room-item.active {
+    background: rgba(40, 95, 148, 0.72) !important;
+    border-color: rgba(66, 217, 255, 0.56) !important;
+}
+
+/* Interaction and motion */
+button,
+select,
+input {
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--future-cyan) !important;
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ai-dot,
+    .live-gps-dot {
+        animation: futureSignalPulse 2.2s ease-in-out infinite;
+    }
+
+    .floating-main-pin .pin-disc {
+        animation: futureOrbFloat 3.4s ease-in-out infinite;
+    }
+
+    .floating-start-bar::before,
+    .ai-transform-panel::before,
+    .floating-action-card::before {
+        animation: futureHudSweep 7s linear infinite;
+    }
+}
+
+@keyframes futureSignalPulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 4px rgba(66, 217, 255, 0.1), 0 0 12px rgba(66, 217, 255, 0.54);
+    }
+
+    50% {
+        box-shadow: 0 0 0 7px rgba(66, 217, 255, 0.04), 0 0 24px rgba(66, 217, 255, 0.86);
+    }
+}
+
+@keyframes futureOrbFloat {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes futureHudSweep {
+    from {
+        background-position: 0 0, 200% 0;
+    }
+
+    to {
+        background-position: 0 0, -20% 0;
+    }
+}
+
+@media (max-width: 768px) {
+    /*
+     * Avoid full-container GPU rasterization on touch devices. Leaflet already
+     * transforms its internal panes, and an extra filtered/composited map layer
+     * can briefly reveal an unpainted strip during a fast horizontal swipe.
+     */
+    #map,
+    #map.leaflet-container {
+        transform: none !important;
+        backface-visibility: visible !important;
+    }
+
+    #map .leaflet-tile-pane {
+        filter: none !important;
+    }
+
+    #map .leaflet-pane,
+    #map .leaflet-tile,
+    #map .leaflet-overlay-pane svg {
+        backface-visibility: visible !important;
+    }
+
+    #map::after {
+        background-size: auto, 48px 48px, 48px 48px;
+    }
+
+    .campus-brand-wrap {
+        border-radius: 15px 5px 15px 5px !important;
+    }
+
+    .campus-brand-wrap::after {
+        display: none;
+    }
+
+    .floating-start-bar {
+        gap: 4px !important;
+        padding: 5px !important;
+        border-radius: 16px 5px 16px 5px !important;
+    }
+
+    .floating-mode-btn {
+        min-height: 37px !important;
+        border-radius: 11px 4px 11px 4px !important;
+        letter-spacing: 0 !important;
+    }
+
+    .premium-legend {
+        border-radius: 14px 4px 14px 4px !important;
+    }
+
+    .browse-destination-card,
+    .floating-modal-card {
+        border-radius: 20px 6px 20px 6px !important;
+    }
+}
+
+@media (max-width: 420px) {
+    .floating-ai-badge::after {
+        display: none;
+    }
+
+    .floating-mode-btn {
+        font-size: 8px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

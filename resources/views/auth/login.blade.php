@@ -402,9 +402,10 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/futuristic-public.css') }}">
 </head>
 
-<body>
+<body class="public-future public-auth public-login">
     <main class="login-box">
         <section class="mascot-side">
             <div class="mascot-content">

@@ -479,7 +479,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="{{ asset('js/wayfinding-routing.js') }}"></script>
+    <script src="{{ asset('js/wayfinding-routing.js') }}?v={{ filemtime(public_path('js/wayfinding-routing.js')) }}"></script>
     @include('user.script.script')
 </body>
 

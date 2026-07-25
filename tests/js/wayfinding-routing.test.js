@@ -111,3 +111,14 @@ test('indoor routing may enter the selected destination room', () => {
     );
     assert.equal(result.totalCost, 5);
 });
+
+test('navigation bearings and turn directions are calculated consistently', () => {
+    assert.equal(Math.round(routing.bearingBetween([10, 124], [11, 124])), 0);
+    assert.equal(Math.round(routing.bearingBetween([10, 124], [10, 125])), 90);
+    assert.equal(routing.cardinalDirection(225), 'SW');
+
+    assert.equal(routing.relativeTurn(0, 8).type, 'straight');
+    assert.equal(routing.relativeTurn(0, 90).type, 'right');
+    assert.equal(routing.relativeTurn(90, 0).type, 'left');
+    assert.equal(routing.relativeTurn(0, 180).type, 'u_turn');
+});

@@ -111,6 +111,7 @@
 
         landuseLayer = L.geoJSON(featureCollection, {
             pane: 'pathsPane',
+            renderer: OUTDOOR_PATHS_RENDERER,
             interactive: false,
             style: function(feature) {
                 const p = feature?.properties || {};
@@ -217,6 +218,7 @@
             */
             const layer = L.geoJSON(geojson, {
                 pane: 'buildingsPane',
+                renderer: OUTDOOR_BUILDINGS_RENDERER,
                 className: `fake-3d-building ${className}`,
                 style: {
                     color: '#1f2937',
@@ -269,6 +271,7 @@
     function renderPaths() {
         L.geoJSON(pathGeojson, {
             pane: 'pathsPane',
+            renderer: OUTDOOR_PATHS_RENDERER,
             filter: (f) => getPathType(f) !== 'covered_stairs',
             style: (f) => {
                 const isRoad = getPathType(f) === 'road';
@@ -285,6 +288,7 @@
 
         L.geoJSON(pathGeojson, {
             pane: 'pathsPane',
+            renderer: OUTDOOR_PATHS_RENDERER,
             style: stylePath,
             onEachFeature: function(feature, layer) {
                 const props = feature.properties || {};
@@ -314,6 +318,7 @@
 
         L.geoJSON(pathGeojson, {
             pane: 'pathsPane',
+            renderer: OUTDOOR_PATHS_RENDERER,
             filter: (f) => getPathType(f) === 'covered_stairs',
             style: {
                 color: '#f8fafc',

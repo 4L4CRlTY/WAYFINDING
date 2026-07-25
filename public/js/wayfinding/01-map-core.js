@@ -12,9 +12,27 @@
     const MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE = 18;
     const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 17;
     const MOBILE_OUTDOOR_MAX_ZOOM_VALUE = 19;
+    const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW ? 1 : 0.5;
+    const OUTDOOR_VECTOR_RENDERER = L.svg({
+        /*
+        | Keep GeoJSON buildings and paths rendered beyond the visible viewport.
+        | Leaflet's small default SVG padding can expose a temporary empty strip
+        | during a fast mobile swipe before the renderer catches up.
+        */
+        padding: OUTDOOR_VECTOR_RENDER_PADDING
+    });
+    const OUTDOOR_PATHS_RENDERER = L.svg({
+        pane: 'pathsPane',
+        padding: OUTDOOR_VECTOR_RENDER_PADDING
+    });
+    const OUTDOOR_BUILDINGS_RENDERER = L.svg({
+        pane: 'buildingsPane',
+        padding: OUTDOOR_VECTOR_RENDER_PADDING
+    });
 
     const map = L.map('map', {
         zoomControl: true,
+        renderer: OUTDOOR_VECTOR_RENDERER,
 
         /*
         |--------------------------------------------------------------------------
@@ -87,7 +105,8 @@
         */
         updateWhenIdle: false,
         updateWhenZooming: true,
-        keepBuffer: IS_MOBILE_OUTDOOR_VIEW ? 3 : 4
+        updateInterval: IS_MOBILE_OUTDOOR_VIEW ? 80 : 120,
+        keepBuffer: IS_MOBILE_OUTDOOR_VIEW ? 4 : 5
     }).addTo(map);
 
     /*
@@ -583,19 +602,36 @@
             updateBuildingPerformanceMode();
         }
     }
+    function isCampusMapVisuallyRotated() {
+        return Math.abs(normalizeCampusBearing(window.currentCampusMapBearing || 0)) > 0.01;
+    }
+
     map.on('zoom move moveend zoomend viewreset resize', () => {
-        scheduleCampusVisualRotation();
+        /*
+        | At 0 degrees Leaflet already owns every required transform. Avoid
+        | rewriting child-pane styles every pan frame so tiles and SVG overlays
+        | can use that frame to paint the newly exposed area.
+        */
+        if (isCampusMapVisuallyRotated()) {
+            scheduleCampusVisualRotation();
+        }
     });
 
     map.on('zoomend', () => {
         updateShadows();
         updateRouteBuildingPopupScale();
-        scheduleCampusVisualRotation();
+
+        if (isCampusMapVisuallyRotated()) {
+            scheduleCampusVisualRotation();
+        }
     });
 
     map.on('moveend viewreset resize', () => {
         updateRouteBuildingPopupScale();
-        scheduleCampusVisualRotation();
+
+        if (isCampusMapVisuallyRotated()) {
+            scheduleCampusVisualRotation();
+        }
     });
 
     let campusBounds = null;

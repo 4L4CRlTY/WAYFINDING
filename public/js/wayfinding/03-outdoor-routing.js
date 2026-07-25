@@ -579,6 +579,10 @@
             polylineOptions.pane = pane;
         }
 
+        if (pane === 'pathsPane' && typeof OUTDOOR_PATHS_RENDERER !== 'undefined') {
+            polylineOptions.renderer = OUTDOOR_PATHS_RENDERER;
+        }
+
         const routePolyline = L.polyline(routePoints, polylineOptions).addTo(layerGroup);
 
         return {
@@ -587,7 +591,7 @@
         };
     }
 
-    function drawOutdoorRoute(result) {
+    function drawOutdoorRoute(result, options = {}) {
         if (!result || !result.path || result.path.length < 2) return;
 
         clearRouteLayer();
@@ -606,9 +610,11 @@
 
         outdoorRouteAnimationTimer = staticRoute.timer;
 
-        map.fitBounds(L.latLngBounds(latlngs), {
-            padding: [60, 60]
-        });
+        if (options.fitBounds !== false) {
+            map.fitBounds(L.latLngBounds(latlngs), {
+                padding: [60, 60]
+            });
+        }
     }
 
     function drawHazardMarkers() {

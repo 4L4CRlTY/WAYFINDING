@@ -223,11 +223,15 @@ if (typeof drawOutdoorRoute === 'function' && !window.__mobileOutdoorDrawRouteZo
 
     const __baseDrawOutdoorRouteZoomPatch = drawOutdoorRoute;
 
-    drawOutdoorRoute = function() {
+    drawOutdoorRoute = function(result, options = {}) {
         mobileOutdoorRouteZoomMode = true;
-        const result = __baseDrawOutdoorRouteZoomPatch.apply(this, arguments);
-        applyMobileOutdoorRouteZoomFinal(260);
-        return result;
+        const rendered = __baseDrawOutdoorRouteZoomPatch.call(this, result, options);
+
+        if (!options.liveUpdate) {
+            applyMobileOutdoorRouteZoomFinal(260);
+        }
+
+        return rendered;
     };
 
     window.drawOutdoorRoute = drawOutdoorRoute;

@@ -141,10 +141,69 @@
         };
     }
 
+    function normalizeBearing(degrees) {
+        const normalized = Number(degrees) % 360;
+
+        return normalized < 0 ? normalized + 360 : normalized;
+    }
+
+    function bearingBetween(from, to) {
+        if (!from || !to) {
+            return 0;
+        }
+
+        const fromLat = Number(from.lat ?? from[0]);
+        const fromLng = Number(from.lng ?? from[1]);
+        const toLat = Number(to.lat ?? to[0]);
+        const toLng = Number(to.lng ?? to[1]);
+
+        if (![fromLat, fromLng, toLat, toLng].every(Number.isFinite)) {
+            return 0;
+        }
+
+        const fromLatRadians = fromLat * Math.PI / 180;
+        const toLatRadians = toLat * Math.PI / 180;
+        const longitudeDelta = (toLng - fromLng) * Math.PI / 180;
+        const y = Math.sin(longitudeDelta) * Math.cos(toLatRadians);
+        const x = (Math.cos(fromLatRadians) * Math.sin(toLatRadians))
+            - (Math.sin(fromLatRadians) * Math.cos(toLatRadians) * Math.cos(longitudeDelta));
+
+        return normalizeBearing(Math.atan2(y, x) * 180 / Math.PI);
+    }
+
+    function relativeTurn(fromBearing, toBearing) {
+        const delta = ((normalizeBearing(toBearing) - normalizeBearing(fromBearing) + 540) % 360) - 180;
+        const absoluteDelta = Math.abs(delta);
+
+        if (absoluteDelta < 25) {
+            return { type: 'straight', delta };
+        }
+
+        if (absoluteDelta >= 150) {
+            return { type: 'u_turn', delta };
+        }
+
+        return {
+            type: delta > 0 ? 'right' : 'left',
+            delta,
+        };
+    }
+
+    function cardinalDirection(bearing) {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const index = Math.round(normalizeBearing(bearing) / 45) % directions.length;
+
+        return directions[index];
+    }
+
     global.WayfindingRouting = Object.freeze({
         isPathBlocked,
         shortestPath,
         outdoorShortestPath,
         indoorShortestPath,
+        normalizeBearing,
+        bearingBetween,
+        relativeTurn,
+        cardinalDirection,
     });
 })(typeof window !== 'undefined' ? window : globalThis);

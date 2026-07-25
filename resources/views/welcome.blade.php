@@ -562,8 +562,9 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/futuristic-public.css') }}">
 </head>
-<body>
+<body class="public-future public-welcome">
     @php
         $dashboardRoute = null;
 
