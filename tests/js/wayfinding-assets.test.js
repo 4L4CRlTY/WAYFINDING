@@ -72,6 +72,22 @@ test('public futuristic theme parses successfully', () => {
     assert.equal(source.includes('</style>'), false);
 });
 
+test('admin futuristic theme parses successfully', () => {
+    const path = new URL(
+        '../../public/admin/assets/css/futuristic-admin.css',
+        import.meta.url,
+    );
+    const source = readFileSync(path, 'utf8');
+
+    assert.doesNotThrow(
+        () => postcss.parse(source, { from: 'futuristic-admin.css' }),
+        'futuristic-admin.css should contain valid CSS',
+    );
+    assert.match(source, /--admin-primary:\s*#18375d/);
+    assert.equal(source.includes('<style>'), false);
+    assert.equal(source.includes('</style>'), false);
+});
+
 test('mobile outdoor map keeps a buffered render area during panning', () => {
     const mapCorePath = new URL(
         '../../public/js/wayfinding/01-map-core.js',

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 
 <head>
     <title>WayFinding System</title>
@@ -23,9 +23,14 @@
 
     <!-- Icons css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{{ asset('admin/assets/css/futuristic-admin.css') }}?v={{ filemtime(public_path('admin/assets/css/futuristic-admin.css')) }}" rel="stylesheet" type="text/css" />
 </head>
 
-<body>
+<body class="admin-future">
     <!-- Begin page -->
     <div class="wrapper">
 
