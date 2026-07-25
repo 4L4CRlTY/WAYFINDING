@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_paths_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.005286496592864, -0.005454906395272 ], [ 0.005284353978115, -0.005022026206882 ], [ 0.00527453584285, -0.003038432915223 ], [ 0.003163426106396, -0.003032531021329 ], [ 0.001997290338922, -0.003029270930464 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.00527453584285, -0.003038432915223 ], [ 0.006739649308237, -0.003039544086579 ], [ 0.008246737859631, -0.003040687092679 ], [ 0.01131471460009, -0.003043013907602 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Stairs Access", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.005284353978115, -0.005022026206882 ], [ 0.002239495526712, -0.004996807157348 ] ] ] } }
+]
+}

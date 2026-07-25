@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_path_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -0.000789819358437, -0.002513266904059 ], [ -0.000474224693966, -0.002512884722016 ], [ 0.001013088145561, -0.002511083600682 ], [ 0.001701576803595, -0.002510249847631 ], [ 0.003583838217362, -0.002507970447589 ], [ 0.004120151519926, -0.002507320977377 ], [ 0.006035506076485, -0.002505001501702 ], [ 0.008432018697894, -0.002502099348356 ], [ 0.008723322013665, -0.002501746582987 ], [ 0.008717554504264, -0.003016901885023 ], [ 0.008714494893237, -0.003290187073814 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.008840511072557, -0.000787422882281 ], [ 0.008843587622149, -0.002506203993351 ], [ 0.008723322013665, -0.002501746582987 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.003583838217362, -0.002507970447589 ], [ 0.003572852867098, -0.003285478466652 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.006046578494177, -0.003452634018337 ], [ 0.006035506076485, -0.002505001501702 ] ] ] } }
+]
+}

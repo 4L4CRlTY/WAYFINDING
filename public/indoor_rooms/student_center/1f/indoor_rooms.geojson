@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_rooms_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "SSC CONFERENCE HALL", "room_code": "student-101", "type": "room", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.002245032202812, 0.000809048402963 ], [ -0.000180394371122, 0.000809234118445 ], [ -0.000180394371122, -0.003698452048759 ], [ -0.002245964003706, -0.003698823479722 ], [ -0.002245032202812, 0.000809048402963 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "SCC OFFICE", "room_code": "student-102", "type": "office", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.000100598705571, 0.000809718121561 ], [ 0.001995187796477, 0.00080934583345 ], [ 0.001995888259881, -0.003699063195551 ], [ -0.000100832193372, -0.003701296924219 ], [ -0.000100598705571, 0.000809718121561 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "STUDENT CENTER HALL", "room_code": "student-103", "type": "room", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.002058929966159, 0.000808601257227 ], [ 0.009792979887488, 0.000808973545339 ], [ 0.009776869229216, -0.003674119892087 ], [ 0.002058696478358, -0.003698318619328 ], [ 0.002058929966159, 0.000808601257227 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "THE LITE OFFICE SCHOOL PUBLICATION OFFICE", "room_code": "student-104", "type": "office", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.009856488569368, 0.000808601257227 ], [ 0.013318879170847, 0.000809718121561 ], [ 0.013318645683046, -0.003697946331217 ], [ 0.009856021593766, -0.003696829466883 ], [ 0.009856488569368, 0.000808601257227 ] ] ] ] } }
+]
+}

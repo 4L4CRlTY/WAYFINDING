@@ -1,0 +1,22 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_0f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "EXTENSION OFFICE DOOR", "ent_type": "door", "room_code": "admin-001", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.002134213477128, -0.003369914199168 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "MALE COMFORT ROOM DOOR", "ent_type": "door", "room_code": "MCR", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.00260607988947, -0.001664836842216 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "FEMALE CR DOOR", "ent_type": "door", "room_code": "FCR", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.005638975575301, -0.001664785973042 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "DOOR 004", "ent_type": "door", "room_code": "admin-004", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.006082233257577, -0.002705004228879 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "door 005", "ent_type": "door", "room_code": "admin-005", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.00213451418686, -0.003766151669385 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "MAIN DOOR Computer SHop 006", "ent_type": "door", "room_code": "admin-006", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.004136623851424, -0.003591880073553 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Door A Computer Shop 006", "ent_type": "door", "room_code": "admin-006", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.002617002384024, -0.00640923357976 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Door B COMPUTER SHOP 006", "ent_type": "door", "room_code": "admin-006", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.005665729394202, -0.006422780141751 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "OFFICE DOOR 007", "ent_type": "door", "room_code": "admin-007", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.002816662103247, -0.006597666830184 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "OFFICE DOOR A 008", "ent_type": "door", "room_code": "admin-008", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.003772149867126, -0.007441781897181 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "OFFICE DOOR B 008", "ent_type": "door", "room_code": "admin-008", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.004482279314691, -0.007447798987362 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "OFFICE DOOR 009", "ent_type": "door", "room_code": "admin-009", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.005519948767253, -0.006597245108137 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS 0F A", "ent_type": "stairs", "room_code": "STAIRS_0F_A", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.00335067925785, -0.001349596540599 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS 0F B", "ent_type": "stairs", "room_code": "STAIRS_0F_B", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.004145124728421, -0.001617517228418 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS 0F C", "ent_type": "stairs", "room_code": "STAIRS_0F_C", "floor": 0 }, "geometry": { "type": "Point", "coordinates": [ 0.004939570198992, -0.001349596540599 ] } }
+]
+}

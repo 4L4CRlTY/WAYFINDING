@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_2f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "FACULTY OFFICE DOOR A", "ent_type": "door", "room_code": "smb-201", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ -0.001850098133835, -0.00295701937353 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "FACULTY OFFICE DOOR B", "ent_type": "door", "room_code": "smb-201", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.001280586003152, -0.002957529812259 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "CHEMISTRY LEC & LAB DOOR A", "ent_type": "door", "room_code": "smb-202", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.003381650154034, -0.002959182117583 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "CHEMISTRY LEC & LAB DOOR B", "ent_type": "door", "room_code": "smb-202", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.004080006006034, -0.002959003756033 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "ANALYTICAL CHEM LEC & LAB DOOR A", "ent_type": "door", "room_code": "smb-203", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.008452227041581, -0.002958161867406 ] } },
+{ "type": "Feature", "properties": { "id": 6, "name": "ANALYTICAL LEC & LAB DOOR B", "ent_type": "door", "room_code": "smb-203", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.009228184472344, -0.002958161867406 ] } },
+{ "type": "Feature", "properties": { "id": 7, "name": "WEIGHING ROOM DOOR", "ent_type": "door", "room_code": "smb-204", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.011353099480093, -0.002957578216455 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Entrance 2F", "ent_type": "side", "room_code": "ENTRANCE", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.012329029743742, -0.003389926144287 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS 2F B", "ent_type": "stairs", "room_code": "STAIRS_2F_B", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.01108749785452, -0.003874236296482 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS 2F A", "ent_type": "stairs", "room_code": "STAIRS_2F_A", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ -0.001869499013403, -0.003912720599529 ] } }
+]
+}

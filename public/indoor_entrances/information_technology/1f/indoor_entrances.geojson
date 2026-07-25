@@ -1,0 +1,18 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "OFFICE DOOR A", "ent_type": "door", "room_code": "it-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.001866407118366, -0.001685457144342 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "OFFICE DOOR B", "ent_type": "door", "room_code": "it-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.000017385475241, -0.001684452574304 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "CONFERENCE ROOM DOOR", "ent_type": "door", "room_code": "it-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.000791548984358, -0.001686011083316 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "LABORATORY 1 DOOR", "ent_type": "door", "room_code": "it-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.003856990630033, -0.001685358601216 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "STOCK ROOM DOOR", "ent_type": "door", "room_code": "it-104", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.009230650413892, -0.001684451893547 ] } },
+{ "type": "Feature", "properties": { "id": 6, "name": "MALE COMFORT ROOM DOOR", "ent_type": "door", "room_code": "MCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.009784146274578, -0.000381068316993 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "FEMALE COMFORT ROOM DOOR", "ent_type": "door", "room_code": "FCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.010231675108068, -0.00322699401395 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.003199573517754, -0.003503637797457 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Entrance A", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.002253766764165, -0.002538373344216 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Entrancee B", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.009626626050428, -0.003509523556409 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS 1F", "ent_type": "stairs", "room_code": "STAIRS_1F", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.006291730551603, -0.003712582237063 ] } }
+]
+}

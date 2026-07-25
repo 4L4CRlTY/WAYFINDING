@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_path_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.000206956080685, -0.003087403497745 ], [ 0.000278548147451, -0.003087611162809 ], [ 0.001257413545354, -0.003091917885932 ], [ 0.001969998379161, -0.003095053052001 ], [ 0.002920165297976, -0.003099233510161 ], [ 0.003347753094539, -0.003101114772135 ], [ 0.004139631884103, -0.003104598808552 ], [ 0.004931303132101, -0.003108081931847 ], [ 0.005422141611877, -0.003110241478435 ], [ 0.006536151959025, -0.003115142800039 ], [ 0.007069288235262, -0.003117488444633 ], [ 0.006863331491861, -0.003116582294848 ], [ 0.00808538259857, -0.003121958964379 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.00412538454605, -0.007126198259592 ], [ 0.004139631884103, -0.003104598808552 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Stairs Access", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.004139631884103, -0.003104598808552 ], [ 0.004147159091703, -0.00167249835134 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Stairs Access", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.003343480406713, -0.001372131602909 ], [ 0.003347753094539, -0.003101114772135 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Stairs Accecss", "path_type": "hallway", "floor": 1, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.004917846040856, -0.001380105941363 ], [ 0.004931303132101, -0.003108081931847 ] ] ] } }
+]
+}

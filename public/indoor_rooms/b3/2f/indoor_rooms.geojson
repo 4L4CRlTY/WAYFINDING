@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_smb_rooms",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "classroom 201", "room_code": "SMB-201", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.000237196188297, -0.00013913977151 ], [ 0.003231392185321, -0.000136027301659 ], [ 0.003234115596441, -0.00409683971341 ], [ 0.000242448481171, -0.004096547919362 ], [ 0.000237196188297, -0.00013913977151 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Classroom 202", "room_code": "SMB-202", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.003280510850163, -0.000134568331416 ], [ 0.007097177005413, -0.000134568331416 ], [ 0.007096982476048, -0.004096353389997 ], [ 0.003280316320797, -0.004098882271745 ], [ 0.003280510850163, -0.000134568331416 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Classroom 203", "room_code": "SMB-203", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.007141554016966, -0.000134787176952 ], [ 0.011016287187881, -0.000135297816537 ], [ 0.011013369247395, -0.00409611022829 ], [ 0.007141262222917, -0.004098882271745 ], [ 0.007141554016966, -0.000134787176952 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Classroom 204", "room_code": "SMB-204", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.011058597324923, -0.000134568331416 ], [ 0.012073457025837, -0.000134787176952 ], [ 0.012073311128813, -0.004096329073826 ], [ 0.011058305530875, -0.004096912661922 ], [ 0.011058597324923, -0.000134568331416 ] ] ] ] } }
+]
+}

@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_smb_paths",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "door coonector", "path_type": "hallway", "floor": 2, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.003049510189902, -0.004569332380859 ], [ 0.003029149854204, -0.004025663490326 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Main Hallway 2F", "path_type": "hallway", "floor": 2, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.000441087279733, -0.004983674772722 ], [ 0.000444588808316, -0.004568160049008 ], [ 0.003049510189902, -0.004569332380859 ], [ 0.004752054307228, -0.004570098602332 ], [ 0.005366000417263, -0.004570374905711 ], [ 0.008925875532555, -0.004571977009718 ], [ 0.009574825365129, -0.004572269066347 ], [ 0.011117842487061, -0.004572963493493 ], [ 0.011330253803505, -0.004573059088144 ], [ 0.012115183574782, -0.004573412341866 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Stairs A connector", "path_type": "hallway", "floor": 2, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.011117842487061, -0.004572963493493 ], [ 0.011117831516782, -0.004947492310836 ] ] ] } }
+]
+}

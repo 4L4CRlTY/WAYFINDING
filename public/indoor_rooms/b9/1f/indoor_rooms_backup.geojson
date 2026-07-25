@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_rooms",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "Room 101", "room_code": "101", "type": "classroom", "floor": 1, "building": "IT Building" }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.000334053493757, -0.00031626320884 ], [ 0.002765349963071, -0.000312211048058 ], [ 0.002749141319942, -0.001827719180288 ], [ 0.00032189701141, -0.001831771341069 ], [ 0.000334053493757, -0.00031626320884 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "Room 102", "room_code": "102", "type": "classroom", "floor": 1, "building": "IT Building" }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.002907175590447, -0.000310184967667 ], [ 0.005048742563835, -0.000310184967667 ], [ 0.005048742563835, -0.001841141962873 ], [ 0.002910594601107, -0.001841775112994 ], [ 0.002907175590447, -0.000310184967667 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "Room 103", "room_code": "103", "type": "classroom", "floor": 1, "building": "IT Building" }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.00521931320676, -0.000313350718278 ], [ 0.007638453193727, -0.000313350718278 ], [ 0.007635414073141, -0.001841015332848 ], [ 0.005220326246955, -0.001844054453433 ], [ 0.00521931320676, -0.000313350718278 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "Male Comfort Room", "room_code": "MCR", "type": "restroom", "floor": 1, "building": "IT Building" }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.00769923560546, -0.000313350718278 ], [ 0.009867141623932, -0.000313350718278 ], [ 0.009864102503345, -0.001321325712732 ], [ 0.007700248645656, -0.001321325712732 ], [ 0.00769923560546, -0.000313350718278 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "Female Comfort Room", "room_code": "FCR", "type": "restroom", "floor": 1, "building": "IT Building" }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.008251342512033, -0.001374003802886 ], [ 0.009863469353223, -0.001374510322983 ], [ 0.009863532668235, -0.003278962573943 ], [ 0.008246340626068, -0.003278772628906 ], [ 0.008251342512033, -0.001374003802886 ] ] ] ] } }
+]
+}

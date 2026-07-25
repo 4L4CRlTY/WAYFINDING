@@ -1,0 +1,23 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_2f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "MALE CR DOOR", "ent_type": "door", "room_code": "MCR", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.002233796703121, -0.001288535171127 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "BASE ROOM", "ent_type": "door", "room_code": "admin-202", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.002666134735419, -0.000980613766691 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "STOCK ROOM", "ent_type": "door", "room_code": "admin-203", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.005655985144424, -0.000981011615778 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "FEMALE CR DOOR", "ent_type": "door", "room_code": "admin-204", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.006035470020786, -0.001277945147334 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "REGISTRAR OFFICE DOOR A", "ent_type": "door", "room_code": "admin-205", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.002234265496626, -0.002096821715015 ] } },
+{ "type": "Feature", "properties": { "id": 6, "name": "RECORD'S OFFICE DOOR", "ent_type": "door", "room_code": "admin-206", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.006030536988669, -0.001963835877377 ] } },
+{ "type": "Feature", "properties": { "id": 7, "name": "CASHIER OFFICE DOOR", "ent_type": "door", "room_code": "admin-207", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.002235556903448, -0.005968055860604 ] } },
+{ "type": "Feature", "properties": { "id": 8, "name": "ACCOUNTING & BUDGET OFFICE", "ent_type": "door", "room_code": "admin-208", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.006030792791749, -0.004877912619575 ] } },
+{ "type": "Feature", "properties": { "id": 9, "name": "HEAD & ASSURANCE OFFICE DOOR", "ent_type": "door", "room_code": "admin-209", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.006036997883214, -0.006015990298007 ] } },
+{ "type": "Feature", "properties": { "id": 10, "name": "REGISTRAR OFFICE DOOR B", "ent_type": "door", "room_code": "admin-205", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.002235116660857, -0.003702736154933 ] } },
+{ "type": "Feature", "properties": { "id": 1, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.004142613226101, -0.007414451055788 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "SIDE DOOR  A", "ent_type": "door", "room_code": null, "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.003314392710031, -0.006222636375532 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "SIDE DOOR B", "ent_type": "door", "room_code": null, "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.004955955529307, -0.006233271643175 ] } },
+{ "type": "Feature", "properties": { "id": 11, "name": "STAIRS_2F_A", "ent_type": "stairs", "room_code": "STAIRS_2F_A", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.003348045810555, -0.001284881020103 ] } },
+{ "type": "Feature", "properties": { "id": 12, "name": "STAIRS_2F_B", "ent_type": "stairs", "room_code": "STAIRS_2F_B", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.004138716551303, -0.001542786260449 ] } },
+{ "type": "Feature", "properties": { "id": 13, "name": "STAIRS_2F_C", "ent_type": "stairs", "room_code": "STAIRS_2F_C", "floor": 2 }, "geometry": { "type": "Point", "coordinates": [ 0.004926553346744, -0.00127158693555 ] } }
+]
+}

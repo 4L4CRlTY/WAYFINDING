@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_rooms_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "CLASSROOM 101", "room_code": "bab-101", "type": "classroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.001953609706742, 0.000185898552794 ], [ 0.001983587721532, 0.000186395954941 ], [ 0.001982797278363, -0.003777899162684 ], [ -0.001940765005235, -0.003776904358388 ], [ -0.001953609706742, 0.000185898552794 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "CLASSROOM 102", "room_code": "bab-102", "type": "classroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.002057938782182, 0.000186955532358 ], [ 0.005732017440343, 0.000186831181821 ], [ 0.005732215051136, -0.003776469131509 ], [ 0.002057839976786, -0.00377721523473 ], [ 0.002057938782182, 0.000186955532358 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "CLASSROOM 103", "room_code": "bab-103", "type": "classroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.005806911930672, 0.000186831181821 ], [ 0.010006931712872, 0.000187328583968 ], [ 0.010006141269703, -0.003776717832583 ], [ 0.005807109541465, -0.00377721523473 ], [ 0.005806911930672, 0.000186831181821 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "MALE COMFORT ROOM", "room_code": "MCR", "type": "restroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.010080936954636, 0.000186706831284 ], [ 0.011943023451656, 0.000186831181821 ], [ 0.011943221062448, -0.001685639203411 ], [ 0.010080936954636, -0.001686136605559 ], [ 0.010080936954636, 0.000186706831284 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "FEMALE COMFORT ROOM", "room_code": "FCR", "type": "restroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.010080936954636, -0.001763731340609 ], [ 0.011943616284033, -0.001763731340609 ], [ 0.011942825840863, -0.00376179576815 ], [ 0.010080739343843, -0.003763287974593 ], [ 0.010080936954636, -0.001763731340609 ] ] ] ] } }
+]
+}

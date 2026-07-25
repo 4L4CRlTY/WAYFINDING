@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.013346197243567, -0.004212820789277 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Entrance", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.002274136645362, -0.004215799094168 ] } },
+{ "type": "Feature", "properties": { "id": 1, "name": "SSC OFFICE DOOR", "ent_type": "door", "room_code": "student-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.000391339590804, -0.003700772591935 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "SSC CONFERENCE HALL DOOR", "ent_type": "door", "room_code": "student-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.000180394371122, -0.002951508667869 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "STUDENT CENTER HALL DOOR", "ent_type": "door", "room_code": "student-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.009422671900188, -0.003675230404229 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "THE LITE PUBLICATION OFFICE DOOR", "ent_type": "door", "room_code": "student-104", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.012941797662892, -0.003697824779439 ] } }
+]
+}

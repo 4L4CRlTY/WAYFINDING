@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_rooms_2f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "LABORATORY 3 201", "room_code": "it-201", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.00227435160096, 0.000867077370345 ], [ 0.001305637296969, 0.000867181158009 ], [ 0.001305730552257, -0.003536404878323 ], [ -0.002274992731063, -0.00353690305911 ], [ -0.00227435160096, 0.000867077370345 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "LECTURE ROOM", "room_code": "it-202", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.001374273188745, 0.000867347218271 ], [ 0.008865283942256, 0.000867015097747 ], [ 0.008866029984558, -0.001676696000546 ], [ 0.001372035061839, -0.00168267416999 ], [ 0.001374273188745, 0.000867347218271 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "LABORATORY 2", "room_code": "it-203", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.008934152972251, 0.000867098127878 ], [ 0.012388049064246, 0.000866267826566 ], [ 0.01238581093734, -0.003543628499734 ], [ 0.008933127164086, -0.003538314571339 ], [ 0.008934152972251, 0.000867098127878 ] ] ] ] } }
+]
+}

@@ -1,0 +1,20 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "door 101", "ent_type": "door", "room_code": "admin-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.001959806607387, -0.00244718810743 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "door 102", "ent_type": "door", "room_code": "admin-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.002900730257344, -0.002447458819941 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "room 103", "ent_type": "door", "room_code": "admin-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.005404804576383, -0.002448339832031 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "door 104", "ent_type": "door", "room_code": "admin-104", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.006843902450181, -0.002449031382426 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "door 105", "ent_type": "door", "room_code": "admin-105", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.001256424978183, -0.003829802564786 ] } },
+{ "type": "Feature", "properties": { "id": 6, "name": "door 106", "ent_type": "door", "room_code": "admin-106", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.00337317369325, -0.003828198713089 ] } },
+{ "type": "Feature", "properties": { "id": 7, "name": "door 107", "ent_type": "door", "room_code": "admin-107", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.006554895519994, -0.003828337655762 ] } },
+{ "type": "Feature", "properties": { "id": 9, "name": "door 109", "ent_type": "door", "room_code": "admin-109", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.007057690305105, -0.003828673346986 ] } },
+{ "type": "Feature", "properties": { "id": 9, "name": "door 109", "ent_type": "door", "room_code": "admin-109", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.00412538454605, -0.007126198259592 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "MAIN ENTRANCE", "ent_type": "main", "room_code": null, "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.000278548147451, -0.003087611162809 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS OF A", "ent_type": "stairs", "room_code": "STAIRS_OF_A", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.003343480406713, -0.001372131602909 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS OF B", "ent_type": "stairs", "room_code": "STAIRS_OF_B", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.004147159091703, -0.00167249835134 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS OF C", "ent_type": "stairs", "room_code": "STAIRS_OF_C", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.004917846040856, -0.001380105941363 ] } }
+]
+}

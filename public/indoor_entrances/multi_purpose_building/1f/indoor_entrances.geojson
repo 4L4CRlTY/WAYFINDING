@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Main Entrance", "ent_type": "main", "room_code": null, "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.000093360128731, -0.003666352160944 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Dining Area Entrance", "ent_type": null, "room_code": null, "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.004765436190031, -0.004234491556087 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "DINING AREA DOOR", "ent_type": null, "room_code": null, "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.007716324869392, -0.003858184769967 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Dining Area", "ent_type": null, "room_code": null, "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.002064164275218, -0.002526376935532 ] } },
+{ "type": "Feature", "properties": { "id": 1, "name": "IGP OFFICE", "ent_type": "door", "room_code": "mpb-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.001843100302824, -0.001405202371965 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "STORAGE ROOM DOOR", "ent_type": "door", "room_code": "mpb-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.003228031492481, -0.000991991064535 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "STOCK ROOM DOOR", "ent_type": "door", "room_code": "mpb-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.005672844837559, 0.000037507633238 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "KITCHEN DOOR", "ent_type": "door", "room_code": "mpb-104", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.006597657989467, 0.000047301622114 ] } },
+{ "type": "Feature", "properties": { "id": 7, "name": "FEMALE COMFORT ROOM DOOR", "ent_type": "door", "room_code": "FCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.01024246509826, 0.000045936812993 ] } },
+{ "type": "Feature", "properties": { "id": 8, "name": "MALE COMFORT ROOM DOOR", "ent_type": "door", "room_code": "MCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.010243004216683, -0.000745360272867 ] } }
+]
+}

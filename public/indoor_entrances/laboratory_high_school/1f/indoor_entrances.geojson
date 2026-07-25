@@ -1,0 +1,20 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "CLASSROOM 101 A", "ent_type": "door", "room_code": "lhs-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.002109777643337, -0.003744869406985 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "CLASSROOM 101 B", "ent_type": "door", "room_code": "lhs-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.002120239131891, 0.000292898234089 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "CLASSROOM 102 A", "ent_type": "door", "room_code": "lhs-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.00076769774877, -0.003746120796375 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "CLASSROOM 102 B", "ent_type": "door", "room_code": "lhs-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.000767693147072, 0.000292803524211 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "CLASSROOM 103 A", "ent_type": "door", "room_code": "lhs-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.003398540247161, -0.003747630166107 ] } },
+{ "type": "Feature", "properties": { "id": 6, "name": "CLASSROOM 103 B", "ent_type": "door", "room_code": "lhs-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.003398530359741, 0.000292922120667 ] } },
+{ "type": "Feature", "properties": { "id": 7, "name": "CLASSROOM 104 A", "ent_type": "door", "room_code": "lhs-104", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.005879893063224, -0.003750880368384 ] } },
+{ "type": "Feature", "properties": { "id": 8, "name": "CLASSROOM 104 B", "ent_type": "door", "room_code": "lhs-104", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.005917256911093, 0.000293741172075 ] } },
+{ "type": "Feature", "properties": { "id": 9, "name": "FEMALE COMFORT ROOM DOOR", "ent_type": "door", "room_code": "FCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.009660359785362, -0.003749631759742 ] } },
+{ "type": "Feature", "properties": { "id": 10, "name": "MALE COMFORT ROOM", "ent_type": "door", "room_code": "MCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.009654231692499, 0.00029292871813 ] } },
+{ "type": "Feature", "properties": { "id": 11, "name": "HE ROOM DOOR", "ent_type": "door", "room_code": "lhs-107", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.010303935955413, -0.003850387895639 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.00341497322271, -0.004310512208048 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Entrance", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.002260002122751, -0.004081052548001 ] } }
+]
+}

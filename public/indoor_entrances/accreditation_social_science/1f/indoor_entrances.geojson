@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.002095926498012, -0.005465285519488 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "ACCREDITATION OFFICE DOOR", "ent_type": "door", "room_code": "ass-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.00208078892716, -0.004492927200032 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "SOCIAL SCIENCES OFFICE DOOR", "ent_type": "door", "room_code": "ass-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.011867940349969, -0.002891870577661 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Side Entrance", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.011886144344922, -0.003493631090246 ] } }
+]
+}

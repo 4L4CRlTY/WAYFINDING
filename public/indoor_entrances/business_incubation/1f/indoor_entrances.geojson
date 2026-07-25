@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrances_0f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "CLASSROOM DOOR", "ent_type": "door", "room_code": "bib-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.002198308965709, -0.001701870641246 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "FACAULTY OFFICE DOOR", "ent_type": "door", "room_code": "bib-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.004906402247021, -0.001701695195533 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "PANTRY DOOR", "ent_type": "door", "room_code": "bib-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.008906962478272, 0.000544653003991 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "CONFERENCE DOOR", "ent_type": "door", "room_code": "bib-104", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.004918446174057, -0.003122578435094 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "CLASSROOM DOOR", "ent_type": "door", "room_code": "bib-105", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.011794633941137, -0.00312397715874 ] } },
+{ "type": "Feature", "properties": { "id": 6, "name": "Side Entrance", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ -0.00211383357677, -0.002336928204317 ] } },
+{ "type": "Feature", "properties": { "id": 7, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.00186230007661, -0.002992861235035 ] } }
+]
+}

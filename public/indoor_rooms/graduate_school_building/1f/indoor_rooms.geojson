@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_rooms_1F",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "classroom 101", "room_code": "graduate-101", "type": "classroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.002082820509719, 0.000742174201758 ], [ 0.002541504464574, 0.000744464697948 ], [ 0.002535524089567, -0.002325945444239 ], [ -0.002085810697223, -0.002320219203765 ], [ -0.002082820509719, 0.000742174201758 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "classroom 102", "room_code": "graduate-102", "type": "classroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.002666344792849, 0.000742746825806 ], [ 0.007481294220495, 0.000741028953663 ], [ 0.007480546673619, -0.002325945444239 ], [ 0.002668587433476, -0.002323082324002 ], [ 0.002666344792849, 0.000742746825806 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "classroom 103", "room_code": "graduate-103", "type": "classroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.007609498509711, 0.000741601577711 ], [ 0.012212331511322, 0.00074074264164 ], [ 0.012211583964446, -0.002323941260073 ], [ 0.007608190302679, -0.00232680438031 ], [ 0.007609498509711, 0.000741601577711 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "COMFORT ROOM", "room_code": "CR", "type": "restroom", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.002080204095653, -0.002498162126496 ], [ 0.000179256336742, -0.002500166310662 ], [ 0.000161315211721, -0.005564850212374 ], [ -0.002081325415967, -0.005564850212374 ], [ -0.002080204095653, -0.002498162126496 ] ] ] ] } }
+]
+}

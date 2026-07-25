@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_path_2f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 2, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.00130571704645, -0.002898650351072 ], [ 0.00613365414671, -0.002939008955305 ], [ 0.008933261264031, -0.002962411960213 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Hallway", "path_type": "hallway", "floor": 2, "is_blocked": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 0.006122820350223, -0.001678884335631 ], [ 0.00613365414671, -0.002939008955305 ], [ 0.006148524272195, -0.003710685123633 ] ] ] } }
+]
+}

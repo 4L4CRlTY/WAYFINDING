@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_rooms_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "ACCREDITATION OFFICE", "room_code": "ass-101", "type": "office", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.002229801842046, -0.001141051306194 ], [ 0.006347991067422, -0.001139728935684 ], [ 0.006348747886983, -0.004492434065489 ], [ -0.002234847305789, -0.004493425843371 ], [ -0.002229801842046, -0.001141051306194 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "SOCIAL SCIENCES OFFICE", "room_code": "ass-102", "type": "office", "floor": 1 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.006439818507544, 0.000848868365707 ], [ 0.012362183849073, 0.000849116310177 ], [ 0.012362940668635, -0.002891621915926 ], [ 0.006440070780732, -0.002894597249571 ], [ 0.006439818507544, 0.000848868365707 ] ] ] ] } }
+]
+}

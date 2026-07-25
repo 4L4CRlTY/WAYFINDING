@@ -1,0 +1,18 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_3f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "GRADUATE & UNDERGRADUATE OFFICE DOOR", "ent_type": "door", "room_code": "admin-301", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.002234849214491, -0.002465526142831 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "BASE ROOM DOOR", "ent_type": "door", "room_code": "admin-302", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.002682907689587, -0.000980219329548 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "STOCK ROOM", "ent_type": "door", "room_code": "admin-303", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.005626819741674, -0.000980313463844 ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "HUMAN RESOURCES & MANAGEMENT OFFICE DOOR", "ent_type": "door", "room_code": "admin-304", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.006037273767265, -0.001817599194638 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "CAMPUS AD. OFFICE DOOR", "ent_type": "door", "room_code": "admin-305", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.001246184359715, -0.005102181819173 ] } },
+{ "type": "Feature", "properties": { "id": 6, "name": "OFFICE OF THE ADMIN OFFICER DOOR", "ent_type": "door", "room_code": "admin-306", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.006040792358106, -0.005867968177192 ] } },
+{ "type": "Feature", "properties": { "id": 7, "name": "SEC. OF CAMPUS AD.", "ent_type": "door", "room_code": "admin-307", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.002235031918711, -0.005631852523583 ] } },
+{ "type": "Feature", "properties": { "id": 8, "name": "CONFERENCE ROOM DOOR", "ent_type": "door", "room_code": "admin-308", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.004066780383202, -0.005237946017761 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS OF A", "ent_type": "stairs", "room_code": "STAIRS_OF_A", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.003348251423028, -0.0012817329384 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS OF B", "ent_type": "stairs", "room_code": "STAIRS_OF_B", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.00414353871484, -0.001545383429403 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS OF C", "ent_type": "stairs", "room_code": "STAIRS_OF_C", "floor": 3 }, "geometry": { "type": "Point", "coordinates": [ 0.004915690376345, -0.0012817329384 ] } }
+]
+}

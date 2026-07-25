@@ -1,0 +1,15 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrance_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.001218290525169, -0.004199509658176 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "SIDE ENTRANCE A", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.007070731753626, -0.004215426526905 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "SIDE ENTRANCE B", "ent_type": "side", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.01216829975502, -0.00420746809254 ] } },
+{ "type": "Feature", "properties": { "id": 1, "name": "CLASSROOM 101", "ent_type": "door", "room_code": "bab-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.001694136976699, -0.003777825973962 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "CLASSROOM 102", "ent_type": "door", "room_code": "bab-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.005470875390734, -0.003776522198046 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "CLASSROOM 103", "ent_type": "door", "room_code": "bab-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.009739268120091, -0.003776749445413 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "FEMALE COMFORT ROOM", "ent_type": "door", "room_code": "FCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.011631582929303, -0.003762045186573 ] } },
+{ "type": "Feature", "properties": { "id": 5, "name": "MALE COMFORT ROOM", "ent_type": "door", "room_code": "MCR", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.01166320534356, 0.000186812495507 ] } }
+]
+}

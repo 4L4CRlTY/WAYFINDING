@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_entrances_1f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "classroom 101", "ent_type": "door", "room_code": "graduate-101", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.002027164824898, -0.002325315542375 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "classroom 102 A", "ent_type": "door", "room_code": "graduate-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.003193382008141, -0.002323394577263 ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "classroom 102 B", "ent_type": "door", "room_code": "graduate-102", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.006703869309903, -0.002325483320483 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "classroom 103 A", "ent_type": "door", "room_code": "graduate-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.008222875642189, -0.002326422071482 ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "classroom 103", "ent_type": "door", "room_code": "graduate-103", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.011296757234706, -0.002324510244417 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "Main Entrance", "ent_type": "main", "room_code": "ENTRANCE", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.005286496592864, -0.005454906395272 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "STAIRS 1F", "ent_type": "stairs", "room_code": "stairs 1F", "floor": 1 }, "geometry": { "type": "Point", "coordinates": [ 0.002239495526712, -0.004996807157348 ] } }
+]
+}

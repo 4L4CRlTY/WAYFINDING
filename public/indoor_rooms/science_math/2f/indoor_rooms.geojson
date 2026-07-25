@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "indoor_rooms_2f",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "name": "FACULTY OFFICE", "room_code": "smb-201", "type": "office", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -0.002106040123231, 0.000859777027988 ], [ 0.001525851014845, 0.000860073061088 ], [ 0.001525851014845, -0.002957569801205 ], [ -0.002105480538546, -0.002956977735004 ], [ -0.002106040123231, 0.000859777027988 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 2, "name": "CHEMISTRY LEC & LAB ROOM", "room_code": "smb-202", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.001580923474324, 0.000859462492819 ], [ 0.00621687275065, 0.000858592895586 ], [ 0.006217245807108, -0.002958457900506 ], [ 0.001580900158295, -0.002959642032908 ], [ 0.001580923474324, 0.000859462492819 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 3, "name": "Analytical CHEM LEC & LAB Room", "room_code": "smb-203", "type": "classroom", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.006271338993387, 0.000859777027988 ], [ 0.010972596465734, 0.000859184961787 ], [ 0.010972596465734, -0.002958161867406 ], [ 0.00627096593693, -0.002958161867406 ], [ 0.006271338993387, 0.000859777027988 ] ] ] ] } },
+{ "type": "Feature", "properties": { "id": 4, "name": "WEIGHING ROOM", "room_code": "smb-204", "type": "room", "floor": 2 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 0.01102706270847, 0.000859332978337 ], [ 0.012260014299179, 0.000859925044538 ], [ 0.012260014299179, -0.002958013850856 ], [ 0.011027435764927, -0.002957421784655 ], [ 0.01102706270847, 0.000859332978337 ] ] ] ] } }
+]
+}
