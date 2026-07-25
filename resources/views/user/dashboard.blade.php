@@ -479,6 +479,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="{{ asset('js/wayfinding-routing.js') }}"></script>
     @include('user.script.script')
 </body>
 

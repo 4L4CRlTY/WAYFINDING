@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\IndoorMap;
 use App\Models\IndoorRoom;
+use App\Rules\ValidGeoJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -28,7 +29,7 @@ class IndoorRoomController extends Controller
     {
         $request->validate([
             'indoor_map_id' => 'required|exists:indoor_maps,id',
-            'geojson' => 'required|file|mimes:json,geojson,txt',
+            'geojson' => ['required', 'file', 'mimes:json,geojson,txt', new ValidGeoJson(['Polygon', 'MultiPolygon'])],
         ]);
 
         try {

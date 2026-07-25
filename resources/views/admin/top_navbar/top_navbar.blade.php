@@ -379,10 +379,13 @@
                     </a>
 
 
-                    <a href="{{ url('admin/logout') }}" class="dropdown-item">
-                        <i class="ri-logout-box-line fs-18 align-middle me-1"></i>
-                        <span>Logout</span>
-                    </a>
+                    <form method="POST" action="{{ route('admin.logout') }}">
+                        @csrf
+                        <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start">
+                            <i class="ri-logout-box-line fs-18 align-middle me-1"></i>
+                            <span>Logout</span>
+                        </button>
+                    </form>
                 </div>
             </li>
         </ul>

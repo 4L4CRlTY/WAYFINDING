@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Building;
+use App\Rules\ValidGeoJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -34,7 +35,7 @@ class BuildingController extends Controller
     public function uploadBuildings(Request $request)
     {
         $request->validate([
-            'geojson' => 'required|file|mimes:json,geojson,txt',
+            'geojson' => ['required', 'file', 'mimes:json,geojson,txt', new ValidGeoJson(['Polygon', 'MultiPolygon'])],
         ]);
 
         try {

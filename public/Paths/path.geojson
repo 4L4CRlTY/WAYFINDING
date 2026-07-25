@@ -1,6 +1,6 @@
 {
 "type": "FeatureCollection",
-"name": "campus_path",
+"name": "campus_paths",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
 { "type": "Feature", "properties": { "id": null, "name": "walkway", "type": "walkway" }, "geometry": { "type": "LineString", "coordinates": [ [ 124.983759535168943, 10.249878100050655 ], [ 124.98371734560493, 10.249768811091574 ] ] } },
@@ -58,6 +58,7 @@
 { "type": "Feature", "properties": { "id": null, "name": "walkway", "type": "walkway" }, "geometry": { "type": "LineString", "coordinates": [ [ 124.984468538141726, 10.249445931218215 ], [ 124.9844176929345, 10.249491494630089 ] ] } },
 { "type": "Feature", "properties": { "id": null, "name": "walkway", "type": "walkway" }, "geometry": { "type": "LineString", "coordinates": [ [ 124.983317119896142, 10.24835868687528 ], [ 124.983301557658308, 10.248312373651654 ], [ 124.983129778470001, 10.248363334810852 ] ] } },
 { "type": "Feature", "properties": { "id": null, "name": "Walkway", "type": "walkway" }, "geometry": { "type": "LineString", "coordinates": [ [ 124.982332018161216, 10.248811793210516 ], [ 124.982507222061642, 10.248765154962177 ], [ 124.983367342598811, 10.248520111402511 ] ] } },
-{ "type": "Feature", "properties": { "id": null, "name": "Walkway", "type": "walkway" }, "geometry": { "type": "LineString", "coordinates": [ ] } }
+{ "type": "Feature", "properties": { "id": null, "name": "Walkway", "type": "walkway" }, "geometry": { "type": "LineString", "coordinates": [ ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "MainRoad", "type": "road" }, "geometry": { "type": "LineString", "coordinates": [ [ 124.984838936833782, 10.250930285744845 ], [ 124.984892267158614, 10.25052174664914 ], [ 124.984856465290576, 10.250372886250421 ], [ 124.984826316349057, 10.250254174793215 ], [ 124.984777324319097, 10.250077049761828 ], [ 124.984741833610968, 10.249969324788394 ] ] } }
 ]
 }

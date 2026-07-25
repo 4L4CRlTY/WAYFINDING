@@ -403,21 +403,21 @@
                     @csrf
 
                     <div class="form-group">
-                        <label for="name" class="label">Name</label>
+                        <label for="username" class="label">Username</label>
 
                         <input
-                            id="name"
+                            id="username"
                             class="input"
                             type="text"
-                            name="name"
-                            value="{{ old('name') }}"
-                            placeholder="Enter your name"
+                            name="username"
+                            value="{{ old('username') }}"
+                            placeholder="Enter your username"
                             required
                             autofocus
-                            autocomplete="name"
+                            autocomplete="username"
                         >
 
-                        @error('name')
+                        @error('username')
                             <div class="error">{{ $message }}</div>
                         @enderror
                     </div>

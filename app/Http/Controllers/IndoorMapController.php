@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Building;
 use App\Models\IndoorMap;
+use App\Rules\ValidGeoJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -27,7 +28,7 @@ class IndoorMapController extends Controller
             'floor_label'     => 'nullable|string|max:20',
             'name'            => 'nullable|string|max:255',
             'floorplan_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'geometry_file'   => 'required|file|mimes:json,geojson',
+            'geometry_file'   => ['required', 'file', 'mimes:json,geojson', new ValidGeoJson(['Polygon', 'MultiPolygon'], false)],
         ]);
 
         try {
@@ -156,7 +157,7 @@ class IndoorMapController extends Controller
             'floor_label'     => 'nullable|string|max:20',
             'name'            => 'nullable|string|max:255',
             'floorplan_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'geometry_file'   => 'nullable|file|mimes:json,geojson',
+            'geometry_file'   => ['nullable', 'file', 'mimes:json,geojson', new ValidGeoJson(['Polygon', 'MultiPolygon'], false)],
         ]);
 
         try {

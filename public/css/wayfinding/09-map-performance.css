@@ -1,0 +1,246 @@
+/* =========================================================
+   SMOOTHNESS / PERFORMANCE CSS PATCH
+   Visual optimization only. No building color changes.
+   Paste this at the VERY BOTTOM of user.style.style.
+========================================================= */
+
+/* Make map rendering/compositing steadier */
+#map,
+.leaflet-container {
+    transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+    -webkit-font-smoothing: antialiased !important;
+}
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-overlay-pane svg {
+    backface-visibility: hidden !important;
+}
+
+/* During pan/zoom: temporarily reduce expensive effects only while moving */
+body.map-moving body.map-moving .path-interactive,
+body.map-moving .path-covered-stairs,
+body.map-moving .path-canopy-frames,
+body.map-moving .leaflet-marker-icon,
+body.map-moving .leaflet-popup,
+body.map-moving .route-building-map-popup {
+    transition: none !important;
+    animation: none !important;
+}
+
+body.map-moving .path-covered-stairs,
+body.map-moving .path-canopy-frames {
+    filter: none !important;
+}
+
+/* Pause non-essential pulsing effects while map is moving or tab is hidden */
+body.map-moving .ai-dot,
+body.map-moving .ai-voice-orb,
+body.map-moving .ai-voice-orb span,
+body.map-moving .hazard-pin,
+body.page-hidden .ai-dot,
+body.page-hidden .ai-voice-orb,
+body.page-hidden .ai-voice-orb span,
+body.page-hidden .hazard-pin {
+    animation-play-state: paused !important;
+}
+
+/* Lighter effects on mobile = less lag */
+@media (max-width: 768px) {
+    .leaflet-popup-content-wrapper,
+    .premium-legend,
+    .floating-ai-badge,
+    .floating-action-card,
+    .ai-transform-panel,
+    .floating-modal-card,
+    .floating-start-bar,
+    .indoor-panel,
+    .user-profile-menu {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .floating-ai-badge,
+    .floating-action-card,
+    .ai-transform-panel,
+    .floating-modal-card,
+    .floating-start-bar,
+    .indoor-panel,
+    .user-profile-menu {
+        box-shadow: 0 10px 28px rgba(8, 45, 28, 0.16) !important;
+    }
+
+    .floating-main-pin,
+    .pin-disc,
+    .floating-mode-btn,
+    .route-btn,
+    .user-profile-btn {
+        transition: transform 0.12s ease !important;
+    }
+
+    .ai-dot,
+    .badge-dot,
+    .hazard-pin {
+        animation-duration: 3.5s !important;
+    }
+}
+
+/* Respect devices/users that prefer fewer animations */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* =========================================================
+   3-LAYER LIGHTWEIGHT FAKE 3D BUILDINGS
+   Goal:
+   - Dili flat ang buildings.
+   - 3 visible fake-3D side layers.
+   - Still lighter than old heavy multi-shadow version.
+   - No duplicate shadow polygons.
+   - No routing / Dijkstra changes.
+========================================================= */
+
+:root {
+    --mobile-side-1: 1px;
+    --mobile-side-2: 2px;
+    --mobile-side-3: 3px;
+    --mobile-edge-width: 1.35;
+}
+
+/* Hide old duplicate shadow panes if cached */
+.leaflet-buildingShadowPane-pane,
+.fake-3d-building-shadow,
+.mobile-fake-3d-shadow {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Stable SVG rendering */
+.fake-3d-building,
+.leaflet-interactive.fake-3d-building,
+.leaflet-buildingsPane-pane .leaflet-interactive {
+    transform: none !important;
+    backface-visibility: hidden !important;
+    vector-effect: non-scaling-stroke !important;
+    shape-rendering: geometricPrecision !important;
+}
+
+/* No transition jank while moving/zooming */
+body.map-moving .fake-3d-building,
+body.map-moving .fake-3d-building:hover,
+body.map-zooming .fake-3d-building,
+body.map-zooming .fake-3d-building:hover {
+    transition: none !important;
+    transform: none !important;
+}
+
+/* Many-buildings mode keeps 3D visible, just lighter */
+body.many-buildings-mode .fake-3d-building,
+body.many-buildings-mode .fake-3d-building:hover {
+    transition: none !important;
+}
+
+/* During zoom: still fake 3D, but smaller 3 layers */
+body.map-zooming .fake-3d-building,
+body.map-zooming .fake-3d-building:hover {
+    filter:
+        drop-shadow(1px 1px 0 var(--building-side-1, rgba(15, 23, 42, 0.28)))
+        drop-shadow(2px 2px 0 var(--building-side-2, rgba(15, 23, 42, 0.20)))
+        drop-shadow(3px 3px 1px var(--building-side-3, rgba(15, 23, 42, 0.12))) !important;
+}
+
+/* Pause small animations while map is moving */
+body.map-moving .ai-dot,
+body.map-moving .badge-dot,
+body.map-moving .hazard-pin,
+body.map-zooming .ai-dot,
+body.map-zooming .badge-dot,
+body.map-zooming .hazard-pin {
+    animation-play-state: paused !important;
+}
+
+body.map-moving .path-interactive,
+body.map-moving .path-covered-stairs,
+body.map-moving .path-canopy-frames,
+body.map-zooming .path-interactive,
+body.map-zooming .path-covered-stairs,
+body.map-zooming .path-canopy-frames {
+    transition: none !important;
+}
+
+/* Mobile: readable edge, not too thick */
+@media (hover: none), (max-width: 768px) {
+    .fake-3d-building,
+    .fake-3d-building:hover,
+    body.map-moving .fake-3d-building,
+    body.map-moving .fake-3d-building:hover {
+        stroke-width: var(--mobile-edge-width, 1.35) !important;
+        vector-effect: non-scaling-stroke !important;
+    }
+}
+
+/* =========================================================
+   NOTIFICATION BELL RESTORE / ALWAYS VISIBLE FIX
+   Purpose:
+   - Notification icon must stay visible beside the profile icon.
+   - If there are no active/current campus events, show badge "0"
+     instead of hiding the bell.
+   - Does not change routing / Dijkstra / building fake 3D.
+========================================================= */
+
+.campus-event-notification-wrap {
+    position: fixed !important;
+    top: max(14px, env(safe-area-inset-top)) !important;
+    right: calc(max(14px, env(safe-area-inset-right)) + 62px) !important;
+    z-index: 10070 !important;
+    display: block;
+    pointer-events: auto !important;
+}
+
+.campus-event-notification-wrap.force-visible {
+    display: block !important;
+}
+
+.campus-event-bell-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.campus-event-bell-count.is-zero {
+    background: #94a3b8 !important;
+    color: #ffffff !important;
+}
+
+.campus-event-empty {
+    padding: 18px 14px;
+    text-align: center;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.55;
+    font-weight: 700;
+}
+
+.campus-event-empty-icon {
+    display: block;
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+
+@media (max-width: 420px) {
+    .campus-event-notification-wrap {
+        right: calc(max(10px, env(safe-area-inset-right)) + 58px) !important;
+        top: max(12px, env(safe-area-inset-top)) !important;
+    }
+}

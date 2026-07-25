@@ -1,58 +1,487 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Smart Campus Navigation System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A GIS-enabled campus wayfinding application for Southern Leyte State
+University – Tomas Oppus Campus. It provides outdoor and indoor navigation,
+destination search, GPS-assisted starting points, hazard-aware routing, campus
+events, and administrative tools for maintaining map data.
 
-## About Laravel
+The application builds its routing graphs in the browser from the current
+GeoJSON/API data. It does **not** use persisted `nodes` or `edges` database
+tables.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Main features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Outdoor routing between entry points, buildings, and land-use destinations
+- Floor-aware indoor routing to rooms and offices
+- GPS, map-picked, and configured entry-point starting locations
+- Text and voice destination search
+- Blocked-path avoidance and active hazard penalties
+- Admin management for maps, entrances, links, keywords, and campus events
+- Role-based access for `admin`, `staff`, and `user` accounts
+- Inactive-account enforcement, POST logout, API throttling, and response
+  caching
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Technology
 
-## Learning Laravel
+- PHP 8.3 and Laravel 13
+- MySQL/MariaDB or SQLite
+- Blade, Vite 8, Tailwind CSS, and Alpine.js
+- Leaflet and browser-side JavaScript routing
+- PHPUnit and Node's built-in test runner
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Requirements
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP 8.3 or newer with the extensions required by Laravel
+- Composer 2
+- Node.js 20.19+ or 22.12+
+- npm
+- MySQL/MariaDB for a shared installation, or SQLite for local development
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Local installation
 
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### 1. Install dependencies
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone <repository-url> wayfinding
+cd wayfinding
+composer install
+npm install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Create the environment file
 
-## Contributing
+Linux/macOS:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+cp .env.example .env
+```
 
-## Code of Conduct
+Windows PowerShell:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```powershell
+Copy-Item .env.example .env
+```
 
-## Security Vulnerabilities
+Then generate the application key:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan key:generate
+```
 
-## License
+Recommended local values:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```dotenv
+APP_NAME="Smart Campus Navigation System"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+APP_TIMEZONE=Asia/Manila
+```
+
+### 3. Configure the database
+
+For SQLite, keep `DB_CONNECTION=sqlite` and create the database file if it does
+not exist:
+
+```powershell
+New-Item database/database.sqlite -ItemType File
+```
+
+For MySQL or MariaDB, create an empty database and update `.env`:
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=wayfinding
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Create the tables and development accounts:
+
+```bash
+php artisan migrate --seed
+```
+
+The current seeder creates these development-only accounts:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@gmail.com` | `111` |
+| Staff | `staff@gmail.com` | `111` |
+| User | `user@gmail.com` | `111` |
+
+Do not use these credentials in production. Change or replace all seeded
+accounts immediately.
+
+### 4. Prepare storage and frontend assets
+
+```bash
+php artisan storage:link
+npm run build
+```
+
+### 5. Run the application
+
+Run the web server, queue listener, log viewer, and Vite development server
+together:
+
+```bash
+composer run dev
+```
+
+Alternatively, run the backend and frontend in separate terminals:
+
+```bash
+php artisan serve
+npm run dev
+```
+
+Open `http://localhost:8000`.
+
+## Common commands
+
+```bash
+# Run the PHP test suite
+composer test
+
+# Run JavaScript/module tests
+npm test
+
+# Build production frontend assets
+npm run build
+
+# Format PHP files
+vendor/bin/pint
+
+# Clear Laravel caches during local development
+php artisan optimize:clear
+```
+
+On Windows without a Unix-compatible shell, run Pint with:
+
+```powershell
+php vendor/bin/pint
+```
+
+## GeoJSON data format
+
+### Common requirements
+
+Unless stated otherwise, an upload must be a non-empty GeoJSON
+`FeatureCollection`:
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [124.9985, 10.2925]
+      }
+    }
+  ]
+}
+```
+
+GeoJSON coordinates must use `[longitude, latitude]`, not
+`[latitude, longitude]`.
+
+The server validates the following:
+
+- Longitude must be from `-180` through `180`.
+- Latitude must be from `-90` through `90`.
+- A `LineString` must contain at least two positions.
+- Every polygon ring must contain at least four positions.
+- The first and last positions of every polygon ring must match.
+- Every feature must use the geometry type allowed by its uploader.
+
+Indoor-map boundary uploads are the exception: they may be a raw `Polygon` or
+`MultiPolygon`, a single `Feature`, or a `FeatureCollection`.
+
+### Geometry and property matrix
+
+| Dataset | Allowed geometry | Recommended properties |
+| --- | --- | --- |
+| Buildings | `Polygon`, `MultiPolygon` | `name`, `color` |
+| Land uses | `Polygon`, `MultiPolygon` | `name` |
+| Outdoor paths | `LineString`, `MultiLineString` | `name`, `type`, `risk_level`, `difficulty_level`, `is_blocked`, `hazard_note` |
+| Campus entry points | `Point` | `name` |
+| Indoor-map boundary | `Polygon`, `MultiPolygon` | Boundary only; building and floor are selected in the admin form |
+| Indoor rooms | `Polygon`, `MultiPolygon` | `name`, `room_code`, `type` |
+| Indoor paths | `LineString`, `MultiLineString` | `name`, `path_type`, `is_blocked` |
+| Indoor entrances/doors | `Point` | `name`, `ent_type`, `room_code` |
+
+Supported outdoor path settings in the admin interface are:
+
+- `walkway`
+- `road`
+- `stairs`
+- `covered_stairs`
+
+`risk_level` and `difficulty_level` use values from `1` to `3`.
+`is_blocked` should be a JSON boolean (`true` or `false`).
+
+### Outdoor path example
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Library Walkway",
+        "type": "walkway",
+        "risk_level": 1,
+        "difficulty_level": 1,
+        "is_blocked": false,
+        "hazard_note": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [124.9981, 10.2921],
+          [124.9984, 10.2923],
+          [124.9987, 10.2925]
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Building example
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Engineering Building",
+        "color": "#2b82cc"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [124.9980, 10.2920],
+            [124.9983, 10.2920],
+            [124.9983, 10.2923],
+            [124.9980, 10.2923],
+            [124.9980, 10.2920]
+          ]
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Indoor room and door relationship
+
+Use the same `room_code` on a room polygon and its door point:
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Computer Laboratory",
+        "room_code": "201",
+        "type": "laboratory"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [124.9980, 10.2920],
+            [124.9981, 10.2920],
+            [124.9981, 10.2921],
+            [124.9980, 10.2921],
+            [124.9980, 10.2920]
+          ]
+        ]
+      }
+    }
+  ]
+}
+```
+
+The corresponding indoor-entrance feature should use a `Point` geometry and
+properties similar to:
+
+```json
+{
+  "name": "Door 201",
+  "ent_type": "door",
+  "room_code": "201"
+}
+```
+
+## Graph and routing rules
+
+### General
+
+- The browser derives graphs from data returned by the API.
+- Edges are bidirectional.
+- The route is selected with Dijkstra's lowest-total-cost algorithm.
+- A route is unavailable when the start or destination cannot be connected to
+  the generated graph.
+
+### Outdoor graph
+
+1. `LineString` and `MultiLineString` paths are flattened into individual
+   segments.
+2. Blocked paths are excluded. A path is treated as blocked when
+   `is_blocked`, `blocked`, or a `status` value of `blocked` is present.
+3. Crossing segments are automatically split at their intersection.
+4. Nearby endpoints and path points are snapped within approximately
+   `1.25 m`. Keep genuinely separate paths farther apart to prevent accidental
+   connections.
+5. Normal walkways and roads use their geographic distance as their base cost.
+6. Stairs use `distance × 1.25 + 2`; exact `covered_stairs` use
+   `distance × 1.15 + 1`.
+7. Active hazard points only affect routing when `affects_routing` is enabled.
+   Their current cost multipliers are:
+
+   | Severity | Multiplier |
+   | --- | --- |
+   | None | `1.0` |
+   | 1 | `1.7` |
+   | 2 | `4.0` |
+   | 3 | `200.0` |
+
+8. `risk_level`, `difficulty_level`, and `hazard_note` are retained as path
+   metadata. Current route weighting uses active hazard points rather than the
+   stored risk/difficulty values.
+9. Building-polygon overlap currently adds no routing penalty. Valid path
+   lines may therefore pass through a mapped building footprint when that is
+   how the campus data is digitized.
+
+### Indoor graph
+
+1. A graph is built per building from active indoor maps, paths, rooms,
+   entrances, and stair links.
+2. Blocked indoor paths are excluded.
+3. Hallways use geographic distance. Indoor paths whose `path_type` contains
+   `stairs` use `distance × 1.25 + 2`.
+4. An entrance connects to the nearest path node on the same floor.
+5. Rooms connect only through usable door entrances; the router does not draw
+   a direct shortcut through a wall.
+6. Door selection is attempted in this order:
+   - exact room/door `room_code` match;
+   - a door inside the room or within `1.8 m` of its boundary;
+   - the nearest same-floor door within `8 m` of the room boundary.
+7. If no usable door is found, routing to that room is intentionally disabled
+   until its door data is corrected.
+8. Room nodes may only be used as destinations. A route cannot pass through
+   one room as a shortcut to another.
+9. Travel between floors requires an explicit link between two indoor
+   entrances whose type is `stairs`. Each inter-floor stair link has a cost of
+   `6`.
+10. A complete room route joins an outdoor building entrance to an indoor
+    entrance. Explicit building-entrance links are recommended. Entrance
+    selection considers route cost, destination-floor proximity, and
+    main/primary entrance preference.
+
+### Preparing reliable map data
+
+- Split intended junctions in QGIS or place them within the snap tolerance.
+- Do not draw disconnected lines that merely look connected at the current
+  zoom level.
+- Keep parallel but unrelated paths more than `1.25 m` apart.
+- Mark closures with `is_blocked: true`.
+- Place indoor door points on or near the correct room boundary.
+- Give rooms and their doors matching, unique `room_code` values.
+- Create stair entrance points on every connected floor, then link them in the
+  admin interface.
+- Create explicit outdoor-to-indoor entrance links for every routable
+  building.
+
+## Public API behavior
+
+Public map endpoints are under `/api`, including buildings, paths, entry
+points, land uses, indoor datasets, entrance links, search, hazards, and
+campus events.
+
+- Map data is limited to `120` requests per minute per IP and cached for
+  `600` seconds.
+- Campus events are cached for `30` seconds.
+- Destination search is limited to `30` requests per minute per IP.
+- Successful admin data changes invalidate the current map-response cache.
+
+## Production deployment
+
+Use `.env.production.example` as the production template. Set the real
+application URL, key, database, mail, and secure infrastructure credentials.
+Keep these values:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+APP_TIMEZONE=Asia/Manila
+```
+
+Install and optimize:
+
+```bash
+composer install --no-dev --prefer-dist --optimize-autoloader
+npm ci
+npm run build
+php artisan migrate --force
+php artisan storage:link
+php artisan optimize
+```
+
+Important production rules:
+
+- Point the web-server document root at `public/`.
+- Serve the application through HTTPS.
+- Allow the web-server user to write to `storage/` and `bootstrap/cache/`.
+- Do not run the development user seeder in production.
+- Restart workers with `php artisan queue:restart` after deployments that
+  change queued code.
+- Monitor `GET /up`, `storage/logs/laravel.log`, and the queue-worker log.
+
+The repository includes:
+
+- [`docs/production-deployment.md`](docs/production-deployment.md) for the full
+  deployment checklist
+- [`.env.production.example`](.env.production.example) for environment values
+- [`deploy/wayfinding-worker.conf`](deploy/wayfinding-worker.conf) for a
+  Supervisor-managed queue worker
+
+## Project structure
+
+```text
+app/Http/Controllers/       Admin and public API controllers
+app/Http/Middleware/        Account, role, cache, and API middleware
+app/Rules/                  Shared GeoJSON validation
+app/Support/                Wayfinding response-cache support
+database/migrations/        Application database schema
+public/js/wayfinding/       Browser map, routing, GPS, search, events, and UI modules
+public/css/wayfinding/      Component-based map interface styles
+resources/views/            Blade pages and layouts
+routes/api.php              Public wayfinding API
+routes/web.php              Authentication and role-protected web routes
+tests/                      PHP and JavaScript regression tests
+```
+
+## Security notes
+
+- Only active accounts (`status = 1`) can sign in or continue using an
+  authenticated session.
+- Role-protected pages return HTTP `403` when the account has the wrong role.
+- Logout actions use POST requests with CSRF protection.
+- Never commit `.env`, production credentials, uploaded secrets, or private
+  keys.
+- Keep PHP, Composer, npm packages, the web server, and the database patched.

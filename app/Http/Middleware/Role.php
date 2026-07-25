@@ -13,11 +13,14 @@ class Role
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next,$role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if($request->user()->role !== $role){
-            return redirect('dashboard');
+        $user = $request->user();
+
+        if (! $user || ! in_array($user->role, $roles, true)) {
+            abort(Response::HTTP_FORBIDDEN);
         }
+
         return $next($request);
     }
 }

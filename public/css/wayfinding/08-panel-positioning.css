@@ -1,0 +1,337 @@
+/* =========================================================
+   FINAL CENTER + LOWER PANEL FIX
+   For Text Search, Voice Search, and Browse Destination.
+   Design/layout only. No routing algorithm or building color changes.
+   Paste this at the VERY BOTTOM of user.style.style.
+========================================================= */
+
+/* Keep the bottom dock working but never above opened panels */
+#floating-route-ui {
+    z-index: 10040 !important;
+    pointer-events: none !important;
+}
+
+#floating-route-ui > *,
+#floating-route-ui .ai-orb-shell,
+#floating-route-ui .ai-transform-panel,
+#floating-route-ui .floating-start-bar,
+#floating-route-ui .floating-main-pin {
+    pointer-events: auto !important;
+}
+
+/* Prevent the orb shell from pulling panels upward/sideways */
+.ai-orb-shell {
+    position: static !important;
+    display: contents !important;
+}
+
+/* Text Search and Voice Search: true fixed center, slightly lower for mobile comfort */
+#ai-search-panel,
+#ai-voice-panel {
+    position: fixed !important;
+    top: 54% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+
+    width: min(360px, calc(100vw - 44px)) !important;
+    max-height: calc(100dvh - 150px) !important;
+    overflow-y: auto !important;
+
+    margin: 0 !important;
+    z-index: 25000 !important;
+    border-radius: 28px !important;
+}
+
+/* Text search should stack neatly */
+#ai-search-panel .ai-search-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+}
+
+#ai-search-panel .ai-search-input,
+#ai-search-panel .ai-search-submit,
+#ai-search-panel .ai-record-inline-btn {
+    width: 100% !important;
+}
+
+/* Voice search should stack neatly */
+#ai-voice-panel .ai-voice-core {
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+#ai-voice-panel .ai-voice-button-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+}
+
+#ai-voice-panel .ai-stop-voice,
+#ai-voice-panel .ai-record-again-btn {
+    width: 100% !important;
+}
+
+/* Keep close button visible */
+.ai-transform-close {
+    position: absolute !important;
+    top: 14px !important;
+    right: 16px !important;
+    z-index: 3 !important;
+}
+
+/* Browse Destination modal: center it and keep it above bottom buttons/orb */
+#browseOptionsModal.floating-modal-backdrop,
+#browseOptionsModal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 30000 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 18px !important;
+    background: rgba(8, 45, 28, 0.38) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+#browseOptionsModal[style*="display: flex"],
+#browseOptionsModal[style*="display:flex"] {
+    display: flex !important;
+}
+
+#browseOptionsModal .floating-modal-card {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+
+    width: min(430px, calc(100vw - 36px)) !important;
+    max-height: calc(100dvh - 56px) !important;
+    overflow-y: auto !important;
+
+    margin: 0 auto !important;
+    padding: 24px !important;
+    border-radius: 28px !important;
+    z-index: 30001 !important;
+}
+
+/* Browse buttons should stay inside the card, not under the bottom dock */
+#browseOptionsModal .floating-modal-actions {
+    position: static !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-top: 18px !important;
+}
+
+#browseOptionsModal .floating-modal-actions .route-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 999px !important;
+}
+
+#browseOptionsModal .route-field {
+    margin-bottom: 14px !important;
+}
+
+#browseOptionsModal .route-select {
+    height: 50px !important;
+}
+
+/* Mobile tuning */
+@media (max-width: 768px) {
+    #ai-search-panel,
+    #ai-voice-panel {
+        top: 53% !important;
+        width: calc(100vw - 44px) !important;
+        max-height: calc(100dvh - 145px) !important;
+        border-radius: 24px !important;
+    }
+
+    #browseOptionsModal {
+        padding: 12px !important;
+    }
+
+    #browseOptionsModal .floating-modal-card {
+        width: calc(100vw - 24px) !important;
+        max-height: calc(100dvh - 36px) !important;
+        padding: 22px 18px !important;
+        border-radius: 24px !important;
+    }
+}
+
+@media (max-width: 420px) {
+    #ai-search-panel,
+    #ai-voice-panel {
+        top: 52% !important;
+        width: calc(100vw - 34px) !important;
+    }
+}
+/* =========================================================
+   LOWER TEXT SEARCH / VOICE SEARCH PANEL FIX
+   Purpose: place the Text Search and Voice Search panels lower,
+   near the bottom route buttons, without changing routing logic.
+   Paste this at the VERY BOTTOM of user.style.style.
+========================================================= */
+
+/* Keep the bottom route dock clickable */
+#floating-route-ui {
+    z-index: 10040 !important;
+    pointer-events: none !important;
+}
+
+#floating-route-ui > *,
+#floating-route-ui .ai-orb-shell,
+#floating-route-ui .ai-transform-panel,
+#floating-route-ui .floating-start-bar,
+#floating-route-ui .floating-main-pin {
+    pointer-events: auto !important;
+}
+
+/* Do not let the old orb wrapper position pull the panels upward */
+.ai-orb-shell {
+    position: static !important;
+    display: contents !important;
+}
+
+/* Put Text Search and Voice Search above the bottom buttons */
+#ai-search-panel,
+#ai-voice-panel {
+    position: fixed !important;
+
+    top: auto !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: 104px !important;
+
+    transform: translateX(-50%) !important;
+
+    width: min(360px, calc(100vw - 44px)) !important;
+    max-height: calc(100dvh - 145px) !important;
+    overflow-y: auto !important;
+
+    margin: 0 !important;
+    z-index: 25000 !important;
+    border-radius: 28px !important;
+}
+
+/* Text search layout */
+#ai-search-panel .ai-search-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+}
+
+#ai-search-panel .ai-search-input,
+#ai-search-panel .ai-search-submit,
+#ai-search-panel .ai-record-inline-btn {
+    width: 100% !important;
+}
+
+/* Voice search layout */
+#ai-voice-panel .ai-voice-core {
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+#ai-voice-panel .ai-voice-button-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+}
+
+#ai-voice-panel .ai-stop-voice,
+#ai-voice-panel .ai-record-again-btn {
+    width: 100% !important;
+}
+
+/* Keep close button visible */
+.ai-transform-close {
+    position: absolute !important;
+    top: 14px !important;
+    right: 16px !important;
+    z-index: 3 !important;
+}
+
+/* Browse Destination modal stays centered and above the bottom buttons */
+#browseOptionsModal.floating-modal-backdrop,
+#browseOptionsModal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 30000 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 18px !important;
+    background: rgba(8, 45, 28, 0.38) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+#browseOptionsModal[style*="display: flex"],
+#browseOptionsModal[style*="display:flex"] {
+    display: flex !important;
+}
+
+#browseOptionsModal .floating-modal-card {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+
+    width: min(430px, calc(100vw - 36px)) !important;
+    max-height: calc(100dvh - 56px) !important;
+    overflow-y: auto !important;
+
+    margin: 0 auto !important;
+    padding: 24px !important;
+    border-radius: 28px !important;
+    z-index: 30001 !important;
+}
+
+#browseOptionsModal .floating-modal-actions {
+    position: static !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-top: 18px !important;
+}
+
+#browseOptionsModal .floating-modal-actions .route-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 999px !important;
+}
+
+/* Mobile tuning: keep it close to the bottom buttons */
+@media (max-width: 768px) {
+    #ai-search-panel,
+    #ai-voice-panel {
+        bottom: 96px !important;
+        width: calc(100vw - 44px) !important;
+        max-height: calc(100dvh - 130px) !important;
+        border-radius: 24px !important;
+    }
+
+    #browseOptionsModal {
+        padding: 12px !important;
+    }
+
+    #browseOptionsModal .floating-modal-card {
+        width: calc(100vw - 24px) !important;
+        max-height: calc(100dvh - 36px) !important;
+        padding: 22px 18px !important;
+        border-radius: 24px !important;
+    }
+}
+
+/* Very small phones */
+@media (max-width: 420px) {
+    #ai-search-panel,
+    #ai-voice-panel {
+        bottom: 88px !important;
+        width: calc(100vw - 34px) !important;
+        max-height: calc(100dvh - 120px) !important;
+    }
+}

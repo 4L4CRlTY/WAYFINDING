@@ -1,0 +1,1339 @@
+/* =========================================================
+   LANDUSE LABEL REMOVE PATCH
+   Hide landuse center labels like Open Field Area and multipurpose.
+   This keeps landuse polygons, image overlays, popups, and routing active.
+========================================================= */
+.landuse-label {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+<!-- ROUTE STATUS BUBBLE REMOVED / HIDDEN FALLBACK -->
+    #route-status-bubble,
+    body.indoor-open #route-status-bubble {
+        display: none !important;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROUTE BUILDING POPUP - MAP ANCHORED + MOBILE FRIENDLY CTA
+    |--------------------------------------------------------------------------
+    | This popup is now a Leaflet popup anchored above the selected building.
+    | The old fixed popup is hidden so it will not follow the phone screen.
+    */
+    #route-building-popup {
+        display: none !important;
+    }
+
+    .route-building-map-popup {
+        z-index: 120050 !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-content-wrapper {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.97)) !important;
+        backdrop-filter: blur(18px) !important;
+        -webkit-backdrop-filter: blur(18px) !important;
+        border-radius: 24px !important;
+        border: 1px solid rgba(37, 99, 235, 0.20) !important;
+        box-shadow:
+            0 24px 60px rgba(15, 23, 42, 0.24),
+            0 0 0 1px rgba(255, 255, 255, 0.75) inset,
+            0 0 28px rgba(37, 99, 235, 0.14) !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-content {
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-tip {
+        background: rgba(255, 255, 255, 0.98) !important;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18) !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-close-button {
+        width: 32px !important;
+        height: 32px !important;
+        right: 10px !important;
+        top: 10px !important;
+        color: #64748b !important;
+        font-size: 23px !important;
+        line-height: 30px !important;
+        border-radius: 999px !important;
+        z-index: 5 !important;
+        background: rgba(241, 245, 249, 0.85) !important;
+        transition: 0.18s ease !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-close-button:hover {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    .route-building-map-popup-inner {
+        width: 315px;
+        max-width: calc(100vw - 28px);
+        padding: 18px 18px 16px;
+        text-align: center;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: #0f172a;
+    }
+
+    .route-building-map-popup-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.10);
+        color: #1d4ed8;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+    }
+
+    .route-building-map-popup-pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+        animation: indoorPopupPulse 1.35s infinite;
+    }
+
+    @keyframes indoorPopupPulse {
+        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+        70% { box-shadow: 0 0 0 9px rgba(34, 197, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    .route-building-map-popup-head {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        padding: 0 32px 0 12px;
+        margin-bottom: 12px;
+    }
+
+    .route-building-map-popup-icon {
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #dbeafe, #dcfce7);
+        font-size: 18px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .route-building-map-popup-title-wrap {
+        min-width: 0;
+        text-align: left;
+    }
+
+    .route-building-map-popup-title {
+        display: block;
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 900;
+        line-height: 1.25;
+        word-break: break-word;
+    }
+
+    .route-building-map-popup-subtitle {
+        display: block;
+        margin-top: 2px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .route-building-map-popup-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.38), transparent);
+        margin: 0 -18px 14px;
+    }
+
+    .route-building-map-popup-btn {
+        position: relative;
+        width: 100%;
+        min-height: 58px;
+        border: none;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #2563eb, #16a34a);
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: 0.035em;
+        cursor: pointer;
+        padding: 13px 16px;
+        font-family: inherit;
+        box-shadow:
+            0 16px 32px rgba(37, 99, 235, 0.28),
+            0 8px 20px rgba(22, 163, 74, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.28);
+        transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+        overflow: hidden;
+        touch-action: manipulation;
+        animation: indoorButtonAttention 1.9s ease-in-out infinite;
+    }
+
+    .route-building-map-popup-btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.28) 45%, transparent 70%);
+        transform: translateX(-120%);
+        animation: indoorButtonShine 2.4s ease-in-out infinite;
+    }
+
+    .route-building-map-popup-btn:hover {
+        transform: translateY(-2px);
+        box-shadow:
+            0 20px 38px rgba(37, 99, 235, 0.34),
+            0 10px 24px rgba(22, 163, 74, 0.22);
+        filter: saturate(1.08);
+    }
+
+    .route-building-map-popup-btn:active {
+        transform: scale(0.98);
+    }
+
+    .route-building-map-popup-btn-main {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        line-height: 1.15;
+    }
+
+    .route-building-map-popup-btn-icon {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .route-building-map-popup-btn-text {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .route-building-map-popup-btn-text strong {
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: 0.035em;
+    }
+
+    .route-building-map-popup-btn-text small {
+        margin-top: 2px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0;
+        opacity: 0.88;
+    }
+
+    .route-building-map-popup-hint {
+        margin-top: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        font-size: 11px;
+        color: #475569;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .route-building-map-popup-hint-icon {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 20px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #2563eb;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+    }
+
+    @keyframes indoorButtonAttention {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-2px); }
+    }
+
+    @keyframes indoorButtonShine {
+        0% { transform: translateX(-130%); }
+        45%, 100% { transform: translateX(130%); }
+    }
+
+    @media (max-width: 768px) {
+        .route-building-map-popup {
+            margin-bottom: 10px !important;
+        }
+
+        .route-building-map-popup-inner {
+            width: min(342px, calc(100vw - 24px));
+            padding: 18px 16px 15px;
+        }
+
+        .route-building-map-popup .leaflet-popup-content-wrapper {
+            border-radius: 24px !important;
+        }
+
+        .route-building-map-popup-head {
+            padding-right: 34px;
+            margin-bottom: 13px;
+        }
+
+        .route-building-map-popup-title {
+            font-size: 14px;
+        }
+
+        .route-building-map-popup-subtitle {
+            font-size: 10px;
+        }
+
+        .route-building-map-popup-btn {
+            min-height: 64px;
+            border-radius: 20px;
+            padding: 14px 15px;
+        }
+
+        .route-building-map-popup-btn-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 17px;
+        }
+
+        .route-building-map-popup-btn-text strong {
+            font-size: 13px;
+        }
+
+        .route-building-map-popup-btn-text small {
+            font-size: 10px;
+        }
+
+        .route-building-map-popup-hint {
+            font-size: 10.5px;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .route-building-map-popup-inner {
+            width: min(318px, calc(100vw - 18px));
+            padding: 16px 13px 13px;
+        }
+
+        .route-building-map-popup-btn {
+            min-height: 62px;
+            padding: 12px 12px;
+        }
+
+        .route-building-map-popup-btn-text strong {
+            font-size: 12px;
+        }
+
+        .route-building-map-popup-btn-text small {
+            font-size: 9.5px;
+        }
+    }
+
+
+
+    /* LIVE GREEN ROUTE STYLE */
+    .route-line-live {
+        filter: drop-shadow(0 0 8px rgba(22, 163, 74, 0.38));
+    }
+
+    .route-line-live-indoor {
+        filter: drop-shadow(0 0 8px rgba(22, 163, 74, 0.30));
+    }
+
+
+    .running-route-arrow {
+        color: var(--route-arrow-color, #16a34a);
+        font-size: 24px;
+        font-weight: 900;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-shadow:
+            0 0 3px #ffffff,
+            0 0 8px rgba(22, 163, 74, 0.65),
+            0 3px 8px rgba(15, 23, 42, 0.25);
+        transform-origin: center center;
+        will-change: transform;
+        pointer-events: none;
+    }
+
+    .route-line-live,
+    .route-line-live-indoor {
+        filter: drop-shadow(0 0 8px rgba(22, 163, 74, 0.45));
+    }
+
+
+
+/* =========================================================
+   FINAL MOBILE FIX: INDOOR ROOMS CTA AS BOTTOM SHEET
+   Mobile only: do NOT use the wide Leaflet popup because it can be
+   clipped on small screens like iPhone SE. Desktop keeps map popup.
+========================================================= */
+@media (max-width: 768px) {
+    .route-building-map-popup {
+        display: none !important;
+    }
+
+    #route-building-popup.mobile-active {
+        display: block !important;
+        position: fixed !important;
+        left: 10px !important;
+        right: 10px !important;
+        top: auto !important;
+        bottom: calc(86px + env(safe-area-inset-bottom)) !important;
+        transform: none !important;
+        z-index: 120500 !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        padding: 12px !important;
+        border-radius: 24px !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        border: 1px solid rgba(37, 99, 235, 0.22) !important;
+        box-shadow:
+            0 18px 45px rgba(15, 23, 42, 0.26),
+            0 0 0 1px rgba(255, 255, 255, 0.76) inset !important;
+        backdrop-filter: blur(18px) !important;
+        -webkit-backdrop-filter: blur(18px) !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-close {
+        position: absolute !important;
+        top: 8px !important;
+        right: 8px !important;
+        width: 32px !important;
+        height: 32px !important;
+        border: none !important;
+        border-radius: 999px !important;
+        background: #f1f5f9 !important;
+        color: #334155 !important;
+        font-size: 22px !important;
+        font-weight: 900 !important;
+        line-height: 28px !important;
+        cursor: pointer !important;
+        z-index: 2 !important;
+    }
+
+    #route-building-popup.mobile-active::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 7px;
+        width: 44px;
+        height: 5px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        transform: translateX(-50%);
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-head {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 16px 38px 8px 4px !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-icon {
+        width: 42px !important;
+        height: 42px !important;
+        flex: 0 0 42px !important;
+        border-radius: 16px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: linear-gradient(135deg, #dbeafe, #dcfce7) !important;
+        font-size: 20px !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-title {
+        color: #0f172a !important;
+        font-size: 15px !important;
+        line-height: 1.2 !important;
+        font-weight: 950 !important;
+        text-align: left !important;
+        padding-right: 4px !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-title::before {
+        content: "● INDOOR AVAILABLE";
+        display: block;
+        width: max-content;
+        max-width: 100%;
+        margin-bottom: 5px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.10);
+        color: #1d4ed8;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-divider {
+        display: none !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-btn {
+        position: relative !important;
+        width: 100% !important;
+        min-height: 58px !important;
+        margin-top: 6px !important;
+        border: none !important;
+        border-radius: 20px !important;
+        background: linear-gradient(135deg, #2563eb, #16a34a) !important;
+        color: #ffffff !important;
+        font-family: inherit !important;
+        cursor: pointer !important;
+        padding: 12px 14px !important;
+        box-shadow:
+            0 14px 28px rgba(37, 99, 235, 0.30),
+            0 7px 18px rgba(22, 163, 74, 0.20) !important;
+        overflow: hidden !important;
+        touch-action: manipulation !important;
+        animation: mobileIndoorCtaBounce 1.75s ease-in-out infinite !important;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-main {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 11px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-icon {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-text {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+        text-align: left;
+        line-height: 1.1;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-text strong {
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-text small {
+        margin-top: 3px;
+        font-size: 10px;
+        font-weight: 800;
+        opacity: 0.9;
+        white-space: nowrap;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-hint {
+        margin-top: 9px !important;
+        padding: 0 4px !important;
+        color: #475569 !important;
+        font-size: 10.5px !important;
+        line-height: 1.35 !important;
+        font-weight: 750 !important;
+        text-align: center !important;
+    }
+
+    @keyframes mobileIndoorCtaBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-2px); }
+    }
+}
+
+@media (max-width: 380px) {
+    #route-building-popup.mobile-active {
+        left: 8px !important;
+        right: 8px !important;
+        bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+        padding: 10px !important;
+        border-radius: 22px !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-head {
+        gap: 8px !important;
+        padding-top: 15px !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-icon {
+        width: 38px !important;
+        height: 38px !important;
+        flex-basis: 38px !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-title {
+        font-size: 14px !important;
+    }
+
+    #route-building-popup.mobile-active .route-building-popup-btn {
+        min-height: 56px !important;
+        padding: 11px 12px !important;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-icon {
+        width: 31px;
+        height: 31px;
+        flex-basis: 31px;
+        font-size: 16px;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-text strong {
+        font-size: 12px;
+    }
+
+    #route-building-popup.mobile-active .mobile-indoor-cta-text small {
+        font-size: 9px;
+    }
+}
+
+/* =========================================================
+   FINAL FIX: MOBILE POPUP ABOVE BUILDING, NOT BOTTOM SHEET
+   This overrides the previous mobile bottom CTA. The indoor button
+   stays anchored above the selected building but is compact enough
+   for small phones like iPhone SE.
+========================================================= */
+@media (max-width: 768px) {
+    #route-building-popup,
+    #route-building-popup.mobile-active {
+        display: none !important;
+    }
+
+    .route-building-map-popup {
+        display: block !important;
+        z-index: 120800 !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-content-wrapper {
+        border-radius: 20px !important;
+        max-width: calc(100vw - 36px) !important;
+        overflow: hidden !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-content {
+        width: auto !important;
+        max-width: calc(100vw - 36px) !important;
+        margin: 0 !important;
+    }
+
+    .route-building-map-popup-inner {
+        width: min(250px, calc(100vw - 46px)) !important;
+        max-width: calc(100vw - 46px) !important;
+        padding: 12px 12px 11px !important;
+    }
+
+    .route-building-map-popup-kicker {
+        margin-bottom: 7px !important;
+        padding: 5px 8px !important;
+        font-size: 8.5px !important;
+        letter-spacing: 0.07em !important;
+    }
+
+    .route-building-map-popup-head {
+        gap: 7px !important;
+        padding: 0 30px 0 4px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .route-building-map-popup-icon {
+        width: 31px !important;
+        height: 31px !important;
+        flex-basis: 31px !important;
+        border-radius: 12px !important;
+        font-size: 15px !important;
+    }
+
+    .route-building-map-popup-title {
+        font-size: 13px !important;
+        line-height: 1.15 !important;
+        max-width: 160px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .route-building-map-popup-subtitle {
+        font-size: 9.5px !important;
+        margin-top: 1px !important;
+    }
+
+    .route-building-map-popup-divider {
+        margin: 0 -12px 10px !important;
+    }
+
+    .route-building-map-popup-btn {
+        min-height: 48px !important;
+        border-radius: 16px !important;
+        padding: 10px 11px !important;
+    }
+
+    .route-building-map-popup-btn-main {
+        gap: 8px !important;
+    }
+
+    .route-building-map-popup-btn-icon {
+        width: 27px !important;
+        height: 27px !important;
+        flex-basis: 27px !important;
+        font-size: 14px !important;
+    }
+
+    .route-building-map-popup-btn-text strong {
+        font-size: 11.5px !important;
+        white-space: nowrap !important;
+    }
+
+    .route-building-map-popup-btn-text small {
+        font-size: 8.8px !important;
+        white-space: nowrap !important;
+    }
+
+    .route-building-map-popup-hint {
+        margin-top: 8px !important;
+        font-size: 9px !important;
+        line-height: 1.25 !important;
+    }
+
+    .route-building-map-popup-hint-icon {
+        width: 17px !important;
+        height: 17px !important;
+        flex-basis: 17px !important;
+        font-size: 10px !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-close-button {
+        width: 28px !important;
+        height: 28px !important;
+        right: 7px !important;
+        top: 7px !important;
+        font-size: 20px !important;
+        line-height: 26px !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .route-building-map-popup-inner {
+        width: min(238px, calc(100vw - 42px)) !important;
+        padding: 11px 11px 10px !important;
+    }
+
+    .route-building-map-popup-title {
+        max-width: 148px !important;
+        font-size: 12.5px !important;
+    }
+
+    .route-building-map-popup-btn-text strong {
+        font-size: 11px !important;
+    }
+
+    .route-building-map-popup-btn-text small {
+        font-size: 8.5px !important;
+    }
+}
+
+/* =========================================================
+   MOBILE MAP DRAG FIX FOR INDOOR POPUP ABOVE BUILDING
+   Problem: popup/card can catch touch events, so the map cannot drag.
+   Fix: popup container lets drag pass through, but the real buttons remain clickable.
+========================================================= */
+@media (max-width: 768px) {
+    .route-building-map-popup,
+    .route-building-map-popup .leaflet-popup-content-wrapper,
+    .route-building-map-popup .leaflet-popup-content,
+    .route-building-map-popup .route-building-map-popup-inner,
+    .route-building-map-popup .route-building-map-popup-head,
+    .route-building-map-popup .route-building-map-popup-kicker,
+    .route-building-map-popup .route-building-map-popup-divider,
+    .route-building-map-popup .route-building-map-popup-hint,
+    .route-building-map-popup .leaflet-popup-tip {
+        pointer-events: none !important;
+        touch-action: pan-x pan-y !important;
+    }
+
+    .route-building-map-popup .route-building-map-popup-btn,
+    .route-building-map-popup .leaflet-popup-close-button {
+        pointer-events: auto !important;
+        touch-action: manipulation !important;
+    }
+
+    .route-building-map-popup .leaflet-popup-content-wrapper {
+        max-width: calc(100vw - 26px) !important;
+    }
+
+    .route-building-map-popup-inner {
+        max-width: calc(100vw - 28px) !important;
+    }
+}
+
+
+/* =========================================================
+   FINAL FIX: popup above building but map can still drag on mobile
+   Only the OPEN INDOOR ROOMS button and X close are touchable.
+   The rest of the popup becomes transparent to touch/drag.
+========================================================= */
+@media (max-width: 768px) {
+    #route-building-popup,
+    #route-building-popup.mobile-active {
+        display: none !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup {
+        display: block !important;
+        pointer-events: none !important;
+        touch-action: pan-x pan-y !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-content-wrapper,
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-content,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-kicker,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-head,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-title-wrap,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-title,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-subtitle,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-divider,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-hint,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-hint-icon,
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-tip {
+        pointer-events: none !important;
+        touch-action: pan-x pan-y !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn,
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-close-button {
+        pointer-events: auto !important;
+        touch-action: manipulation !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn * {
+        pointer-events: none !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-content-wrapper {
+        max-width: calc(100vw - 28px) !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner {
+        width: min(248px, calc(100vw - 42px)) !important;
+        max-width: calc(100vw - 42px) !important;
+    }
+}
+
+/* =========================================================
+   INDOOR ROUTE MOVING ARROW ANIMATION
+   Green glowing route + visible moving arrows inside indoor map
+========================================================= */
+.route-line-live-indoor {
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    filter:
+        drop-shadow(0 0 4px rgba(34, 197, 94, 0.65))
+        drop-shadow(0 0 12px rgba(34, 197, 94, 0.35));
+}
+
+.running-route-arrow-indoor {
+    color: #16a34a;
+    font-size: 20px;
+    font-weight: 950;
+    line-height: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow:
+        0 0 4px #ffffff,
+        0 0 9px rgba(34, 197, 94, 0.95),
+        0 3px 8px rgba(15, 23, 42, 0.35);
+    transform-origin: center center;
+    will-change: transform;
+    pointer-events: none;
+}
+
+.running-route-arrow-indoor::before {
+    content: "";
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.16);
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.50);
+    z-index: -1;
+}
+
+.indoor-route-live-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 10px;
+    margin-left: 6px;
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.indoor-route-live-label::before {
+    content: "➤";
+    font-size: 11px;
+    animation: indoorLiveArrowHint 1s linear infinite;
+}
+
+@keyframes indoorLiveArrowHint {
+    0% { transform: translateX(-2px); opacity: 0.55; }
+    50% { transform: translateX(2px); opacity: 1; }
+    100% { transform: translateX(-2px); opacity: 0.55; }
+}
+
+@media (max-width: 768px) {
+    .running-route-arrow-indoor {
+        font-size: 18px;
+    }
+
+    .running-route-arrow-indoor::before {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+
+/* FINAL FIX: make indoor moving arrows visible above rooms/floorplan */
+.leaflet-marker-icon .running-route-arrow-indoor,
+.running-route-arrow-indoor {
+    color: #16a34a !important;
+    font-size: 24px !important;
+    font-weight: 950 !important;
+    z-index: 99999 !important;
+    transform-origin: center center !important;
+    pointer-events: none !important;
+    filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 8px rgba(22, 163, 74, 0.95));
+}
+
+.leaflet-marker-icon:has(.running-route-arrow-indoor) {
+    z-index: 99999 !important;
+}
+
+@media (max-width: 768px) {
+    .leaflet-marker-icon .running-route-arrow-indoor,
+    .running-route-arrow-indoor {
+        font-size: 22px !important;
+    }
+}
+
+
+    /* =========================================================
+       HAZARD ICON - SAME SCREEN SIZE / NO SCALE
+       - Severity 1 = White
+       - Severity 2 = Yellow
+       - Severity 3 = Red
+       - Same pixel size in zoom in and zoom out.
+       - No transform scale.
+    ========================================================= */
+    .hazard-pin-wrap {
+        width: 34px;
+        height: 42px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        position: relative;
+        overflow: visible;
+        pointer-events: auto;
+    }
+
+    .hazard-pin {
+        --hazard-bg: #ffffff;
+        --hazard-fg: #0f172a;
+
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--hazard-bg);
+        color: var(--hazard-fg);
+        border: 2px solid #ffffff;
+        box-shadow:
+            0 8px 18px rgba(15, 23, 42, 0.30),
+            inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        font-size: 16px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .hazard-pin::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: -7px;
+        width: 12px;
+        height: 12px;
+        background: var(--hazard-bg);
+        border-right: 2px solid #ffffff;
+        border-bottom: 2px solid #ffffff;
+        transform: translateX(-50%) rotate(45deg);
+        border-bottom-right-radius: 3px;
+        box-shadow: 4px 4px 8px rgba(15, 23, 42, 0.10);
+    }
+
+    .hazard-pin.severity-1 {
+        --hazard-bg: #ffffff;
+        --hazard-fg: #0f172a;
+        border-color: #e2e8f0;
+    }
+
+    .hazard-pin.severity-1::after {
+        border-color: #e2e8f0;
+    }
+
+    .hazard-pin.severity-2 {
+        --hazard-bg: #facc15;
+        --hazard-fg: #713f12;
+    }
+
+    .hazard-pin.severity-3 {
+        --hazard-bg: #dc2626;
+        --hazard-fg: #ffffff;
+    }
+
+    .hazard-pin-symbol {
+        position: relative;
+        z-index: 2;
+        transform: translateY(-1px);
+        user-select: none;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .hazard-popup-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        margin-top: 8px;
+    }
+
+    .hazard-popup-badge.severity-1 {
+        background: #f8fafc;
+        color: #0f172a;
+        border: 1px solid #e2e8f0;
+    }
+
+    .hazard-popup-badge.severity-2 {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+    }
+
+    .hazard-popup-badge.severity-3 {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+    }
+
+/* =========================================================
+   FINAL FIX: OPEN INDOOR ROOMS POPUP ZOOM-SCALE
+   Purpose: kung mag zoom out ka, mo gamay ang popup/button para
+   dili niya matabunan ang route. Ang button ug X close clickable gihapon.
+========================================================= */
+.route-building-map-popup {
+    --route-popup-scale: 1;
+}
+
+.leaflet-popup-pane .route-building-map-popup .leaflet-popup-content-wrapper {
+    transform: scale(var(--route-popup-scale)) !important;
+    transform-origin: bottom center !important;
+    will-change: transform !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .leaflet-popup-tip-container {
+    transform: scale(var(--route-popup-scale)) !important;
+    transform-origin: top center !important;
+    will-change: transform !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .leaflet-popup-content {
+    margin: 0 !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner {
+    width: 285px !important;
+    max-width: 285px !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn {
+    min-height: 42px !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup.zoom-out-small .leaflet-popup-content-wrapper {
+    opacity: 0.92 !important;
+}
+
+@media (max-width: 768px) {
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner {
+        width: 230px !important;
+        max-width: 230px !important;
+        padding: 10px 10px 9px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-content-wrapper {
+        border-radius: 14px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-kicker,
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-hint {
+        font-size: 8.5px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-head {
+        gap: 6px !important;
+        margin-bottom: 7px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-title {
+        font-size: 11px !important;
+        max-width: 132px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-subtitle {
+        font-size: 8px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-icon {
+        width: 24px !important;
+        height: 24px !important;
+        flex-basis: 24px !important;
+        font-size: 13px !important;
+        border-radius: 10px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn {
+        min-height: 34px !important;
+        padding: 7px 9px !important;
+        border-radius: 11px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn-icon {
+        width: 22px !important;
+        height: 22px !important;
+        flex-basis: 22px !important;
+        font-size: 13px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn-text strong {
+        font-size: 9.5px !important;
+        line-height: 1.1 !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn-text small {
+        font-size: 7.5px !important;
+        line-height: 1.1 !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-close-button {
+        transform: scale(var(--route-popup-scale)) !important;
+        transform-origin: center center !important;
+    }
+}
+
+
+/* =========================================================
+   FIX: Custom X inside scaled OPEN INDOOR ROOMS popup
+   - Default Leaflet close button is hidden/disabled in JS
+   - This custom X follows the popup scale during zoom out
+========================================================= */
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner {
+    position: relative !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close {
+    position: absolute !important;
+    top: -8px !important;
+    right: -8px !important;
+    z-index: 30 !important;
+
+    width: 22px !important;
+    height: 22px !important;
+    border: 1px solid rgba(148, 163, 184, 0.35) !important;
+    border-radius: 999px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: rgba(255, 255, 255, 0.96) !important;
+    color: #64748b !important;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14) !important;
+
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close:hover {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .leaflet-popup-close-button {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close {
+        top: -7px !important;
+        right: -7px !important;
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 13px !important;
+    }
+}
+
+
+
+/* =========================================================
+   FINAL FIX: Visible X close button for scaled route popup
+   - Button is INSIDE the card, not outside, so it won't be clipped
+   - Higher contrast so visible on white map/background
+========================================================= */
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner {
+    position: relative !important;
+    overflow: visible !important;
+    padding-top: 18px !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close {
+    position: absolute !important;
+    top: 7px !important;
+    right: 7px !important;
+    z-index: 99999 !important;
+
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border: 2px solid rgba(255, 255, 255, 0.95) !important;
+    border-radius: 999px !important;
+    background: #0f172a !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.28) !important;
+
+    font-size: 17px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close:hover,
+.leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close:focus {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    outline: none !important;
+}
+
+.leaflet-popup-pane .route-building-map-popup .leaflet-popup-close-button {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+@media (max-width: 768px) {
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner {
+        padding-top: 18px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close {
+        top: 6px !important;
+        right: 6px !important;
+        width: 23px !important;
+        height: 23px !important;
+        min-width: 23px !important;
+        min-height: 23px !important;
+        font-size: 16px !important;
+    }
+}
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROUTE ARROW ANIMATION REMOVED
+    |--------------------------------------------------------------------------
+    | Safety CSS: if an old marker class remains from browser cache or old code,
+    | keep it hidden. The route itself stays visible as a static green line.
+    */
+    .running-route-arrow,
+    .running-route-arrow-indoor,
+    .leaflet-marker-icon .running-route-arrow,
+    .leaflet-marker-icon .running-route-arrow-indoor,
+    .indoor-route-live-label {
+        display: none !important;
+    }

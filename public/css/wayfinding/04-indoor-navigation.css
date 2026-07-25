@@ -1,0 +1,1300 @@
+/* =========================================================
+   ROUTE BUILDING POPUP
+   Shows after routing to a building/room and opens indoor rooms.
+========================================================= */
+
+.route-building-popup {
+    position: fixed;
+    z-index: 10035;
+    width: min(300px, calc(100vw - 28px));
+    background: rgba(255, 255, 255, 0.94);
+    color: #334155;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 18px;
+    padding: 16px 18px 18px;
+    box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    pointer-events: auto;
+    animation: routePopupIn 0.22s ease;
+}
+
+@keyframes routePopupIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -8px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+.route-building-popup::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -11px;
+    width: 22px;
+    height: 22px;
+    transform: translateX(-50%) rotate(45deg);
+    background: rgba(255, 255, 255, 0.94);
+    border-right: 1px solid rgba(226, 232, 240, 0.9);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 4px;
+}
+
+.route-building-popup-close {
+    position: absolute;
+    top: 8px;
+    right: 9px;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: #64748b;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.route-building-popup-close:hover {
+    background: rgba(15, 23, 42, 0.06);
+    color: #0f172a;
+}
+
+.route-building-popup-head {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding-right: 18px;
+}
+
+.route-building-popup-icon {
+    font-size: 18px;
+}
+
+.route-building-popup-title {
+    font-size: 15px;
+    font-weight: 900;
+    color: #1e293b;
+    text-align: center;
+}
+
+.route-building-popup-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.55), transparent);
+    margin: 12px 4px 13px;
+}
+
+.route-building-popup-btn {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    padding: 7px 6px;
+    border-radius: 12px;
+    font-family: inherit;
+}
+
+.route-building-popup-btn:hover {
+    color: #0f766e;
+    background: rgba(20, 184, 166, 0.08);
+}
+
+.route-building-popup-hint {
+    margin-top: 6px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.route-building-popup.route-popup-ai {
+    background:
+        radial-gradient(circle at top right, rgba(16, 163, 127, 0.10), transparent 36%),
+        rgba(255, 255, 255, 0.94);
+}
+
+@media (max-width: 768px) {
+    .route-building-popup {
+        width: min(290px, calc(100vw - 24px));
+        padding: 15px 16px 17px;
+    }
+}
+
+
+/* =========================================================
+   INDOOR FRONT MODE FIX
+   Indoor panel stays in front; floating controls/status/popups move back.
+========================================================= */
+
+body.indoor-open #floating-route-ui,
+body.indoor-open #route-status-bubble,
+body.indoor-open #route-building-popup,
+body.indoor-open .leaflet-control-container {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(10px) scale(0.98) !important;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease !important;
+}
+
+body.indoor-open .floating-modal-backdrop {
+    display: none !important;
+}
+
+body.indoor-open #map {
+    filter: blur(2px) brightness(0.96);
+}
+
+.indoor-backdrop {
+    z-index: 120000 !important;
+    background: rgba(2, 6, 23, 0.52) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.indoor-panel {
+    z-index: 120010 !important;
+    width: min(1180px, 96vw) !important;
+    height: min(820px, 94vh) !important;
+    border-radius: 26px !important;
+    box-shadow:
+        0 34px 90px rgba(2, 8, 23, 0.34),
+        0 0 0 1px rgba(255,255,255,0.60) inset !important;
+}
+
+.indoor-panel.active {
+    display: block !important;
+    animation: indoorFrontPop 0.22s ease;
+}
+
+@keyframes indoorFrontPop {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.975);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Make indoor UI cleaner and readable when it is in front */
+.indoor-header {
+    position: relative;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.96) !important;
+}
+
+.indoor-toolbar {
+    position: relative;
+    z-index: 5;
+    background: rgba(248, 250, 252, 0.96) !important;
+}
+
+.indoor-sidebar,
+.indoor-main,
+.indoor-map-wrap,
+#indoorMap {
+    position: relative;
+    z-index: 1;
+}
+
+#indoorMap .leaflet-control-container {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+}
+
+body.indoor-open .indoor-panel .leaflet-control-container {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+}
+
+@media (max-width: 768px) {
+    .indoor-panel {
+        width: 98vw !important;
+        height: 94vh !important;
+        border-radius: 22px !important;
+    }
+
+    body.indoor-open #map {
+        filter: blur(1px) brightness(0.96);
+    }
+}
+
+
+/* =========================================================
+   INDOOR ROOM MAP FOCUS MODE
+   Removes left room list/search and turns floor dropdown into big buttons.
+========================================================= */
+
+.indoor-panel {
+    width: min(1240px, 98vw) !important;
+    height: min(880px, 96vh) !important;
+}
+
+.indoor-header {
+    min-height: 72px;
+}
+
+.indoor-floor-toolbar {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px !important;
+    min-height: 76px;
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96)) !important;
+}
+
+.indoor-floor-select-hidden,
+.indoor-room-search-hidden {
+    display: none !important;
+}
+
+.indoor-floor-buttons {
+    width: min(720px, 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.indoor-floor-btn {
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    border-radius: 18px;
+    min-width: 132px;
+    padding: 15px 22px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(239,246,255,0.96));
+    color: #1e293b;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow:
+        0 12px 26px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255,255,255,0.90);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.indoor-floor-btn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(37, 99, 235, 0.34);
+    box-shadow:
+        0 16px 32px rgba(37, 99, 235, 0.12),
+        inset 0 1px 0 rgba(255,255,255,0.95);
+}
+
+.indoor-floor-btn.active {
+    color: #ffffff;
+    border-color: rgba(37, 99, 235, 0.70);
+    background:
+        radial-gradient(circle at top left, rgba(34,211,238,0.20), transparent 34%),
+        linear-gradient(180deg, #3b82f6, #1d4ed8);
+    box-shadow:
+        0 18px 38px rgba(37, 99, 235, 0.28),
+        0 0 0 4px rgba(37, 99, 235, 0.10),
+        inset 0 1px 0 rgba(255,255,255,0.20);
+}
+
+.indoor-body {
+    display: block !important;
+    height: calc(100% - 148px) !important;
+}
+
+.indoor-sidebar {
+    display: none !important;
+}
+
+.indoor-main {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+}
+
+.indoor-map-wrap {
+    height: calc(100% - 48px) !important;
+    min-height: 560px;
+    background: #f8fafc;
+}
+
+#indoorMap {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.indoor-footer {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px !important;
+}
+
+/* More readable room labels/features when map is bigger */
+.room-item {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .indoor-panel {
+        width: 100vw !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+    }
+
+    .indoor-header {
+        min-height: 68px;
+        padding: 12px 14px !important;
+    }
+
+    .indoor-title {
+        font-size: 16px !important;
+    }
+
+    .indoor-subtitle {
+        font-size: 11px !important;
+    }
+
+    .indoor-close {
+        padding: 10px 13px !important;
+        border-radius: 14px !important;
+    }
+
+    .indoor-floor-toolbar {
+        padding: 10px 12px !important;
+        min-height: 72px;
+        overflow-x: auto;
+        justify-content: flex-start;
+    }
+
+    .indoor-floor-buttons {
+        width: max-content;
+        min-width: 100%;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 10px;
+        padding-bottom: 2px;
+    }
+
+    .indoor-floor-btn {
+        min-width: 112px;
+        padding: 14px 18px;
+        font-size: 14px;
+        flex: 0 0 auto;
+    }
+
+    .indoor-body {
+        height: calc(100% - 140px) !important;
+    }
+
+    .indoor-map-wrap {
+        height: calc(100% - 44px) !important;
+        min-height: 0;
+    }
+
+    .indoor-footer {
+        min-height: 44px;
+        font-size: 11px !important;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
+
+/* =========================================================
+   FINAL MOBILE FRIENDLY PATCH
+   Responsive floating buttons, modals, status box, indoor map.
+========================================================= */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+button,
+select,
+input {
+    -webkit-tap-highlight-color: transparent;
+}
+
+#map {
+    width: 100vw !important;
+    height: 100dvh !important;
+}
+
+/* ---------- Floating Navigator ---------- */
+#floating-route-ui {
+    max-width: calc(100vw - 16px) !important;
+}
+
+.floating-start-bar {
+    max-width: calc(100vw - 16px) !important;
+}
+
+.floating-mode-btn,
+.floating-action-btn,
+.ai-search-submit,
+.ai-record-inline-btn,
+.ai-stop-voice,
+.ai-record-again-btn,
+.route-btn,
+.indoor-close,
+.indoor-floor-btn {
+    touch-action: manipulation;
+}
+
+/* ---------- Modals ---------- */
+.floating-modal-backdrop {
+    padding: 12px !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.floating-modal-card {
+    max-height: min(680px, calc(100dvh - 24px)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- Status bubble ---------- */
+#route-status-bubble {
+    max-height: 40dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- Indoor front priority ---------- */
+body.indoor-open #floating-route-ui,
+body.indoor-open #route-status-bubble,
+body.indoor-open #route-building-popup,
+body.indoor-open .floating-modal-backdrop {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ---------- Indoor Panel Responsive ---------- */
+.indoor-panel {
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+}
+
+.indoor-floor-toolbar {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.indoor-floor-buttons {
+    flex-wrap: nowrap !important;
+}
+
+.indoor-map-wrap {
+    min-height: 0 !important;
+}
+
+#indoorMap {
+    min-height: 0 !important;
+}
+
+.indoor-footer {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 900px) {
+    #route-status-bubble {
+        top: 12px !important;
+        right: 12px !important;
+        width: min(330px, calc(100vw - 24px)) !important;
+        font-size: 11px !important;
+        line-height: 1.55 !important;
+        padding: 12px 14px !important;
+        border-radius: 18px !important;
+    }
+
+    #floating-route-ui {
+        bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        gap: 8px !important;
+    }
+
+    .floating-ai-badge {
+        font-size: 9px !important;
+        padding: 6px 10px !important;
+    }
+
+    .floating-main-pin {
+        width: 92px !important;
+        height: 92px !important;
+    }
+
+    .pin-disc {
+        width: 72px !important;
+        height: 72px !important;
+    }
+
+    .pin-icon {
+        width: 31px !important;
+        height: 44px !important;
+    }
+
+    .pin-hole {
+        width: 11px !important;
+        height: 11px !important;
+        top: 12px !important;
+    }
+
+    .ai-orb-shell {
+        min-height: 96px !important;
+    }
+
+    .floating-start-bar {
+        padding: 8px !important;
+        gap: 8px !important;
+        border-radius: 22px !important;
+    }
+
+    .floating-mode-btn {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        padding: 12px 9px !important;
+        font-size: 11px !important;
+        border-radius: 15px !important;
+        white-space: nowrap;
+    }
+
+    .floating-action-card {
+        width: min(360px, calc(100vw - 22px)) !important;
+        bottom: 104px !important;
+        padding: 15px !important;
+        border-radius: 22px !important;
+    }
+
+    .floating-action-title {
+        font-size: 14px !important;
+    }
+
+    .floating-action-btn {
+        padding: 12px 14px !important;
+        font-size: 13px !important;
+        border-radius: 15px !important;
+    }
+
+    .ai-transform-panel {
+        width: min(520px, calc(100vw - 20px)) !important;
+        padding: 15px !important;
+        border-radius: 24px !important;
+    }
+
+    .ai-search-row {
+        grid-template-columns: 1fr !important;
+        gap: 9px !important;
+    }
+
+    .ai-search-input,
+    .ai-search-submit,
+    .ai-record-inline-btn {
+        width: 100% !important;
+        min-height: 48px !important;
+    }
+
+    .ai-voice-core {
+        grid-template-columns: 56px 1fr !important;
+        gap: 12px !important;
+    }
+
+    .ai-voice-orb {
+        width: 56px !important;
+        height: 56px !important;
+    }
+
+    .ai-voice-button-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .route-building-popup {
+        width: min(290px, calc(100vw - 24px)) !important;
+    }
+}
+
+/* ---------- Phone portrait ---------- */
+@media (max-width: 600px) {
+    #map {
+        height: 100dvh !important;
+    }
+
+    #route-status-bubble {
+        top: 8px !important;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-height: 25dvh !important;
+        padding: 10px 12px !important;
+        font-size: 10px !important;
+        border-radius: 16px !important;
+    }
+
+    .route-status-pill {
+        font-size: 9px !important;
+        padding: 5px 9px !important;
+    }
+
+    #floating-route-ui {
+        width: calc(100vw - 12px) !important;
+        bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    }
+
+    .floating-ai-badge {
+        display: none !important;
+    }
+
+    .ai-orb-shell {
+        min-height: 80px !important;
+    }
+
+    .floating-main-pin {
+        width: 78px !important;
+        height: 78px !important;
+    }
+
+    .pin-disc {
+        width: 61px !important;
+        height: 61px !important;
+    }
+
+    .pin-icon {
+        width: 26px !important;
+        height: 37px !important;
+    }
+
+    .pin-hole {
+        width: 9px !important;
+        height: 9px !important;
+        top: 10px !important;
+    }
+
+    .floating-start-bar {
+        width: calc(100vw - 12px) !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        padding: 7px !important;
+        gap: 6px !important;
+        border-radius: 18px !important;
+    }
+
+    .floating-mode-btn {
+        min-width: 0 !important;
+        width: 100% !important;
+        padding: 11px 5px !important;
+        font-size: 9.5px !important;
+        border-radius: 13px !important;
+        letter-spacing: 0 !important;
+    }
+
+    .floating-action-card {
+        bottom: 86px !important;
+        width: calc(100vw - 18px) !important;
+        padding: 14px !important;
+        border-radius: 20px !important;
+    }
+
+    .floating-action-kicker {
+        font-size: 9px !important;
+    }
+
+    .floating-action-title {
+        font-size: 13px !important;
+    }
+
+    .floating-action-btn {
+        min-height: 46px !important;
+        padding: 11px 12px !important;
+        font-size: 12px !important;
+        border-radius: 14px !important;
+    }
+
+    .ai-transform-panel {
+        width: calc(100vw - 16px) !important;
+        padding: 14px !important;
+        border-radius: 20px !important;
+        max-height: 58dvh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ai-transform-kicker {
+        font-size: 9px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .ai-search-input {
+        font-size: 13px !important;
+        min-height: 46px !important;
+        border-radius: 15px !important;
+    }
+
+    .ai-transform-hint,
+    .ai-text-result-note,
+    .ai-voice-result-note,
+    .floating-voice-status,
+    .floating-heard-text {
+        font-size: 10.5px !important;
+    }
+
+    .ai-text-result-card,
+    .ai-voice-result-card {
+        padding: 10px 12px !important;
+        border-radius: 15px !important;
+    }
+
+    .floating-modal-backdrop {
+        padding: 8px !important;
+        align-items: flex-end !important;
+    }
+
+    .floating-modal-card {
+        width: 100% !important;
+        max-height: 86dvh !important;
+        border-radius: 24px 24px 18px 18px !important;
+        padding: 18px !important;
+    }
+
+    .floating-modal-title {
+        font-size: 17px !important;
+    }
+
+    .floating-modal-subtitle {
+        font-size: 11px !important;
+    }
+
+    .route-select,
+    .route-input {
+        min-height: 48px !important;
+        font-size: 13px !important;
+        border-radius: 14px !important;
+    }
+
+    .floating-modal-actions {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 9px !important;
+    }
+
+    .route-btn {
+        width: 100% !important;
+        min-height: 46px !important;
+        font-size: 12px !important;
+        border-radius: 14px !important;
+    }
+
+    .route-building-popup {
+        width: calc(100vw - 28px) !important;
+        max-width: 300px !important;
+        padding: 14px 15px 16px !important;
+    }
+
+    /* Indoor becomes real fullscreen on phone */
+    .indoor-backdrop.active {
+        background: rgba(2, 6, 23, 0.62) !important;
+    }
+
+    .indoor-panel {
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+        display: none;
+    }
+
+    .indoor-panel.active {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .indoor-header {
+        flex: 0 0 auto !important;
+        min-height: 62px !important;
+        padding: max(10px, env(safe-area-inset-top)) 12px 10px !important;
+        gap: 10px !important;
+    }
+
+    .indoor-title {
+        font-size: 15px !important;
+        line-height: 1.2 !important;
+    }
+
+    .indoor-subtitle {
+        font-size: 10px !important;
+    }
+
+    .indoor-close {
+        min-width: 68px !important;
+        min-height: 42px !important;
+        padding: 9px 12px !important;
+        border-radius: 14px !important;
+        font-size: 12px !important;
+    }
+
+    .indoor-floor-toolbar {
+        flex: 0 0 auto !important;
+        min-height: 64px !important;
+        padding: 9px 10px !important;
+        justify-content: flex-start !important;
+    }
+
+    .indoor-floor-buttons {
+        width: max-content !important;
+        min-width: 100% !important;
+        justify-content: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .indoor-floor-btn {
+        flex: 0 0 auto !important;
+        min-width: 102px !important;
+        min-height: 46px !important;
+        padding: 12px 15px !important;
+        font-size: 13px !important;
+        border-radius: 15px !important;
+    }
+
+    .indoor-body {
+        flex: 1 1 auto !important;
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    .indoor-sidebar {
+        display: none !important;
+    }
+
+    .indoor-main {
+        height: 100% !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .indoor-map-wrap {
+        flex: 1 1 auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    #indoorMap {
+        height: 100% !important;
+        min-height: 0 !important;
+    }
+
+    .indoor-footer {
+        flex: 0 0 auto !important;
+        min-height: 42px !important;
+        padding: 8px 10px max(8px, env(safe-area-inset-bottom)) !important;
+        font-size: 10px !important;
+    }
+
+    .indoor-badge {
+        font-size: 9px !important;
+        padding: 4px 8px !important;
+    }
+
+    .indoor-room-label-pill {
+        max-width: 92px !important;
+        padding: 5px 7px !important;
+    }
+
+    .indoor-room-label-name {
+        font-size: 9px !important;
+    }
+
+    .leaflet-control-zoom a {
+        width: 34px !important;
+        height: 34px !important;
+        line-height: 34px !important;
+    }
+
+    .leaflet-popup-content {
+        max-width: 230px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* ---------- Very small phones ---------- */
+@media (max-width: 380px) {
+    .floating-mode-btn {
+        font-size: 8.5px !important;
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+    }
+
+    .floating-main-pin {
+        width: 70px !important;
+        height: 70px !important;
+    }
+
+    .pin-disc {
+        width: 55px !important;
+        height: 55px !important;
+    }
+
+    .indoor-floor-btn {
+        min-width: 92px !important;
+        font-size: 12px !important;
+    }
+
+    .route-status-pill {
+        font-size: 8px !important;
+    }
+}
+
+/* ---------- Landscape phones ---------- */
+@media (max-height: 520px) and (orientation: landscape) {
+    #route-status-bubble {
+        display: none !important;
+    }
+
+    #floating-route-ui {
+        bottom: 6px !important;
+        transform: translateX(-50%) scale(0.88) !important;
+        transform-origin: bottom center !important;
+    }
+
+    .ai-orb-shell {
+        min-height: 68px !important;
+    }
+
+    .floating-main-pin {
+        width: 68px !important;
+        height: 68px !important;
+    }
+
+    .pin-disc {
+        width: 52px !important;
+        height: 52px !important;
+    }
+
+    .floating-start-bar {
+        padding: 6px !important;
+    }
+
+    .floating-mode-btn {
+        min-height: 38px !important;
+        padding: 8px 10px !important;
+    }
+
+    .indoor-panel.active {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .indoor-header {
+        min-height: 52px !important;
+        padding: 8px 12px !important;
+    }
+
+    .indoor-floor-toolbar {
+        min-height: 54px !important;
+        padding: 6px 10px !important;
+    }
+
+    .indoor-floor-btn {
+        min-height: 38px !important;
+        padding: 8px 14px !important;
+    }
+
+    .indoor-footer {
+        display: none !important;
+    }
+}
+
+
+/* =========================================================
+   MOBILE OVERLAP FIX
+   Fixes legend/control overlap with the bottom AI navigator on phones.
+========================================================= */
+
+@media (max-width: 768px) {
+    /*
+    |--------------------------------------------------------------------------
+    | Hide desktop legend on mobile.
+    |--------------------------------------------------------------------------
+    | The legend was sitting behind the AI orb and bottom buttons.
+    */
+    .premium-legend,
+    .legend-title,
+    .legend-item {
+        display: none !important;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Keep Leaflet controls away from the bottom navigator.
+    |--------------------------------------------------------------------------
+    */
+    .leaflet-bottom.leaflet-left,
+    .leaflet-bottom.leaflet-right {
+        bottom: 118px !important;
+    }
+
+    .leaflet-control-attribution {
+        display: none !important;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Put navigator above everything else and keep it inside the screen.
+    |--------------------------------------------------------------------------
+    */
+    #floating-route-ui {
+        z-index: 250000 !important;
+        width: calc(100vw - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: max(8px, env(safe-area-inset-bottom)) !important;
+        transform: translateX(-50%) !important;
+        gap: 6px !important;
+    }
+
+    .ai-orb-shell {
+        width: 100% !important;
+        min-height: 74px !important;
+        order: 1;
+    }
+
+    .floating-start-bar {
+        order: 2;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        padding: 6px !important;
+        border-radius: 18px !important;
+        overflow: hidden !important;
+    }
+
+    .floating-mode-btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        flex: none !important;
+        padding: 10px 4px !important;
+        font-size: 9px !important;
+        line-height: 1.1 !important;
+        border-radius: 13px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: clip !important;
+    }
+
+    .floating-main-pin {
+        width: 72px !important;
+        height: 72px !important;
+    }
+
+    .pin-disc {
+        width: 56px !important;
+        height: 56px !important;
+    }
+
+    .pin-icon {
+        width: 24px !important;
+        height: 34px !important;
+    }
+
+    .pin-hole {
+        width: 9px !important;
+        height: 9px !important;
+        top: 9px !important;
+    }
+
+    .floating-action-card {
+        bottom: 82px !important;
+        width: calc(100vw - 18px) !important;
+        max-width: calc(100vw - 18px) !important;
+    }
+
+    .ai-transform-panel {
+        width: calc(100vw - 18px) !important;
+        max-width: calc(100vw - 18px) !important;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | When indoor panel is open, hide all outdoor/mobile floating controls.
+    |--------------------------------------------------------------------------
+    */
+    body.indoor-open #floating-route-ui,
+    body.indoor-open #route-status-bubble,
+    body.indoor-open #route-building-popup,
+    body.indoor-open .premium-legend {
+        display: none !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .floating-mode-btn {
+        font-size: 8px !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+    }
+
+    .floating-main-pin {
+        width: 66px !important;
+        height: 66px !important;
+    }
+
+    .pin-disc {
+        width: 52px !important;
+        height: 52px !important;
+    }
+}
+
+
+/* =========================================================
+   MOBILE AI ORB PIN ICON FIX
+   Fixes broken/shrunk location pin inside the round AI button.
+========================================================= */
+
+.pin-icon {
+    clip-path: none !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% 50% 50% 8px !important;
+    background:
+        radial-gradient(circle at 38% 38%, rgba(255,255,255,0.95) 0 18%, transparent 19%),
+        linear-gradient(180deg, #f8fbff 0%, #dbeafe 100%) !important;
+    transform: rotate(-45deg) !important;
+    display: block !important;
+    position: relative !important;
+    box-shadow:
+        0 8px 18px rgba(2, 8, 23, 0.18),
+        inset 0 1px 0 rgba(255,255,255,0.72) !important;
+}
+
+.pin-hole {
+    display: none !important;
+}
+
+.pin-icon::after {
+    content: "";
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    border-radius: 999px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(180deg, #22d3ee, #10b981);
+    box-shadow:
+        0 0 0 4px rgba(16, 185, 129, 0.10),
+        0 0 14px rgba(34, 211, 238, 0.38);
+}
+
+@media (max-width: 768px) {
+    .pin-icon {
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 50% 50% 50% 7px !important;
+    }
+
+    .pin-icon::after {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+@media (max-width: 380px) {
+    .pin-icon {
+        width: 27px !important;
+        height: 27px !important;
+        border-radius: 50% 50% 50% 6px !important;
+    }
+
+    .pin-icon::after {
+        width: 9px;
+        height: 9px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE INDOOR MAP SPACE PATCH
+   Gives indoor map more visible space on phones.
+========================================================= */
+
+@media (max-width: 600px) {
+    .indoor-header {
+        min-height: 54px !important;
+        padding-top: max(8px, env(safe-area-inset-top)) !important;
+        padding-bottom: 8px !important;
+    }
+
+    .indoor-title {
+        font-size: 14px !important;
+    }
+
+    .indoor-subtitle {
+        font-size: 9.5px !important;
+    }
+
+    .indoor-floor-toolbar {
+        min-height: 56px !important;
+        padding: 7px 8px !important;
+    }
+
+    .indoor-floor-btn {
+        min-width: 96px !important;
+        min-height: 42px !important;
+        padding: 10px 13px !important;
+        font-size: 12px !important;
+    }
+
+    .indoor-footer {
+        min-height: 34px !important;
+        padding-top: 6px !important;
+        padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+        font-size: 9.5px !important;
+    }
+
+    .indoor-map-wrap {
+        flex: 1 1 auto !important;
+        min-height: calc(100dvh - 150px) !important;
+    }
+
+    #indoorMap {
+        height: 100% !important;
+    }
+}

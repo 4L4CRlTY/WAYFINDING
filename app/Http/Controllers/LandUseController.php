@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Landuse;
+use App\Rules\ValidGeoJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -19,7 +20,7 @@ class LandUseController extends Controller
     public function uploadLandUse(Request $request)
     {
         $request->validate([
-            'geojson' => 'required|file|mimes:json,geojson,txt',
+            'geojson' => ['required', 'file', 'mimes:json,geojson,txt', new ValidGeoJson(['Polygon', 'MultiPolygon'])],
             'default_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'default_image_width' => 'nullable|integer|min:20|max:2000',
             'default_image_height' => 'nullable|integer|min:20|max:2000',

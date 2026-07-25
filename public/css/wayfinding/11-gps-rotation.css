@@ -1,0 +1,433 @@
+/* =========================================================
+   OUTDOOR LIVE GPS TRACKING UI
+   Blue live dot + accuracy circle + compact mobile status card.
+========================================================= */
+.live-gps-marker,
+.gps-route-start-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.live-gps-dot-wrap {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.live-gps-pulse {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.15);
+    border: 2px solid rgba(37, 99, 235, 0.28);
+    animation: liveGpsPulse 1.7s ease-out infinite;
+}
+
+.live-gps-dot {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: #2563eb;
+    border: 3px solid #ffffff;
+    box-shadow:
+        0 6px 16px rgba(15, 23, 42, 0.28),
+        0 0 0 1px rgba(37, 99, 235, 0.22);
+    z-index: 2;
+}
+
+.live-gps-direction-dot {
+    position: absolute;
+    right: 6px;
+    top: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 2px solid #2563eb;
+    z-index: 3;
+}
+
+.gps-route-start-pin {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    border: 3px solid #ffffff;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: 0.04em;
+}
+
+@keyframes liveGpsPulse {
+    0% {
+        transform: scale(0.62);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: scale(1.45);
+        opacity: 0;
+    }
+}
+
+.live-gps-status-card {
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(116px + env(safe-area-inset-bottom));
+    z-index: 10060;
+    width: min(330px, calc(100vw - 28px));
+    padding: 13px;
+    border-radius: 22px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    box-shadow: 0 24px 60px rgba(2, 8, 23, 0.38);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    pointer-events: auto;
+}
+
+.live-gps-status-card.good {
+    border-color: rgba(34, 197, 94, 0.44);
+    box-shadow: 0 24px 60px rgba(2, 8, 23, 0.38), 0 0 28px rgba(34, 197, 94, 0.16);
+}
+
+.live-gps-status-card.weak {
+    border-color: rgba(250, 204, 21, 0.50);
+    box-shadow: 0 24px 60px rgba(2, 8, 23, 0.38), 0 0 28px rgba(250, 204, 21, 0.13);
+}
+
+.live-gps-status-card.bad {
+    border-color: rgba(248, 113, 113, 0.54);
+    box-shadow: 0 24px 60px rgba(2, 8, 23, 0.38), 0 0 28px rgba(248, 113, 113, 0.13);
+}
+
+.live-gps-status-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+}
+
+.live-gps-status-kicker {
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #93c5fd;
+    margin-bottom: 3px;
+}
+
+.live-gps-status-title {
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.live-gps-status-text {
+    font-size: 11px;
+    line-height: 1.55;
+    color: rgba(226, 232, 240, 0.94);
+}
+
+.live-gps-status-x {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.live-gps-status-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.live-gps-mini-btn {
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 13px;
+    padding: 8px 10px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.live-gps-mini-btn.ghost {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+@media (max-width: 768px) {
+    .live-gps-dot-wrap {
+        width: 30px;
+        height: 30px;
+    }
+
+    .live-gps-pulse {
+        width: 30px;
+        height: 30px;
+    }
+
+    .live-gps-dot {
+        width: 14px;
+        height: 14px;
+        border-width: 2.5px;
+    }
+
+    .gps-route-start-pin {
+        width: 29px;
+        height: 29px;
+        font-size: 8px;
+        border-width: 2.5px;
+    }
+
+    .live-gps-status-card {
+        left: 50%;
+        right: auto;
+        bottom: calc(104px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        width: min(360px, calc(100vw - 22px));
+        padding: 11px;
+        border-radius: 20px;
+    }
+
+    .live-gps-status-title {
+        font-size: 12px;
+    }
+
+    .live-gps-status-text {
+        font-size: 10.5px;
+    }
+}
+
+body.map-moving .live-gps-pulse,
+body.page-hidden .live-gps-pulse {
+    animation-play-state: paused !important;
+}
+
+
+/* =========================================================
+   FINAL GPS WEAK-SIGNAL UX
+   Make weak GPS message more noticeable on mobile.
+========================================================= */
+.live-gps-status-card.weak .live-gps-status-title::before {
+    content: '⚠️ ';
+}
+
+.live-gps-status-card.good .live-gps-status-title::before {
+    content: '✅ ';
+}
+
+.live-gps-status-card.bad .live-gps-status-title::before {
+    content: '🚫 ';
+}
+
+@media (max-width: 768px) {
+    .live-gps-status-card {
+        bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+        left: 12px !important;
+        right: 12px !important;
+        width: auto !important;
+        border-radius: 18px !important;
+        padding: 11px 12px !important;
+    }
+
+    .live-gps-status-text {
+        font-size: 11px !important;
+        line-height: 1.45 !important;
+    }
+}
+
+
+/* =========================================================
+   AUTO GPS FALLBACK: TAP MY LOCATION
+   When GPS is weak, the system enables map-tap start selection.
+========================================================= */
+.live-gps-status-card.bad .live-gps-mini-btn.ghost {
+    background: linear-gradient(135deg, #16a34a, #15803d) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 10px 22px rgba(22, 163, 74, 0.24) !important;
+}
+
+body.pick-path-active .floating-mode-btn.pick {
+    border-color: rgba(34, 197, 94, 0.70) !important;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18), 0 16px 30px rgba(2, 8, 23, 0.20) !important;
+}
+
+@media (max-width: 768px) {
+    .live-gps-status-card.bad {
+        border-color: rgba(34, 197, 94, 0.35) !important;
+    }
+}
+
+
+
+    /* CAMPUS MAP ROTATION CONTROL */
+    .campus-rotate-control {
+        position: absolute;
+        top: 96px;
+        right: 18px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.90);
+        border: 1px solid rgba(255, 255, 255, 0.70);
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        pointer-events: auto;
+    }
+
+    .campus-rotate-btn,
+    .campus-rotate-reset {
+        border: none;
+        outline: none;
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: 900;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .campus-rotate-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #0f172a;
+        font-size: 20px;
+        line-height: 1;
+    }
+
+    .campus-rotate-reset {
+        height: 38px;
+        min-width: 74px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #16a34a, #2563eb);
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 12px;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+    }
+
+    .campus-rotate-btn:hover,
+    .campus-rotate-reset:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.14);
+    }
+
+    .campus-compass-arrow {
+        display: inline-block;
+        font-size: 12px;
+        transform-origin: 50% 55%;
+    }
+
+    @media (max-width: 768px) {
+        .campus-rotate-control {
+            top: 84px;
+            right: 12px;
+            gap: 6px;
+            padding: 6px;
+        }
+
+        .campus-rotate-btn {
+            width: 34px;
+            height: 34px;
+            font-size: 18px;
+        }
+
+        .campus-rotate-reset {
+            height: 34px;
+            min-width: 64px;
+            padding: 0 10px;
+            font-size: 11px;
+        }
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FULL MAP ROTATION VISUAL FIX
+    |--------------------------------------------------------------------------
+    | Keeps all Leaflet panes rotating together: basemap, GeoJSON buildings,
+    | paths, landuse image overlays, markers, labels, and route lines.
+    */
+    #map .leaflet-pane.campus-layer-pane-rotated {
+        transform-style: preserve-3d;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    #map .leaflet-pane.campus-layer-pane-rotated .leaflet-layer,
+    #map .leaflet-pane.campus-layer-pane-rotated svg,
+    #map .leaflet-pane.campus-layer-pane-rotated canvas,
+    #map .leaflet-pane.campus-layer-pane-rotated img {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+
+    /* Better cursor/control feeling while the rotated drag fix is active. */
+    #map.campus-rotated-dragging {
+        cursor: grabbing !important;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    #map.campus-rotated-dragging * {
+        cursor: grabbing !important;
+    }
+
+
+    /* Smooth rotated map drag controls */
+    #map.campus-rotated-view {
+        touch-action: none;
+        cursor: grab;
+    }
+
+    #map.campus-rotated-dragging {
+        cursor: grabbing !important;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    #map.campus-rotated-dragging * {
+        cursor: grabbing !important;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    #map.campus-rotated-view .leaflet-pane {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }

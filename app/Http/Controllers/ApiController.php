@@ -437,7 +437,7 @@ class ApiController extends Controller
         */
         $keywords = DestinationKeyword::where('is_active', true)
             ->orderByDesc('priority')
-            ->orderByRaw('CHAR_LENGTH(keyword) DESC')
+            ->orderByRaw('LENGTH(keyword) DESC')
             ->get();
 
         if ($keywords->isEmpty()) {

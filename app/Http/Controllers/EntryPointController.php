@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\EntryPoint;
+use App\Rules\ValidGeoJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -19,7 +20,7 @@ class EntryPointController extends Controller
     public function uploadEntryPoint(Request $request)
     {
         $request->validate([
-            'geojson' => 'required|file|mimes:json,geojson,txt',
+            'geojson' => ['required', 'file', 'mimes:json,geojson,txt', new ValidGeoJson(['Point'])],
         ]);
 
         try {

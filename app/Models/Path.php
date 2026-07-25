@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Path extends Model
 {
@@ -34,11 +34,4 @@ class Path extends Model
     {
         return $this->hasMany(HazardPoint::class);
     }
-
-    public function edge()
-    {
-        return $this->hasOne(Edge::class);
-    }
-
-
 }

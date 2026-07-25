@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Path;
+use App\Rules\ValidGeoJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -18,7 +19,7 @@ class PathController extends Controller
     public function uploadPath(Request $request)
     {
         $request->validate([
-            'geojson' => 'required|file|mimes:json,geojson,txt',
+            'geojson' => ['required', 'file', 'mimes:json,geojson,txt', new ValidGeoJson(['LineString', 'MultiLineString'])],
         ]);
 
         try {
