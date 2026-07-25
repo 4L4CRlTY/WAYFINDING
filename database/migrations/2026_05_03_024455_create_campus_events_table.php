@@ -43,7 +43,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             /**
-             * Admin/staff/user nga naghimo sa event.
+             * Admin/authorized user/public user nga naghimo sa event.
              * Nullable para dili maguba kung old data or manual seed.
              */
             $table->foreignId('created_by')

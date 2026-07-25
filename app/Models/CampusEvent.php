@@ -59,7 +59,7 @@ class CampusEvent extends Model
     }
 
     /**
-     * Admin/staff/user nga naghimo sa event.
+     * Admin/authorized user/public user nga naghimo sa event.
      */
     public function creator()
     {

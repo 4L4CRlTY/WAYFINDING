@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Hash;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class UserTableSeeder extends Seeder
 {
@@ -21,14 +21,18 @@ class UserTableSeeder extends Seeder
             'email' => 'admin@gmail.com',
             'password' => Hash::make('111'),
             'role' => 'admin',
+            'position' => null,
+            'authorized_permissions' => null,
             'status' => '1',
         ],
 
         [
-            'username'=> 'staff',
-            'email'=> 'staff@gmail.com',
+            'username'=> 'Authorized User',
+            'email'=> 'authorized@gmail.com',
             'password'=> Hash::make('111'),
-            'role'=> 'staff',
+            'role'=> 'authorized_user',
+            'position' => 'Supreme Student Council',
+            'authorized_permissions' => json_encode(['campus_events', 'hazard_points']),
             'status'=> '1',
         ],
 
@@ -37,6 +41,8 @@ class UserTableSeeder extends Seeder
             'email'=> 'user@gmail.com',
             'password'=> Hash::make('111'),
             'role'=> 'user',
+            'position' => null,
+            'authorized_permissions' => null,
             'status'=> '1',
         ]
 

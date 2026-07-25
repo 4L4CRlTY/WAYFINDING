@@ -17,7 +17,7 @@ tables.
 - Text and voice destination search
 - Blocked-path avoidance and active hazard penalties
 - Admin management for maps, entrances, links, keywords, and campus events
-- Role-based access for `admin`, `staff`, and `user` accounts
+- Role-based access for `admin`, `authorized_user`, and `user` accounts
 - Inactive-account enforcement, POST logout, API throttling, and response
   caching
 
@@ -109,7 +109,7 @@ The current seeder creates these development-only accounts:
 | Role | Email | Password |
 | --- | --- | --- |
 | Admin | `admin@gmail.com` | `111` |
-| Staff | `staff@gmail.com` | `111` |
+| Authorized User | `authorized@gmail.com` | `111` |
 | User | `user@gmail.com` | `111` |
 
 Do not use these credentials in production. Change or replace all seeded

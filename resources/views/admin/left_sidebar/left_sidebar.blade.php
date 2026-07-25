@@ -1,11 +1,19 @@
+@php
+    $currentUser = auth()->user();
+    $isAdministrator = $currentUser?->role === 'admin';
+    $dashboardRoute = $isAdministrator ? 'admin.dashboard' : 'authorized.dashboard';
+    $featureGroups = collect(config('authorized_features', []))->groupBy('group', preserveKeys: true);
+    $positionLabel = $currentUser?->displayPosition() ?? 'Position Not Assigned';
+@endphp
+
 <div class="leftside-menu">
-    <a href="{{ route('admin.dashboard') }}" class="logo logo-light" aria-label="SLSU Wayfinding Admin">
+    <a href="{{ route($dashboardRoute) }}" class="logo logo-light" aria-label="SLSU Wayfinding Control">
         <span class="logo-lg">
             <span class="admin-sidebar-brand">
                 <img src="{{ asset('background/slsu-logo.jpg') }}" alt="SLSU logo">
                 <span class="admin-sidebar-brand-copy">
                     <strong>Smart Campus</strong>
-                    <small>Admin Control</small>
+                    <small>{{ $isAdministrator ? 'Admin Control' : 'Authorized Workspace' }}</small>
                 </span>
             </span>
         </span>
@@ -27,14 +35,14 @@
 
     <div class="h-100" id="leftside-menu-container" data-simplebar>
         <div class="leftbar-user">
-            <a href="{{ route('admin.dashboard') }}">
+            <a href="{{ route($dashboardRoute) }}">
                 <span class="admin-sidebar-user-icon">
-                    <i class="ri-shield-user-line"></i>
+                    <i class="{{ $isAdministrator ? 'ri-shield-user-line' : 'ri-user-star-line' }}"></i>
                 </span>
 
                 <span class="admin-sidebar-user-copy">
-                    <strong>{{ auth()->user()->username ?? 'Administrator' }}</strong>
-                    <small>Authorized session</small>
+                    <strong>{{ $isAdministrator ? ($currentUser?->username ?? 'Administrator') : $positionLabel }}</strong>
+                    <small>{{ $isAdministrator ? 'System administrator' : ($currentUser?->username ?? 'Authorized user') }}</small>
                 </span>
             </a>
         </div>
@@ -43,115 +51,46 @@
             <li class="side-nav-title">Command</li>
 
             <li class="side-nav-item">
-                <a href="{{ route('admin.dashboard') }}" class="side-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <a href="{{ route($dashboardRoute) }}" class="side-nav-link {{ request()->routeIs($dashboardRoute) ? 'active' : '' }}">
                     <i class="ri-dashboard-line"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
 
-            <li class="side-nav-item">
-                <a href="{{ route('admin.campus-event') }}" class="side-nav-link {{ request()->routeIs('admin.campus-event*') ? 'active' : '' }}">
-                    <i class="ri-megaphone-line"></i>
-                    <span>Campus Events</span>
-                </a>
-            </li>
+            @if ($isAdministrator)
+                <li class="side-nav-item">
+                    <a href="{{ route('admin.authorized.index') }}" class="side-nav-link {{ request()->routeIs('admin.authorized*') ? 'active' : '' }}">
+                        <i class="ri-team-line"></i>
+                        <span>Authorized Access</span>
+                    </a>
+                </li>
+            @endif
 
-            <li class="side-nav-title">Outdoor Network</li>
+            @foreach ($featureGroups as $group => $groupFeatures)
+                @php
+                    $visibleFeatures = $groupFeatures->filter(
+                        fn (array $definition, string $feature) => $currentUser?->canAccessFeature($feature)
+                    );
+                @endphp
 
-            <li class="side-nav-item">
-                <a href="{{ route('admin.buildings') }}" class="side-nav-link {{ request()->routeIs('admin.buildings*') ? 'active' : '' }}">
-                    <i class="ri-building-2-line"></i>
-                    <span>Buildings</span>
-                </a>
-            </li>
+                @if ($visibleFeatures->isNotEmpty())
+                    @if ($group !== 'Command')
+                        <li class="side-nav-title">{{ $group }}</li>
+                    @endif
 
-            <li class="side-nav-item">
-                <a href="{{ route('admin.path') }}" class="side-nav-link {{ request()->routeIs('admin.path*') ? 'active' : '' }}">
-                    <i class="ri-route-line"></i>
-                    <span>Paths</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.hazard-point') }}" class="side-nav-link {{ request()->routeIs('admin.hazard-point*') ? 'active' : '' }}">
-                    <i class="ri-error-warning-line"></i>
-                    <span>Hazard Points</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.entry-point') }}" class="side-nav-link {{ request()->routeIs('admin.entry-point*') ? 'active' : '' }}">
-                    <i class="ri-map-pin-add-line"></i>
-                    <span>Entry Points</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.building-entrances') }}" class="side-nav-link {{ request()->routeIs('admin.building-entrances*') ? 'active' : '' }}">
-                    <i class="ri-door-open-line"></i>
-                    <span>Building Entrances</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.landuse') }}" class="side-nav-link {{ request()->routeIs('admin.landuse*') ? 'active' : '' }}">
-                    <i class="ri-earth-line"></i>
-                    <span>Land Use</span>
-                </a>
-            </li>
-
-            <li class="side-nav-title">Indoor Network</li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.indoor-map') }}" class="side-nav-link {{ request()->routeIs('admin.indoor-map*') ? 'active' : '' }}">
-                    <i class="ri-map-2-line"></i>
-                    <span>Indoor Maps</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.indoor-path') }}" class="side-nav-link {{ request()->routeIs('admin.indoor-path*') ? 'active' : '' }}">
-                    <i class="ri-route-line"></i>
-                    <span>Indoor Paths</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.indoor-room') }}" class="side-nav-link {{ request()->routeIs('admin.indoor-room*') ? 'active' : '' }}">
-                    <i class="ri-door-line"></i>
-                    <span>Indoor Rooms</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.indoor-entrances') }}" class="side-nav-link {{ request()->routeIs('admin.indoor-entrances*') ? 'active' : '' }}">
-                    <i class="ri-door-open-line"></i>
-                    <span>Indoor Entrances</span>
-                </a>
-            </li>
-
-            <li class="side-nav-title">Routing Links</li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.indoor-stairs-link') }}" class="side-nav-link {{ request()->routeIs('admin.indoor-stairs-link*') ? 'active' : '' }}">
-                    <i class="ri-arrow-up-down-line"></i>
-                    <span>Stairs Links</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.building-entrance-link') }}" class="side-nav-link {{ request()->routeIs('admin.building-entrance-link*') ? 'active' : '' }}">
-                    <i class="ri-link-m"></i>
-                    <span>Entrance Links</span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{{ route('admin.destination-keyword') }}" class="side-nav-link {{ request()->routeIs('admin.destination-keyword*') ? 'active' : '' }}">
-                    <i class="ri-key-2-line"></i>
-                    <span>Destination Keywords</span>
-                </a>
-            </li>
+                    @foreach ($visibleFeatures as $feature => $definition)
+                        <li class="side-nav-item">
+                            <a
+                                href="{{ route($definition['route']) }}"
+                                class="side-nav-link {{ request()->routeIs($definition['route_pattern']) ? 'active' : '' }}"
+                            >
+                                <i class="{{ $definition['icon'] }}"></i>
+                                <span>{{ $definition['label'] }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                @endif
+            @endforeach
         </ul>
 
         <div class="clearfix"></div>

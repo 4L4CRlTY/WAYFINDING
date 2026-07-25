@@ -1,13 +1,21 @@
+@php
+    $currentUser = auth()->user();
+    $isAdministrator = $currentUser?->role === 'admin';
+    $dashboardRoute = $isAdministrator ? 'admin.dashboard' : 'authorized.dashboard';
+    $logoutRoute = $isAdministrator ? 'admin.logout' : 'authorized.logout';
+    $positionLabel = $currentUser?->displayPosition() ?? 'Position Not Assigned';
+@endphp
+
 <div class="topbar container-fluid">
     <div class="d-flex align-items-center gap-lg-2 gap-1">
-        <button class="button-toggle-menu" type="button" aria-label="Toggle admin navigation">
+        <button class="button-toggle-menu" type="button" aria-label="Toggle navigation">
             <i class="ri-menu-2-fill"></i>
         </button>
 
         <div class="admin-command-brand" aria-label="Campus command center status">
             <span class="admin-command-signal"></span>
             <span class="admin-command-copy">
-                <strong>Campus Command Center</strong>
+                <strong>{{ $isAdministrator ? 'Campus Command Center' : 'Campus Operations Center' }}</strong>
                 <small>Wayfinding control system online</small>
             </span>
         </div>
@@ -37,12 +45,12 @@
                 aria-expanded="false"
             >
                 <span class="account-user-avatar">
-                    <img src="{{ asset('background/slsu-logo.jpg') }}" alt="SLSU admin">
+                    <img src="{{ asset('background/slsu-logo.jpg') }}" alt="{{ $isAdministrator ? 'SLSU admin' : 'Authorized campus user' }}">
                 </span>
 
                 <span class="d-lg-flex flex-column gap-1 d-none">
-                    <h5 class="my-0">{{ auth()->user()->username ?? 'Administrator' }}</h5>
-                    <h6 class="my-0 fw-normal">System Admin</h6>
+                    <h5 class="my-0">{{ $isAdministrator ? ($currentUser?->username ?? 'Administrator') : $positionLabel }}</h5>
+                    <h6 class="my-0 fw-normal">{{ $isAdministrator ? 'System Admin' : ($currentUser?->username ?? 'Authorized user') }}</h6>
                 </span>
 
                 <i class="ri-arrow-down-s-line d-none d-lg-inline-block ms-1"></i>
@@ -50,12 +58,12 @@
 
             <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated profile-dropdown">
                 <div class="dropdown-header noti-title">
-                    <h6 class="text-overflow m-0">Administrator Access</h6>
+                    <h6 class="text-overflow m-0">{{ $isAdministrator ? 'Administrator Access' : $positionLabel }}</h6>
                 </div>
 
-                <a href="{{ route('admin.dashboard') }}" class="dropdown-item">
+                <a href="{{ route($dashboardRoute) }}" class="dropdown-item">
                     <i class="ri-dashboard-line fs-18 align-middle me-1"></i>
-                    <span>Command Center</span>
+                    <span>{{ $isAdministrator ? 'Command Center' : 'Operations Dashboard' }}</span>
                 </a>
 
                 <a href="{{ url('/') }}" class="dropdown-item">
@@ -65,7 +73,7 @@
 
                 <div class="dropdown-divider"></div>
 
-                <form method="POST" action="{{ route('admin.logout') }}">
+                <form method="POST" action="{{ route($logoutRoute) }}">
                     @csrf
                     <button type="submit" class="dropdown-item border-0 w-100 text-start">
                         <i class="ri-logout-box-line fs-18 align-middle me-1"></i>

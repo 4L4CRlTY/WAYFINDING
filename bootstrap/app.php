@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CacheWayfindingResponse;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureAuthorizedFeatureAccess;
 use App\Http\Middleware\InvalidateWayfindingCache;
 use App\Http\Middleware\Role;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'cache.wayfinding' => CacheWayfindingResponse::class,
             'invalidate.wayfinding' => InvalidateWayfindingCache::class,
             'roles' => Role::class,
+            'authorized.feature' => EnsureAuthorizedFeatureAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

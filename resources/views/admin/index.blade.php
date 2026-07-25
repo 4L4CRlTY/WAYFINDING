@@ -21,6 +21,11 @@
                 </p>
 
                 <div class="admin-home-actions">
+                    <a href="{{ route('admin.authorized.index') }}" class="admin-home-btn">
+                        <i class="ri-team-line"></i>
+                        Manage Authorized Access
+                    </a>
+
                     <a href="{{ route('admin.buildings') }}" class="admin-home-btn">
                         <i class="ri-building-2-line"></i>
                         Manage Campus Map
@@ -52,6 +57,15 @@
         </div>
 
         <section class="admin-module-grid" aria-label="Administration modules">
+            <a href="{{ route('admin.authorized.index') }}" class="admin-module-card">
+                <span class="admin-module-icon"><i class="ri-team-line"></i></span>
+                <span class="admin-module-copy">
+                    <h3>Authorized Access Control</h3>
+                    <p>Register authorized account positions and assign exactly which modules each account can manage.</p>
+                </span>
+                <i class="ri-arrow-right-up-line admin-module-arrow"></i>
+            </a>
+
             <a href="{{ route('admin.buildings') }}" class="admin-module-card">
                 <span class="admin-module-icon"><i class="ri-building-2-line"></i></span>
                 <span class="admin-module-copy">
