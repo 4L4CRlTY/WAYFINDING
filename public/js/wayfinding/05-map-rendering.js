@@ -10,24 +10,32 @@
 
     const pathConfig = {
         road: {
-            color: '#475569',
-            weight: 6,
-            dashArray: null
+            color: '#fffdfa',
+            weight: 6.5,
+            dashArray: null,
+            casingColor: '#b8c1ca',
+            casingWeight: 9.5
         },
         walkway: {
-            color: '#0ea5e9',
-            weight: 4.5,
-            dashArray: null
+            color: '#a9d5ee',
+            weight: 4,
+            dashArray: null,
+            casingColor: '#d1d9e0',
+            casingWeight: 6.5
         },
         stairs: {
-            color: '#f59e0b',
-            weight: 4.5,
-            dashArray: '4, 6'
+            color: '#d99627',
+            weight: 3.5,
+            dashArray: '4, 5',
+            casingColor: '#ffffff',
+            casingWeight: 6.5
         },
         covered_stairs: {
-            color: '#1e293b',
-            weight: 10,
+            color: '#687b8e',
+            weight: 7.5,
             dashArray: null,
+            casingColor: '#c5cdd5',
+            casingWeight: 10,
             className: 'path-covered-stairs'
         }
     };
@@ -39,7 +47,7 @@
         return {
             color: config.color,
             weight: config.weight,
-            opacity: 0.9,
+            opacity: 1,
             lineCap: 'round',
             lineJoin: 'round',
             dashArray: config.dashArray || null,
@@ -272,13 +280,12 @@
         L.geoJSON(pathGeojson, {
             pane: 'pathsPane',
             renderer: OUTDOOR_PATHS_RENDERER,
-            filter: (f) => getPathType(f) !== 'covered_stairs',
             style: (f) => {
-                const isRoad = getPathType(f) === 'road';
+                const config = pathConfig[getPathType(f)] || pathConfig.walkway;
                 return {
-                    color: '#e2e8f0',
-                    weight: isRoad ? 10 : 8,
-                    opacity: 0.8,
+                    color: config.casingColor,
+                    weight: config.casingWeight,
+                    opacity: 0.96,
                     lineCap: 'round',
                     lineJoin: 'round',
                     interactive: false
@@ -321,10 +328,10 @@
             renderer: OUTDOOR_PATHS_RENDERER,
             filter: (f) => getPathType(f) === 'covered_stairs',
             style: {
-                color: '#f8fafc',
-                weight: 6,
+                color: '#f4f7fa',
+                weight: 3.5,
                 opacity: 0.95,
-                dashArray: '2, 10',
+                dashArray: '2, 7',
                 className: 'path-canopy-frames'
             },
             interactive: false
@@ -339,27 +346,27 @@
                 <span class="legend-title">Campus Routes</span>
 
                 <div class="legend-item">
-                    <span class="legend-line" style="background:#475569"></span>
+                    <span class="legend-line map-road-swatch"></span>
                     <span>Main Road</span>
                 </div>
 
                 <div class="legend-item">
-                    <span class="legend-line" style="background:#0ea5e9"></span>
+                    <span class="legend-line map-walkway-swatch"></span>
                     <span>Walkway</span>
                 </div>
 
                 <div class="legend-item">
-                    <span class="legend-line" style="background:#f59e0b; border:1px dashed #fff"></span>
+                    <span class="legend-line map-stairs-swatch"></span>
                     <span>Open Stairs</span>
                 </div>
 
                 <div class="legend-item">
-                    <span class="legend-line" style="background:#1e293b; height:8px;"></span>
+                    <span class="legend-line map-covered-stairs-swatch"></span>
                     <span>Covered Stairs</span>
                 </div>
 
                 <div class="legend-item" style="margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0;">
-                    <span class="legend-line" style="background:#2563eb"></span>
+                    <span class="legend-line computed-route-swatch"></span>
                     <span>Computed Route</span>
                 </div>
             `;

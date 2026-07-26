@@ -248,6 +248,10 @@
     function extractSegmentsFromPolylineLayer(layer, segments = []) {
         if (!layer) return segments;
 
+        if (String(layer.options?.className || '').includes('route-line-outline')) {
+            return segments;
+        }
+
         if (typeof layer.eachLayer === 'function') {
             layer.eachLayer(child => extractSegmentsFromPolylineLayer(child, segments));
             return segments;

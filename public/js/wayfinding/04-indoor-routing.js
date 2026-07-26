@@ -884,10 +884,13 @@ function openIndoorPanelForBuilding(buildingId) {
 
         if (currentFloorPoints.length >= 2) {
             const staticIndoorRoute = drawAnimatedRoute(indoorMap, indoorRouteLayer, currentFloorPoints, {
-                color: '#16a34a',
-                weight: 8,
+                color: '#25c9f2',
+                weight: 5.5,
                 opacity: 1,
                 dashArray: null,
+                outlineColor: '#67dcfa',
+                outlineWeight: 11,
+                outlineOpacity: 0.28,
                 className: 'route-line-live-indoor'
             });
 
@@ -929,7 +932,7 @@ function openIndoorPanelForBuilding(buildingId) {
         if (indoorFooter && currentFloorPoints.length >= 2) {
             indoorFooter.innerHTML = `
                 <span class="indoor-badge badge-green">Indoor Route Ready</span>
-                Follow the green route line to the destination.
+                Follow the solid cyan route line to the destination.
             `;
         }
     }
@@ -945,10 +948,13 @@ function openIndoorPanelForBuilding(buildingId) {
 
         if (currentFloorPoints.length >= 2) {
             const staticIndoorRoute = drawAnimatedRoute(indoorMap, indoorRouteLayer, currentFloorPoints, {
-                color: '#16a34a',
-                weight: 8,
+                color: '#25c9f2',
+                weight: 5.5,
                 opacity: 1,
                 dashArray: null,
+                outlineColor: '#67dcfa',
+                outlineWeight: 11,
+                outlineOpacity: 0.28,
                 className: 'route-line-live-indoor'
             });
 
@@ -990,12 +996,12 @@ function openIndoorPanelForBuilding(buildingId) {
             const roomFloor = Number(roomFeature?.properties?.floor_number ?? NaN);
             const currentFloorLabel = indoorFloorSelect?.selectedOptions?.[0]?.textContent || (`Floor ${currentIndoorFloor}`);
 
-            let guideText = 'Follow the green route line on this floor.';
+            let guideText = 'Follow the solid cyan route line on this floor.';
 
             if (Number(currentIndoorFloor) === entranceFloor && Number(currentIndoorFloor) !== roomFloor) {
                 guideText = 'Start here at the entrance. Follow this floor route first, then use the floor buttons/stairs to continue.';
             } else if (Number(currentIndoorFloor) === roomFloor) {
-                guideText = 'This is the destination floor. Follow the green route to the selected room or office.';
+                guideText = 'This is the destination floor. Follow the solid cyan route to the selected room or office.';
             }
 
             indoorFooter.innerHTML = `

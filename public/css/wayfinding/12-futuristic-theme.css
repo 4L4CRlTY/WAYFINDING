@@ -12,6 +12,7 @@
     --future-panel-soft: rgba(15, 43, 68, 0.84);
     --future-cyan: #42d9ff;
     --future-cyan-soft: rgba(66, 217, 255, 0.16);
+    --future-route-cyan: #25c9f2;
     --future-blue: #6aa8ff;
     --future-mint: #55f0c0;
     --future-text: #edf9ff;
@@ -535,6 +536,40 @@ body {
     color: #c7d9e6 !important;
 }
 
+.premium-legend .map-road-swatch {
+    height: 6px;
+    background: #fffdfa;
+    box-shadow: 0 0 0 2px #b8c1ca;
+}
+
+.premium-legend .map-walkway-swatch {
+    height: 5px;
+    background: #a9d5ee;
+    box-shadow: 0 0 0 1.5px #d1d9e0;
+}
+
+.premium-legend .map-stairs-swatch {
+    height: 5px;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            #d99627 0 5px,
+            transparent 5px 9px
+        );
+    box-shadow: 0 0 0 1.5px #ffffff;
+}
+
+.premium-legend .map-covered-stairs-swatch {
+    height: 8px;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            #f4f7fa 0 2px,
+            #687b8e 2px 7px
+        );
+    box-shadow: 0 0 0 1.5px #c5cdd5;
+}
+
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
     color: var(--future-text) !important;
@@ -551,9 +586,30 @@ body {
     color: inherit;
 }
 
-.route-line-live {
-    stroke: var(--future-cyan) !important;
-    filter: drop-shadow(0 0 7px rgba(66, 217, 255, 0.84)) !important;
+.route-line-live,
+.route-line-live-indoor {
+    stroke: var(--future-route-cyan) !important;
+    stroke-dasharray: none !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    filter: drop-shadow(0 0 6px rgba(37, 201, 242, 0.68)) !important;
+}
+
+.route-line-outline {
+    stroke: #67dcfa !important;
+    stroke-opacity: 0.28 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    filter: drop-shadow(0 0 8px rgba(37, 201, 242, 0.34)) !important;
+}
+
+.premium-legend .computed-route-swatch {
+    height: 6px !important;
+    border-radius: 999px;
+    background: var(--future-route-cyan) !important;
+    box-shadow:
+        0 0 0 3px rgba(103, 220, 250, 0.22),
+        0 0 9px rgba(37, 201, 242, 0.56);
 }
 
 /* GPS, route popup, and tap helper */

@@ -116,7 +116,11 @@ test('mobile outdoor map keeps a buffered render area during panning', () => {
     assert.match(mapCore, /pane:\s*'buildingsPane',\s*padding:\s*OUTDOOR_VECTOR_RENDER_PADDING/);
     assert.match(mapRendering, /pane:\s*'pathsPane',\s*renderer:\s*OUTDOOR_PATHS_RENDERER/);
     assert.match(mapRendering, /pane:\s*'buildingsPane',\s*renderer:\s*OUTDOOR_BUILDINGS_RENDERER/);
+    assert.match(mapRendering, /casingColor:\s*'#b8c1ca'/);
+    assert.match(mapRendering, /map-road-swatch/);
     assert.match(outdoorRouting, /polylineOptions\.renderer\s*=\s*OUTDOOR_PATHS_RENDERER/);
+    assert.match(outdoorRouting, /className:\s*'route-line-outline'/);
+    assert.match(outdoorRouting, /dashArray:\s*null/);
     assert.match(mapCore, /updateInterval:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*80\s*:\s*120/);
     assert.match(mapCore, /keepBuffer:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*4\s*:\s*5/);
     assert.match(theme, /#map \.leaflet-tile-pane\s*\{\s*filter:\s*none !important;/);

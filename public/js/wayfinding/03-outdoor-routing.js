@@ -572,21 +572,37 @@
             dashArray: options.dashArray ?? null,
             lineCap: 'round',
             lineJoin: 'round',
+            interactive: false,
             className
+        };
+
+        const outlineOptions = {
+            color: options.outlineColor || '#082338',
+            weight: options.outlineWeight || (weight + 5),
+            opacity: options.outlineOpacity ?? 0.92,
+            dashArray: options.outlineDashArray ?? null,
+            lineCap: 'round',
+            lineJoin: 'round',
+            interactive: false,
+            className: 'route-line-outline'
         };
 
         if (pane) {
             polylineOptions.pane = pane;
+            outlineOptions.pane = pane;
         }
 
         if (pane === 'pathsPane' && typeof OUTDOOR_PATHS_RENDERER !== 'undefined') {
             polylineOptions.renderer = OUTDOOR_PATHS_RENDERER;
+            outlineOptions.renderer = OUTDOOR_PATHS_RENDERER;
         }
 
+        const routeOutline = L.polyline(routePoints, outlineOptions).addTo(layerGroup);
         const routePolyline = L.polyline(routePoints, polylineOptions).addTo(layerGroup);
 
         return {
             polyline: routePolyline,
+            outline: routeOutline,
             timer: null
         };
     }
@@ -601,11 +617,13 @@
 
         const staticRoute = drawAnimatedRoute(map, routeLayer, latlngs, {
             pane: 'pathsPane',
-            color: '#16a34a',
-            weight: 8,
+            color: '#25c9f2',
+            weight: 5.5,
             dashArray: null,
+            outlineColor: '#67dcfa',
+            outlineWeight: 11,
+            outlineOpacity: 0.28,
             className: 'route-line-live',
-            // Static line only: arrow animation options removed.
         });
 
         outdoorRouteAnimationTimer = staticRoute.timer;
