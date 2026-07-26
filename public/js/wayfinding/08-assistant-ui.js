@@ -7,6 +7,7 @@
     let aiVoiceFinalTranscript = '';
     let aiVoiceSearchInProgress = false;
     let aiVoiceAllowAutoClose = false;
+    let restartInlineVoiceSearch = function () {};
 
     function getAiVoicePanel() {
         return document.getElementById('ai-voice-panel');
@@ -277,7 +278,16 @@
 
     loadAllData().catch(err => {
         console.error(err);
-        alert('Failed to load map data.');
+        window.WayfindingDataStatus?.partial(
+            ['Campus navigation data'],
+            { critical: true, usingCache: false }
+        );
+        window.showWayfindingToast?.(
+            'Campus map data could not be loaded. Check your connection, then use Retry.',
+            { kind: 'error' }
+        );
+        const mapElement = document.getElementById('map');
+        if (mapElement) mapElement.style.opacity = '1';
         setIndoorLoading(false);
     });
 

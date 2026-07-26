@@ -12,40 +12,74 @@ use Illuminate\Support\Str;
 
 class IndoorMapController extends Controller
 {
-    public function IndoorMap()
+    public function IndoorMap(Request $request)
     {
-        $buildings = Building::orderBy('name')->get();
-        $maps = IndoorMap::with('building')->latest()->paginate(10);
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+        $normalizedSearch = strtolower($search);
 
-        return view('admin.indoor_map.indoor_map', compact('buildings', 'maps'));
+        $buildings = Building::orderBy('name')->get();
+        $maps = IndoorMap::with('building')
+            ->when($search !== '', function ($query) use ($search, $pattern, $normalizedSearch) {
+                $query->where(function ($searchQuery) use ($search, $pattern, $normalizedSearch) {
+                    $searchQuery->where('name', 'LIKE', $pattern)
+                        ->orWhere('floor_label', 'LIKE', $pattern)
+                        ->orWhere('floorplan_image', 'LIKE', $pattern)
+                        ->orWhereHas('building', function ($buildingQuery) use ($pattern) {
+                            $buildingQuery->where(function ($buildingSearchQuery) use ($pattern) {
+                                $buildingSearchQuery->where('name', 'LIKE', $pattern)
+                                    ->orWhere('color', 'LIKE', $pattern);
+                            });
+                        });
+
+                    if (is_numeric($search)) {
+                        $numericSearch = (int) $search;
+                        $searchQuery->orWhere('id', $numericSearch)
+                            ->orWhere('floor_number', $numericSearch);
+                    }
+
+                    if (in_array($normalizedSearch, ['active', 'enabled'], true)) {
+                        $searchQuery->orWhere('is_active', true);
+                    }
+
+                    if (in_array($normalizedSearch, ['inactive', 'disabled'], true)) {
+                        $searchQuery->orWhere('is_active', false);
+                    }
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.indoor_map.indoor_map', compact('buildings', 'maps', 'search'));
     }
 
     public function uploadIndoorMap(Request $request)
     {
         $request->validate([
-            'building_id'     => 'required|exists:buildings,id',
-            'floor_number'    => 'required|integer|min:0',
-            'floor_label'     => 'nullable|string|max:20',
-            'name'            => 'nullable|string|max:255',
+            'building_id' => 'required|exists:buildings,id',
+            'floor_number' => 'required|integer|min:0',
+            'floor_label' => 'nullable|string|max:20',
+            'name' => 'nullable|string|max:255',
             'floorplan_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'geometry_file'   => ['required', 'file', 'mimes:json,geojson', new ValidGeoJson(['Polygon', 'MultiPolygon'], false)],
+            'geometry_file' => ['required', 'file', 'mimes:json,geojson', new ValidGeoJson(['Polygon', 'MultiPolygon'], false)],
         ]);
 
         try {
             $building = Building::findOrFail($request->building_id);
             $floorNumber = (int) $request->floor_number;
-            $floorLabel = $request->floor_label ?: ($floorNumber === 0 ? 'Basement' : $floorNumber . 'F');
-            $name = $request->name ?: ($building->name . ' - ' . $floorLabel);
+            $floorLabel = $request->floor_label ?: ($floorNumber === 0 ? 'Basement' : $floorNumber.'F');
+            $name = $request->name ?: ($building->name.' - '.$floorLabel);
 
             $folderPath = public_path('floorplan_image');
 
-            if (!File::exists($folderPath)) {
+            if (! File::exists($folderPath)) {
                 File::makeDirectory($folderPath, 0755, true);
             }
 
             $geometry = $this->extractGeometryFromUpload($request, 'geometry_file');
 
-            if (!$geometry) {
+            if (! $geometry) {
                 return back()->with('error', 'Invalid GeoJSON file. No Polygon or MultiPolygon geometry found.');
             }
 
@@ -55,7 +89,7 @@ class IndoorMapController extends Controller
 
             $buildingSlug = Str::slug($building->name, '_');
             $extension = $request->file('floorplan_image')->getClientOriginalExtension();
-            $fileName = $buildingSlug . '_floor_' . $floorNumber . '.' . $extension;
+            $fileName = $buildingSlug.'_floor_'.$floorNumber.'.'.$extension;
 
             $existingMap = IndoorMap::where('building_id', $building->id)
                 ->where('floor_number', $floorNumber)
@@ -83,41 +117,41 @@ class IndoorMapController extends Controller
 
                 if ($existingMap) {
                     $existingMap->update([
-                        'name'            => $name,
-                        'floor_number'    => $floorNumber,
-                        'floor_label'     => $floorLabel,
+                        'name' => $name,
+                        'floor_number' => $floorNumber,
+                        'floor_label' => $floorLabel,
                         'floorplan_image' => $fileName,
-                        'width'           => $imageWidth,
-                        'height'          => $imageHeight,
-                        'geometry'        => $geometry,
-                        'is_active'       => true,
+                        'width' => $imageWidth,
+                        'height' => $imageHeight,
+                        'geometry' => $geometry,
+                        'is_active' => true,
                     ]);
                 } else {
                     IndoorMap::create([
-                        'building_id'          => $building->id,
-                        'name'                 => $name,
-                        'floor_number'         => $floorNumber,
-                        'floor_label'          => $floorLabel,
-                        'floorplan_image'      => $fileName,
+                        'building_id' => $building->id,
+                        'name' => $name,
+                        'floor_number' => $floorNumber,
+                        'floor_label' => $floorLabel,
+                        'floorplan_image' => $fileName,
                         'backup_floorplan_image' => null,
-                        'width'                => $imageWidth,
-                        'height'               => $imageHeight,
-                        'geometry'             => $geometry,
-                        'is_active'            => true,
+                        'width' => $imageWidth,
+                        'height' => $imageHeight,
+                        'geometry' => $geometry,
+                        'is_active' => true,
                     ]);
                 }
             });
 
             return back()->with('success', 'Indoor map uploaded successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Upload failed: ' . $e->getMessage());
+            return back()->with('error', 'Upload failed: '.$e->getMessage());
         }
     }
 
     public function resetIndoorMap(Request $request)
     {
         $request->validate([
-            'building_id'  => 'required|exists:buildings,id',
+            'building_id' => 'required|exists:buildings,id',
             'floor_number' => 'required|integer|min:0',
         ]);
 
@@ -126,11 +160,11 @@ class IndoorMapController extends Controller
                 ->where('floor_number', $request->floor_number)
                 ->first();
 
-            if (!$map) {
+            if (! $map) {
                 return back()->with('error', 'Indoor map not found for the selected building and floor.');
             }
 
-            if (!$map->backup_floorplan_image) {
+            if (! $map->backup_floorplan_image) {
                 return back()->with('error', 'No backup floorplan found. Nothing to restore.');
             }
 
@@ -145,19 +179,19 @@ class IndoorMapController extends Controller
 
             return back()->with('success', 'Previous indoor map restored successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Reset failed: ' . $e->getMessage());
+            return back()->with('error', 'Reset failed: '.$e->getMessage());
         }
     }
 
     public function updateIndoorMap(Request $request, IndoorMap $map)
     {
         $request->validate([
-            'building_id'     => 'required|exists:buildings,id',
-            'floor_number'    => 'required|integer|min:0',
-            'floor_label'     => 'nullable|string|max:20',
-            'name'            => 'nullable|string|max:255',
+            'building_id' => 'required|exists:buildings,id',
+            'floor_number' => 'required|integer|min:0',
+            'floor_label' => 'nullable|string|max:20',
+            'name' => 'nullable|string|max:255',
             'floorplan_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'geometry_file'   => ['nullable', 'file', 'mimes:json,geojson', new ValidGeoJson(['Polygon', 'MultiPolygon'], false)],
+            'geometry_file' => ['nullable', 'file', 'mimes:json,geojson', new ValidGeoJson(['Polygon', 'MultiPolygon'], false)],
         ]);
 
         try {
@@ -167,13 +201,13 @@ class IndoorMapController extends Controller
 
             $map->building_id = $building->id;
             $map->floor_number = $floorNumber;
-            $map->floor_label = $request->floor_label ?: ($floorNumber === 0 ? 'Basement' : $floorNumber . 'F');
-            $map->name = $request->name ?: ($building->name . ' - ' . $map->floor_label);
+            $map->floor_label = $request->floor_label ?: ($floorNumber === 0 ? 'Basement' : $floorNumber.'F');
+            $map->name = $request->name ?: ($building->name.' - '.$map->floor_label);
 
             if ($request->hasFile('geometry_file')) {
                 $geometry = $this->extractGeometryFromUpload($request, 'geometry_file');
 
-                if (!$geometry) {
+                if (! $geometry) {
                     return back()->with('error', 'Invalid GeoJSON file. No Polygon or MultiPolygon geometry found.');
                 }
 
@@ -183,7 +217,7 @@ class IndoorMapController extends Controller
             if ($request->hasFile('floorplan_image')) {
                 $folderPath = public_path('floorplan_image');
 
-                if (!File::exists($folderPath)) {
+                if (! File::exists($folderPath)) {
                     File::makeDirectory($folderPath, 0755, true);
                 }
 
@@ -193,11 +227,11 @@ class IndoorMapController extends Controller
 
                 $buildingSlug = Str::slug($building->name, '_');
                 $extension = $request->file('floorplan_image')->getClientOriginalExtension();
-                $fileName = $buildingSlug . '_floor_' . $request->floor_number . '.' . $extension;
+                $fileName = $buildingSlug.'_floor_'.$request->floor_number.'.'.$extension;
 
                 $request->file('floorplan_image')->move($folderPath, $fileName);
 
-                $imageInfo = getimagesize(public_path('floorplan_image/' . $fileName));
+                $imageInfo = getimagesize(public_path('floorplan_image/'.$fileName));
                 $map->width = $imageInfo[0] ?? null;
                 $map->height = $imageInfo[1] ?? null;
                 $map->floorplan_image = $fileName;
@@ -207,7 +241,7 @@ class IndoorMapController extends Controller
 
             return back()->with('success', 'Indoor map updated successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Update failed: ' . $e->getMessage());
+            return back()->with('error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -216,14 +250,14 @@ class IndoorMapController extends Controller
      */
     private function extractGeometryFromUpload(Request $request, string $fieldName): ?array
     {
-        if (!$request->hasFile($fieldName)) {
+        if (! $request->hasFile($fieldName)) {
             return null;
         }
 
         $geojson = file_get_contents($request->file($fieldName)->getRealPath());
         $decoded = json_decode($geojson, true);
 
-        if (!$decoded) {
+        if (! $decoded) {
             return null;
         }
 

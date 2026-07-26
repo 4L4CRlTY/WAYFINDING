@@ -1,0 +1,301 @@
+.gps-simulator-panel {
+    --gps-sim-primary: #18375d;
+    --gps-sim-cyan: #42d9ff;
+    position: fixed;
+    left: 18px;
+    bottom: 92px;
+    z-index: 10055;
+    width: min(318px, calc(100vw - 36px));
+    overflow: hidden;
+    color: #eefaff;
+    background:
+        linear-gradient(145deg, rgba(24, 55, 93, 0.98), rgba(4, 17, 29, 0.98));
+    border: 1px solid rgba(66, 217, 255, 0.4);
+    border-radius: 18px 7px 18px 7px;
+    box-shadow:
+        0 18px 50px rgba(1, 9, 18, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.gps-simulator-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(110deg, rgba(255, 255, 255, 0.08), transparent 30%),
+        repeating-linear-gradient(90deg, transparent 0 42px, rgba(66, 217, 255, 0.025) 43px);
+}
+
+.gps-simulator-head,
+.gps-simulator-body {
+    position: relative;
+}
+
+.gps-simulator-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 14px;
+    border-bottom: 1px solid rgba(66, 217, 255, 0.16);
+}
+
+.gps-simulator-kicker {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--gps-sim-cyan);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.gps-simulator-kicker::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gps-sim-cyan);
+    box-shadow: 0 0 12px rgba(66, 217, 255, 0.9);
+}
+
+.gps-simulator-title {
+    margin-top: 3px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.gps-simulator-collapse {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    color: #eefaff;
+    background: rgba(66, 217, 255, 0.1);
+    border: 1px solid rgba(66, 217, 255, 0.24);
+    border-radius: 10px 4px 10px 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.gps-simulator-body {
+    padding: 13px 14px 14px;
+}
+
+.gps-simulator-panel.is-collapsed .gps-simulator-body {
+    display: none;
+}
+
+.gps-simulator-panel.is-collapsed .gps-simulator-head {
+    border-bottom: 0;
+}
+
+.gps-simulator-status {
+    min-height: 34px;
+    color: #bcd3df;
+    font-size: 10px;
+    line-height: 1.55;
+}
+
+.gps-simulator-progress-track {
+    height: 6px;
+    margin: 10px 0 7px;
+    overflow: hidden;
+    background: rgba(1, 10, 20, 0.62);
+    border: 1px solid rgba(66, 217, 255, 0.13);
+    border-radius: 999px;
+}
+
+.gps-simulator-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #1a7fb0, var(--gps-sim-cyan));
+    border-radius: inherit;
+    box-shadow: 0 0 12px rgba(66, 217, 255, 0.55);
+    transition: width 0.25s linear;
+}
+
+.gps-simulator-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: #7fa7ba;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.gps-simulator-mode-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 11px;
+}
+
+.gps-simulator-mode-btn {
+    min-height: 34px;
+    padding: 0 9px;
+    color: #a8c8d6;
+    background: rgba(4, 17, 29, 0.55);
+    border: 1px solid rgba(66, 217, 255, 0.16);
+    border-radius: 10px 4px 10px 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.gps-simulator-mode-btn.is-active {
+    color: #edfbff;
+    background: rgba(66, 217, 255, 0.16);
+    border-color: rgba(66, 217, 255, 0.58);
+    box-shadow: inset 0 0 14px rgba(66, 217, 255, 0.08);
+}
+
+.gps-simulator-mode-btn.is-picking {
+    color: #071b2a;
+    background: var(--gps-sim-cyan);
+}
+
+.gps-simulator-source {
+    margin-top: 7px;
+    color: #6fa0b5;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.gps-simulator-controls {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr 0.85fr;
+    gap: 7px;
+    margin-top: 12px;
+}
+
+.gps-simulator-btn {
+    min-height: 36px;
+    padding: 0 9px;
+    color: #eafaff;
+    background: rgba(66, 217, 255, 0.08);
+    border: 1px solid rgba(66, 217, 255, 0.18);
+    border-radius: 11px 4px 11px 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.gps-simulator-btn.primary {
+    color: #052033;
+    background: linear-gradient(135deg, #74e7ff, #2ebce4);
+    border-color: rgba(173, 241, 255, 0.7);
+}
+
+.gps-simulator-btn:hover:not(:disabled) {
+    border-color: rgba(66, 217, 255, 0.66);
+    background-color: rgba(66, 217, 255, 0.16);
+}
+
+.gps-simulator-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+}
+
+.gps-simulator-speed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(66, 217, 255, 0.12);
+}
+
+.gps-simulator-speed-label {
+    color: #93bacb;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.gps-simulator-speed {
+    min-width: 88px;
+    height: 32px;
+    padding: 0 9px;
+    color: #eefaff;
+    background: rgba(4, 17, 29, 0.9);
+    border: 1px solid rgba(66, 217, 255, 0.24);
+    border-radius: 9px 4px 9px 4px;
+    outline: none;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.gps-simulator-dev-note {
+    margin-top: 9px;
+    color: #628da1;
+    font-size: 8px;
+    line-height: 1.45;
+}
+
+#map.gps-simulator-picking-start,
+#map.gps-simulator-picking-start * {
+    cursor: crosshair !important;
+}
+
+.gps-simulator-start-marker {
+    background: transparent !important;
+    border: 0 !important;
+}
+
+.gps-simulator-start-pin {
+    position: relative;
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    color: #052033;
+    background: #7ce9ff;
+    border: 3px solid #ffffff;
+    border-radius: 50% 50% 50% 5px;
+    box-shadow:
+        0 0 0 3px rgba(24, 55, 93, 0.82),
+        0 8px 18px rgba(3, 18, 30, 0.35),
+        0 0 18px rgba(66, 217, 255, 0.7);
+    font-size: 8px;
+    font-weight: 1000;
+    transform: rotate(-45deg);
+}
+
+.gps-simulator-start-pin span {
+    transform: rotate(45deg);
+}
+
+@media (max-width: 768px) {
+    .gps-simulator-panel {
+        left: 10px;
+        bottom: 78px;
+        width: min(310px, calc(100vw - 20px));
+    }
+
+    .gps-simulator-head {
+        padding: 10px 12px;
+    }
+
+    .gps-simulator-body {
+        padding: 10px 12px 12px;
+    }
+}

@@ -463,6 +463,18 @@
         return rgbToHex(r * (1 - percent), g * (1 - percent), b * (1 - percent));
     }
 
+    function mixColors(baseHex, blendHex, blendRatio = 0.5) {
+        const base = hexToRgb(baseHex);
+        const blend = hexToRgb(blendHex);
+        const ratio = Math.max(0, Math.min(1, Number(blendRatio) || 0));
+
+        return rgbToHex(
+            base.r + ((blend.r - base.r) * ratio),
+            base.g + ((blend.g - base.g) * ratio),
+            base.b + ((blend.b - base.b) * ratio)
+        );
+    }
+
     /*
     |--------------------------------------------------------------------------
     | 3-LAYER LIGHTWEIGHT FAKE 3D BUILDING HELPERS
@@ -479,10 +491,7 @@
         style.id = 'building-depth-global-style';
         style.textContent = `
             .fake-3d-building {
-                filter:
-                    drop-shadow(1px 1px 0 var(--building-side-1, rgba(15, 23, 42, 0.28)))
-                    drop-shadow(2px 2px 0 var(--building-side-2, rgba(15, 23, 42, 0.20)))
-                    drop-shadow(3px 3px 1px var(--building-side-3, rgba(15, 23, 42, 0.14)));
+                filter: none !important;
                 transform: none !important;
                 transition: fill-opacity 0.12s ease, stroke-width 0.12s ease, filter 0.12s ease !important;
                 cursor: pointer;
@@ -491,31 +500,30 @@
             }
 
             .fake-3d-building:hover {
-                filter:
-                    drop-shadow(1px 1px 0 var(--building-side-1, rgba(15, 23, 42, 0.28)))
-                    drop-shadow(2px 2px 0 var(--building-side-2, rgba(15, 23, 42, 0.20)))
-                    drop-shadow(3px 3px 1px var(--building-side-3, rgba(15, 23, 42, 0.14)));
+                filter: none !important;
                 transform: none !important;
                 stroke: var(--building-border-color, #1f2937) !important;
+                stroke-width: 1.6 !important;
+                fill-opacity: 1 !important;
+            }
+
+            .fake-3d-building.building-selected {
+                fill: var(--building-selected-color, #3989bd) !important;
+                stroke: #18375d !important;
                 stroke-width: 2 !important;
-                fill-opacity: 0.96 !important;
+                fill-opacity: 1 !important;
+                filter: none !important;
             }
 
             body.many-buildings-mode .fake-3d-building,
             body.many-buildings-mode .fake-3d-building:hover {
-                filter:
-                    drop-shadow(1px 1px 0 var(--building-side-1, rgba(15, 23, 42, 0.26)))
-                    drop-shadow(2px 2px 0 var(--building-side-2, rgba(15, 23, 42, 0.18)))
-                    drop-shadow(3px 3px 1px var(--building-side-3, rgba(15, 23, 42, 0.10))) !important;
+                filter: none !important;
                 transition: none !important;
             }
 
             body.map-zooming .fake-3d-building,
             body.map-zooming .fake-3d-building:hover {
-                filter:
-                    drop-shadow(1px 1px 0 var(--building-side-1, rgba(15, 23, 42, 0.24)))
-                    drop-shadow(2px 2px 0 var(--building-side-2, rgba(15, 23, 42, 0.16)))
-                    drop-shadow(3px 3px 1px var(--building-side-3, rgba(15, 23, 42, 0.08))) !important;
+                filter: none !important;
                 transition: none !important;
                 transform: none !important;
             }
@@ -525,24 +533,16 @@
                 .fake-3d-building:hover,
                 body.map-moving .fake-3d-building,
                 body.map-moving .fake-3d-building:hover {
-                    filter:
-                        drop-shadow(var(--mobile-side-1, 1px) var(--mobile-side-1, 1px) 0 var(--building-side-1, rgba(15, 23, 42, 0.26)))
-                        drop-shadow(var(--mobile-side-2, 2px) var(--mobile-side-2, 2px) 0 var(--building-side-2, rgba(15, 23, 42, 0.18)))
-                        drop-shadow(var(--mobile-side-3, 3px) var(--mobile-side-3, 3px) 1px var(--building-side-3, rgba(15, 23, 42, 0.10))) !important;
+                    filter: none !important;
                     transform: none !important;
                     transition: none !important;
-                    stroke-width: var(--mobile-edge-width, 1.35) !important;
+                    stroke-width: var(--mobile-edge-width, 1.15) !important;
                     vector-effect: non-scaling-stroke !important;
                 }
 
-                body.many-buildings-mode .fake-3d-building,
-                body.many-buildings-mode .fake-3d-building:hover,
                 body.map-zooming .fake-3d-building,
                 body.map-zooming .fake-3d-building:hover {
-                    filter:
-                        drop-shadow(var(--mobile-side-1, 1px) var(--mobile-side-1, 1px) 0 var(--building-side-1, rgba(15, 23, 42, 0.24)))
-                        drop-shadow(var(--mobile-side-2, 2px) var(--mobile-side-2, 2px) 0 var(--building-side-2, rgba(15, 23, 42, 0.15)))
-                        drop-shadow(var(--mobile-side-3, 3px) var(--mobile-side-3, 3px) 1px var(--building-side-3, rgba(15, 23, 42, 0.08))) !important;
+                    filter: none !important;
                 }
             }
         `;
@@ -557,7 +557,8 @@
     function applyBuildingDepthVariables(geojsonLayer, baseColor) {
         ensureBuildingDepthGlobalStyle();
 
-        const borderColor = darkenColor(baseColor, 0.28);
+        const borderColor = darkenColor(baseColor, 0.30);
+        const selectedColor = mixColors(baseColor, '#267fb8', 0.82);
         const sideColor1 = darkenColor(baseColor, 0.18);
         const sideColor2 = darkenColor(baseColor, 0.32);
         const sideColor3 = darkenColor(baseColor, 0.46);
@@ -567,6 +568,7 @@
             if (!el) return;
 
             el.style.setProperty('--building-border-color', borderColor);
+            el.style.setProperty('--building-selected-color', selectedColor);
             el.style.setProperty('--building-side-1', sideColor1);
             el.style.setProperty('--building-side-2', sideColor2);
             el.style.setProperty('--building-side-3', sideColor3);
@@ -1090,21 +1092,6 @@ function formatCoordKey(lng, lat) {
             x: ((Number(lng) - west) / lngSpan) * viewWidth,
             y: ((north - Number(lat)) / latSpan) * viewHeight
         };
-    }
-
-    function distance2D(a, b) {
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        return Math.sqrt((dx * dx) + (dy * dy));
-    }
-
-    function hasExactImageCorners(p) {
-        return [
-            p.image_tl_lat, p.image_tl_lng,
-            p.image_tr_lat, p.image_tr_lng,
-            p.image_bl_lat, p.image_bl_lng,
-            p.image_br_lat, p.image_br_lng
-        ].every(v => v !== null && v !== undefined && v !== '');
     }
 
     function createClippedLanduseSvg(geometry, p, bounds) {

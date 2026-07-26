@@ -10,11 +10,27 @@ use Illuminate\Support\Facades\File;
 
 class LandUseController extends Controller
 {
-    public function LandUse()
+    public function LandUse(Request $request)
     {
-        $landuses = Landuse::latest()->paginate(10);
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
 
-        return view('admin.landuse.landuse', compact('landuses'));
+        $landuses = Landuse::query()
+            ->when($search !== '', function ($query) use ($search, $pattern) {
+                $query->where(function ($searchQuery) use ($search, $pattern) {
+                    $searchQuery->where('name', 'LIKE', $pattern)
+                        ->orWhere('image', 'LIKE', $pattern);
+
+                    if (is_numeric($search)) {
+                        $searchQuery->orWhere('id', (int) $search);
+                    }
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.landuse.landuse', compact('landuses', 'search'));
     }
 
     public function uploadLandUse(Request $request)
@@ -34,15 +50,15 @@ class LandUseController extends Controller
             $content = file_get_contents($file->getRealPath());
             $geojson = json_decode($content, true);
 
-            if (!$this->isValidGeoJson($geojson)) {
+            if (! $this->isValidGeoJson($geojson)) {
                 return back()->with('error', 'Invalid GeoJSON.');
             }
 
             $folder = public_path('Landuses');
-            $current = $folder . '/landuse.geojson';
-            $backup = $folder . '/landuse_backup.geojson';
+            $current = $folder.'/landuse.geojson';
+            $backup = $folder.'/landuse_backup.geojson';
 
-            if (!File::exists($folder)) {
+            if (! File::exists($folder)) {
                 File::makeDirectory($folder, 0755, true);
             }
 
@@ -60,12 +76,12 @@ class LandUseController extends Controller
             if ($request->hasFile('default_image')) {
                 $imageFolder = public_path('landuse_images');
 
-                if (!File::exists($imageFolder)) {
+                if (! File::exists($imageFolder)) {
                     File::makeDirectory($imageFolder, 0755, true);
                 }
 
                 $imageFile = $request->file('default_image');
-                $defaultImageName = time() . '_' . preg_replace('/\s+/', '_', $imageFile->getClientOriginalName());
+                $defaultImageName = time().'_'.preg_replace('/\s+/', '_', $imageFile->getClientOriginalName());
                 $imageFile->move($imageFolder, $defaultImageName);
             }
 
@@ -87,7 +103,7 @@ class LandUseController extends Controller
                 Landuse::query()->delete();
 
                 foreach ($saved['features'] as $feature) {
-                    if (!isset($feature['geometry'])) {
+                    if (! isset($feature['geometry'])) {
                         continue;
                     }
 
@@ -143,10 +159,10 @@ class LandUseController extends Controller
     {
         try {
             $folder = public_path('Landuses');
-            $current = $folder . '/landuse.geojson';
-            $backup = $folder . '/landuse_backup.geojson';
+            $current = $folder.'/landuse.geojson';
+            $backup = $folder.'/landuse_backup.geojson';
 
-            if (!File::exists($backup)) {
+            if (! File::exists($backup)) {
                 return back()->with('error', 'No backup found.');
             }
 
@@ -156,7 +172,7 @@ class LandUseController extends Controller
                 Landuse::query()->delete();
 
                 foreach ($data['features'] as $feature) {
-                    if (!isset($feature['geometry'])) {
+                    if (! isset($feature['geometry'])) {
                         continue;
                     }
 
@@ -251,16 +267,16 @@ class LandUseController extends Controller
             if ($request->hasFile('image')) {
                 $imageFolder = public_path('landuse_images');
 
-                if (!File::exists($imageFolder)) {
+                if (! File::exists($imageFolder)) {
                     File::makeDirectory($imageFolder, 0755, true);
                 }
 
-                if ($landuse->image && File::exists($imageFolder . '/' . $landuse->image)) {
-                    File::delete($imageFolder . '/' . $landuse->image);
+                if ($landuse->image && File::exists($imageFolder.'/'.$landuse->image)) {
+                    File::delete($imageFolder.'/'.$landuse->image);
                 }
 
                 $file = $request->file('image');
-                $imageName = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+                $imageName = time().'_'.preg_replace('/\s+/', '_', $file->getClientOriginalName());
                 $file->move($imageFolder, $imageName);
             }
 
@@ -374,7 +390,7 @@ class LandUseController extends Controller
                     'image_bl_lng' => $landuse->image_bl_lng,
                     'image_br_lat' => $landuse->image_br_lat,
                     'image_br_lng' => $landuse->image_br_lng,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([

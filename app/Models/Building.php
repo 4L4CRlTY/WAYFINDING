@@ -47,4 +47,5 @@ class Building extends Model
     {
         return $this->hasMany(CampusEvent::class);
     }
+
 }

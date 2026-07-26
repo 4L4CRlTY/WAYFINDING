@@ -581,40 +581,10 @@
             @endif
         </div>
 
-        @if($entrances->count())
-            <div class="px-4 py-3 border-top">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div class="muted-small">
-                        Showing {{ $entrances->firstItem() }} to {{ $entrances->lastItem() }}
-                        of {{ $entrances->total() }} indoor entrances
-                    </div>
-
-                    @if ($entrances->hasPages())
-                        <ul class="custom-pagination">
-                            @if ($entrances->onFirstPage())
-                                <li class="disabled"><span>«</span></li>
-                            @else
-                                <li><a href="{{ $entrances->previousPageUrl() }}">«</a></li>
-                            @endif
-
-                            @foreach ($entrances->getUrlRange(1, $entrances->lastPage()) as $page => $url)
-                                @if ($page == $entrances->currentPage())
-                                    <li class="active"><span>{{ $page }}</span></li>
-                                @else
-                                    <li><a href="{{ $url }}">{{ $page }}</a></li>
-                                @endif
-                            @endforeach
-
-                            @if ($entrances->hasMorePages())
-                                <li><a href="{{ $entrances->nextPageUrl() }}">»</a></li>
-                            @else
-                                <li class="disabled"><span>»</span></li>
-                            @endif
-                        </ul>
-                    @endif
-                </div>
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $entrances,
+            'label' => 'indoor entrances',
+        ])
     </div>
 </div>
 

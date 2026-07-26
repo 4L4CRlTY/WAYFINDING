@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-bs-theme="light" data-topbar-color="light" data-menu-color="brand">
 
 <head>
     <title>WayFinding System</title>
@@ -17,6 +17,23 @@
 
     <!-- Theme Config Js -->
     <script src="assets/js/config.js"></script>
+    <script>
+        (() => {
+            const html = document.documentElement;
+            const palette = {
+                theme: 'light',
+                topbar: { color: 'light' },
+                menu: { color: 'brand' },
+            };
+
+            sessionStorage.removeItem('__CONFIG__');
+            window.config = Object.assign({}, window.config || {}, palette);
+            window.defaultConfig = Object.assign({}, window.defaultConfig || {}, palette);
+            html.setAttribute('data-bs-theme', 'light');
+            html.setAttribute('data-topbar-color', 'light');
+            html.setAttribute('data-menu-color', 'brand');
+        })();
+    </script>
 
     <!-- App css -->
     <link href="assets/css/app.min.css" rel="stylesheet" type="text/css" id="app-style" />
@@ -284,6 +301,7 @@
 
     <!-- App js -->
     <script src="assets/js/app.min.js"></script>
+    <script src="{{ asset('admin/assets/js/admin-table-tools.js') }}?v={{ filemtime(public_path('admin/assets/js/admin-table-tools.js')) }}"></script>
 
 </body>
 

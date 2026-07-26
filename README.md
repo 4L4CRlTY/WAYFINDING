@@ -27,7 +27,7 @@ tables.
 - MySQL/MariaDB or SQLite
 - Blade, Vite 8, Tailwind CSS, and Alpine.js
 - Leaflet and browser-side JavaScript routing
-- PHPUnit and Node's built-in test runner
+- PHPUnit, Node's built-in test runner, and Playwright browser tests
 
 ## Requirements
 
@@ -149,8 +149,17 @@ composer test
 # Run JavaScript/module tests
 npm test
 
+# Run Chrome end-to-end navigation tests
+npm run test:e2e
+
 # Build production frontend assets
 npm run build
+
+# Enforce the production wayfinding bundle budgets
+npm run test:performance
+
+# Run JavaScript, build, bundle-budget, and browser checks
+npm run test:all
 
 # Format PHP files
 vendor/bin/pint
@@ -164,6 +173,97 @@ On Windows without a Unix-compatible shell, run Pint with:
 ```powershell
 php vendor/bin/pint
 ```
+
+The browser suite expects the application at `http://wayfinding.test` and uses
+the seeded `user@gmail.com` / `111` account. Override these values when needed:
+
+```dotenv
+E2E_BASE_URL=http://localhost:8000
+E2E_USER_EMAIL=user@example.com
+E2E_USER_PASSWORD=your-local-password
+```
+
+The user dashboard ships its component-based map sources as one minified,
+versioned CSS entry and one minified, versioned JavaScript entry. Leaflet is
+included locally in those production assets, so core map initialization does
+not depend on a third-party CDN. Optional indoor and campus-event data loads
+after the essential outdoor graph. `npm run test:performance` enforces the
+current two-entry size budget.
+
+## GPS field testing and calibration
+
+GPS diagnostics are intentionally hidden from the normal user dashboard. In a
+local debug environment, use a real phone over HTTPS and open
+`/user/dashboard?gps_diagnostics=1` when validating GPS behavior:
+
+1. Open the user dashboard and press **Use GPS**.
+2. Expand the navigation status sheet.
+3. Open **Location – Open testing tools**.
+4. Press **Start Recording**, then walk a normal campus route.
+5. Test an entrance-to-building route, a building-to-building route, and at
+   least one indoor destination.
+6. Press **Stop** and review the acceptance rate, 95th-percentile accuracy,
+   session grade, and recommendation.
+7. Press **Export CSV** if the measurements need to be compared or archived.
+
+The diagnostics show accuracy, path offset, heading, speed, quality-lock
+progress, and off-route confirmation. Recorded coordinates remain in the
+browser's local storage and are not uploaded by the application. **Clear**
+removes the saved session from that device.
+
+Recommended field targets:
+
+| Measurement | Target |
+| --- | --- |
+| Quality lock | Four stable readings at `20m` accuracy or better |
+| Accepted readings | At least `80%` during an open-area walk |
+| 95th-percentile accuracy | `20m` or better |
+| Path snap offset | Within the safe `30m` cap |
+| Off-route reroute | Only after three consecutive confirmations |
+| Arrival | Within `10m` of the destination |
+
+Repeat the same route at least twice and include areas beside buildings or tree
+cover before changing any routing threshold. For home testing, enable the local
+GPS simulator with `/user/dashboard?gps_simulator=1`; the same diagnostics and
+recording flow is exercised by the automated browser suite. Both diagnostic
+URLs require debug mode and remain absent from the normal teacher/user view.
+
+## Offline and installable campus app
+
+The user dashboard is an installable Progressive Web App (PWA). On a supported
+browser, open the profile menu and choose **Install Campus App** when the button
+appears. Installation and service-worker caching require HTTPS in production;
+`localhost` is the browser-approved exception for local development.
+
+After one successful online dashboard load:
+
+- same-origin production app assets are kept for connection interruptions;
+- public buildings, paths, entrances, hazards, indoor data, and campus events
+  are refreshed from the network first and fall back to saved responses;
+- an already-open route can continue using cached campus vectors and device
+  GPS when the connection drops;
+- the profile menu reports offline readiness and the connection banner reports
+  when saved data is active;
+- a non-blocking update prompt appears when a new service worker is ready.
+
+For privacy and map-provider compliance, the service worker does **not** cache
+authenticated dashboard HTML, profile data, logout requests, destination-search
+queries, or third-party OpenStreetMap/CARTO tiles. A cold offline launch therefore
+shows the branded offline screen; reconnect once to authenticate and begin a new
+session. The campus vector overlay remains usable over its neutral background
+during an active offline session.
+
+To verify offline behavior locally, build production assets and serve the app
+from `https://wayfinding.test` or from an HTTP `localhost` URL:
+
+```bash
+npm run build
+php artisan serve
+```
+
+Load `/user/dashboard` online once, switch the browser network to **Offline**,
+and press **Retry** in the connection banner. Previously loaded campus
+destinations should remain available. Return online to refresh recent edits.
 
 ## GeoJSON data format
 
@@ -445,7 +545,11 @@ php artisan optimize
 Important production rules:
 
 - Point the web-server document root at `public/`.
-- Serve the application through HTTPS.
+- Serve the application through HTTPS. GPS, PWA installation, and offline
+  service-worker support are intentionally unavailable on insecure production
+  origins.
+- Serve `/sw.js` without a long-lived immutable cache. The registration uses
+  update checks so users can receive new navigation releases safely.
 - Allow the web-server user to write to `storage/` and `bootstrap/cache/`.
 - Do not run the development user seeder in production.
 - Restart workers with `php artisan queue:restart` after deployments that

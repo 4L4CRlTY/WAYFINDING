@@ -2,15 +2,34 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Building;
 use App\Models\HazardPoint;
 use App\Models\Path;
 use Illuminate\Http\Request;
 
 class HazardPointController extends Controller
 {
-    public function HazardPoint()
+    public function HazardPoint(Request $request)
     {
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+        $normalizedSearch = strtolower($search);
+
         $paths = Path::select('id', 'name', 'geometry', 'type')->get();
+        $buildingFeatures = Building::select('id', 'name', 'geometry', 'color')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($building) {
+                return [
+                    'type' => 'Feature',
+                    'geometry' => $building->geometry,
+                    'properties' => [
+                        'id' => $building->id,
+                        'name' => $building->name,
+                        'color' => $building->color,
+                    ],
+                ];
+            })->values();
 
         $pathFeatures = $paths->map(function ($path) {
             return [
@@ -25,8 +44,47 @@ class HazardPointController extends Controller
         })->values();
 
         $hazardPoints = HazardPoint::with('path')
+            ->when($search !== '', function ($query) use ($search, $pattern, $normalizedSearch) {
+                $query->where(function ($searchQuery) use ($search, $pattern, $normalizedSearch) {
+                    $searchQuery->where('title', 'LIKE', $pattern)
+                        ->orWhere('description', 'LIKE', $pattern)
+                        ->orWhere('warning_type', 'LIKE', $pattern)
+                        ->orWhere('latitude', 'LIKE', $pattern)
+                        ->orWhere('longitude', 'LIKE', $pattern)
+                        ->orWhereHas('path', function ($pathQuery) use ($pattern) {
+                            $pathQuery->where(function ($pathSearchQuery) use ($pattern) {
+                                $pathSearchQuery->where('name', 'LIKE', $pattern)
+                                    ->orWhere('type', 'LIKE', $pattern)
+                                    ->orWhere('hazard_note', 'LIKE', $pattern);
+                            });
+                        });
+
+                    if (is_numeric($search)) {
+                        $numericSearch = (int) $search;
+                        $searchQuery->orWhere('id', $numericSearch)
+                            ->orWhere('severity_level', $numericSearch);
+                    }
+
+                    if (in_array($normalizedSearch, ['active', 'enabled'], true)) {
+                        $searchQuery->orWhere('is_active', true);
+                    }
+
+                    if (in_array($normalizedSearch, ['inactive', 'disabled'], true)) {
+                        $searchQuery->orWhere('is_active', false);
+                    }
+
+                    if (in_array($normalizedSearch, ['routing', 'affects routing', 'yes'], true)) {
+                        $searchQuery->orWhere('affects_routing', true);
+                    }
+
+                    if (in_array($normalizedSearch, ['non-routing', 'does not affect routing', 'no'], true)) {
+                        $searchQuery->orWhere('affects_routing', false);
+                    }
+                });
+            })
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         $hazardPointsMap = HazardPoint::with('path')
             ->where('is_active', true)
@@ -49,8 +107,10 @@ class HazardPointController extends Controller
 
         return view('admin.hazard_point.hazard_point', [
             'pathFeatures' => $pathFeatures,
+            'buildingFeatures' => $buildingFeatures,
             'hazardPoints' => $hazardPoints,
             'hazardPointsMap' => $hazardPointsMap,
+            'search' => $search,
         ]);
     }
 

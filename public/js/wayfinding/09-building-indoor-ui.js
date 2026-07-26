@@ -104,7 +104,9 @@
             });
         }
 
-        const closeBtn = popup.querySelector('.leaflet-popup-close-button');
+        const closeBtn = popup.querySelector(
+            '.route-building-map-popup-custom-close, .leaflet-popup-close-button'
+        );
         if (closeBtn) {
             closeBtn.style.pointerEvents = 'auto';
             closeBtn.style.touchAction = 'manipulation';
@@ -114,6 +116,37 @@
                     e.stopPropagation();
                 }, { passive: false });
             });
+        }
+    }
+
+    function keepRouteBuildingPopupOnScreen() {
+        const popup = document.querySelector('.leaflet-popup-pane .route-building-map-popup');
+        if (!popup || !map) return;
+
+        const popupRect = popup.getBoundingClientRect();
+        const mapRect = map.getContainer().getBoundingClientRect();
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const safeLeft = mapRect.left + 12;
+        const safeRight = mapRect.right - 12;
+        const safeTop = mapRect.top + (isMobile ? 72 : 18);
+        const safeBottom = mapRect.bottom - (isMobile ? 92 : 18);
+        let dx = 0;
+        let dy = 0;
+
+        if (popupRect.left < safeLeft) {
+            dx = popupRect.left - safeLeft;
+        } else if (popupRect.right > safeRight) {
+            dx = popupRect.right - safeRight;
+        }
+
+        if (popupRect.top < safeTop) {
+            dy = popupRect.top - safeTop;
+        } else if (popupRect.bottom > safeBottom) {
+            dy = popupRect.bottom - safeBottom;
+        }
+
+        if (dx || dy) {
+            map.panBy([dx, dy], { animate: true, duration: 0.22 });
         }
     }
 
@@ -198,10 +231,10 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
             | Base size ra ni. Ang visual size niya i-scale nato
             | depende sa current zoom para dili niya matabunan ang route.
             */
-            maxWidth: isMobileIndoorPopup ? 230 : 285,
-            minWidth: isMobileIndoorPopup ? 230 : 285,
+            maxWidth: isMobileIndoorPopup ? 286 : 292,
+            minWidth: isMobileIndoorPopup ? 286 : 292,
 
-            autoPanPaddingTopLeft: isMobileIndoorPopup ? L.point(12, 70) : L.point(20, 20),
+            autoPanPaddingTopLeft: isMobileIndoorPopup ? L.point(12, 72) : L.point(20, 20),
             autoPanPaddingBottomRight: isMobileIndoorPopup ? L.point(12, 92) : L.point(20, 20)
         })
         .setLatLng(center)
@@ -214,29 +247,11 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         setTimeout(makeRoutePopupDragFriendly, 80);
         setTimeout(makeRoutePopupDragFriendly, 220);
 
-        // Mobile: center gamay ang building/popup aron dili siya maputol sa kilid.
-        if (isMobileIndoorPopup) {
-            setTimeout(() => {
-                try {
-                    const targetPoint = map.latLngToContainerPoint(center);
-                    const mapSize = map.getSize();
-                    const safeLeft = 132;
-                    const safeRight = mapSize.x - 132;
-                    let dx = 0;
-
-                    if (targetPoint.x < safeLeft) dx = targetPoint.x - safeLeft;
-                    if (targetPoint.x > safeRight) dx = targetPoint.x - safeRight;
-
-                    if (dx !== 0) {
-                        map.panBy([dx, 0], { animate: true, duration: 0.25 });
-                    }
-                } catch (e) {}
-            }, 80);
-        }
-
         setTimeout(makeRoutePopupDragFriendly, 160);
         setTimeout(updateRouteBuildingPopupScale, 40);
         setTimeout(updateRouteBuildingPopupScale, 180);
+        setTimeout(keepRouteBuildingPopupOnScreen, 90);
+        setTimeout(keepRouteBuildingPopupOnScreen, 360);
     }
 
 
@@ -320,6 +335,10 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
     }
 
     function showRoutePopupForSelectedBuilding(buildingId) {
+        if (typeof setSelectedBuildingVisual === 'function') {
+            setSelectedBuildingVisual(buildingId);
+        }
+
         const building = getBuildingRecordByIdFinal(buildingId);
         showRouteBuildingPopup(
             buildingId,

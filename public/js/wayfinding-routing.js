@@ -141,6 +141,63 @@
         };
     }
 
+    function entranceWalkingCost(candidate, indoorScale) {
+        return Number(candidate.outdoorCost || 0) +
+            (Number(candidate.indoorCost || 0) * indoorScale);
+    }
+
+    function selectBestEntranceCandidate(
+        candidates,
+        indoorScale,
+        mainTieMeters,
+    ) {
+        if (!candidates?.length) {
+            return null;
+        }
+
+        const sameFloorCandidates = candidates.filter(
+            candidate => candidate.isSameFloorEntrance,
+        );
+        const eligible = sameFloorCandidates.length
+            ? sameFloorCandidates
+            : candidates;
+        const byCompleteRoute = [...eligible].sort((a, b) => (
+            entranceWalkingCost(a, indoorScale) -
+            entranceWalkingCost(b, indoorScale) ||
+            Number(b.primaryOrMain) - Number(a.primaryOrMain)
+        ));
+        const shortest = byCompleteRoute[0];
+        const bestMain = byCompleteRoute.find(
+            candidate => candidate.primaryOrMain && !candidate.sideEntrance,
+        );
+        const passedMain = shortest.sideEntrance && byCompleteRoute.find(candidate => (
+            candidate.primaryOrMain &&
+            !candidate.sideEntrance &&
+            shortest.outdoorResult?.path?.includes(
+                candidate.outdoorResult?.path?.at(-1),
+            )
+        ));
+
+        if (passedMain) {
+            return passedMain;
+        }
+
+        /*
+         * Prefer the official main entrance only when its complete walking route
+         * is effectively tied with the shortest option. A meaningfully shorter
+         * side entrance remains available for users and rooms near that end.
+         */
+        if (
+            bestMain &&
+            entranceWalkingCost(bestMain, indoorScale) <=
+                entranceWalkingCost(shortest, indoorScale) + mainTieMeters
+        ) {
+            return bestMain;
+        }
+
+        return shortest;
+    }
+
     function normalizeBearing(degrees) {
         const normalized = Number(degrees) % 360;
 
@@ -196,14 +253,264 @@
         return directions[index];
     }
 
+    function distanceMeters(from, to) {
+        if (!from || !to) {
+            return Infinity;
+        }
+
+        const fromLat = Number(from.lat ?? from[0]);
+        const fromLng = Number(from.lng ?? from[1]);
+        const toLat = Number(to.lat ?? to[0]);
+        const toLng = Number(to.lng ?? to[1]);
+
+        if (![fromLat, fromLng, toLat, toLng].every(Number.isFinite)) {
+            return Infinity;
+        }
+
+        const earthRadius = 6371000;
+        const toRadians = (degrees) => Number(degrees) * Math.PI / 180;
+        const fromLatRadians = toRadians(fromLat);
+        const toLatRadians = toRadians(toLat);
+        const deltaLat = toRadians(toLat - fromLat);
+        const deltaLng = toRadians(toLng - fromLng);
+        const haversine = Math.sin(deltaLat / 2) ** 2
+            + Math.cos(fromLatRadians)
+            * Math.cos(toLatRadians)
+            * Math.sin(deltaLng / 2) ** 2;
+
+        return earthRadius * 2 * Math.atan2(
+            Math.sqrt(haversine),
+            Math.sqrt(1 - haversine),
+        );
+    }
+
+    function medianNumber(values) {
+        const sorted = values
+            .map(Number)
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b);
+
+        if (!sorted.length) return null;
+
+        const middle = Math.floor(sorted.length / 2);
+        return sorted.length % 2
+            ? sorted[middle]
+            : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
+    function evaluateGpsQualitySamples(samples, options = {}) {
+        const requiredSamples = Math.max(1, Number(options.requiredSamples || 4));
+        const maxAccuracy = Math.max(1, Number(options.maxAccuracy || 20));
+        const maxSpread = Math.max(1, Number(options.maxSpread || 10));
+        const normalized = (Array.isArray(samples) ? samples : [])
+            .map((sample) => ({
+                lat: Number(sample?.lat ?? sample?.latLng?.lat),
+                lng: Number(sample?.lng ?? sample?.latLng?.lng),
+                accuracy: Number(sample?.accuracy),
+            }))
+            .filter(sample => (
+                Number.isFinite(sample.lat)
+                && Number.isFinite(sample.lng)
+                && Number.isFinite(sample.accuracy)
+            ));
+        const consecutive = [];
+
+        for (let index = normalized.length - 1; index >= 0; index -= 1) {
+            if (normalized[index].accuracy > maxAccuracy) break;
+            consecutive.unshift(normalized[index]);
+        }
+
+        const candidates = consecutive.slice(-requiredSamples);
+        const latest = normalized[normalized.length - 1] || null;
+        let spread = 0;
+
+        for (let first = 0; first < candidates.length; first += 1) {
+            for (let second = first + 1; second < candidates.length; second += 1) {
+                spread = Math.max(
+                    spread,
+                    distanceMeters(candidates[first], candidates[second]),
+                );
+            }
+        }
+
+        const sampleCount = candidates.length;
+        const accuracy = candidates.length
+            ? Math.max(...candidates.map(sample => sample.accuracy))
+            : Number(latest?.accuracy || 999);
+        const point = candidates.length
+            ? {
+                lat: medianNumber(candidates.map(sample => sample.lat)),
+                lng: medianNumber(candidates.map(sample => sample.lng)),
+            }
+            : (latest ? { lat: latest.lat, lng: latest.lng } : null);
+        const locked = sampleCount >= requiredSamples && spread <= maxSpread;
+        let reason = null;
+
+        if (!locked) {
+            if (latest && latest.accuracy > maxAccuracy) {
+                reason = 'accuracy';
+            } else if (sampleCount < requiredSamples) {
+                reason = 'samples';
+            } else {
+                reason = 'spread';
+            }
+        }
+
+        return {
+            locked,
+            reason,
+            point,
+            accuracy,
+            sampleCount,
+            spread,
+        };
+    }
+
+    function nextGpsOffRouteConfirmation(
+        currentCount,
+        isOnActiveRoute,
+        requiredSamples = 3,
+    ) {
+        const required = Math.max(1, Number(requiredSamples || 3));
+
+        if (isOnActiveRoute) {
+            return {
+                count: 0,
+                confirmed: false,
+            };
+        }
+
+        const count = Math.min(
+            required,
+            Math.max(0, Number(currentCount || 0)) + 1,
+        );
+
+        return {
+            count,
+            confirmed: count >= required,
+        };
+    }
+
+    function classifyGpsSignal(accuracy, options = {}) {
+        const meters = Number(accuracy);
+        const strong = Math.max(1, Number(options.strong || 20));
+        const fair = Math.max(strong, Number(options.fair || 45));
+        const reject = Math.max(fair, Number(options.reject || 60));
+
+        if (!Number.isFinite(meters) || meters <= 0) return 'unknown';
+        if (meters <= strong) return 'strong';
+        if (meters <= fair) return 'fair';
+        if (meters <= reject) return 'weak';
+        return 'rejected';
+    }
+
+    function percentileNumber(values, percentile) {
+        const sorted = (Array.isArray(values) ? values : [])
+            .map(Number)
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b);
+
+        if (!sorted.length) return null;
+        if (sorted.length === 1) return sorted[0];
+
+        const position = Math.max(0, Math.min(1, Number(percentile || 0)))
+            * (sorted.length - 1);
+        const lower = Math.floor(position);
+        const upper = Math.ceil(position);
+        const weight = position - lower;
+
+        return sorted[lower] + ((sorted[upper] - sorted[lower]) * weight);
+    }
+
+    function summarizeGpsCalibration(samples, options = {}) {
+        const normalized = (Array.isArray(samples) ? samples : [])
+            .map(sample => ({
+                timestamp: Number(sample?.timestamp),
+                accuracy: Number(sample?.accuracy),
+                snapDistance: Number(sample?.snapDistance),
+                accepted: sample?.accepted === true,
+                status: String(sample?.status || ''),
+            }))
+            .filter(sample => Number.isFinite(sample.accuracy) && sample.accuracy > 0);
+        const accuracies = normalized.map(sample => sample.accuracy);
+        const snapDistances = normalized
+            .map(sample => sample.snapDistance)
+            .filter(Number.isFinite);
+        const acceptedCount = normalized.filter(sample => sample.accepted).length;
+        const rejectedCount = normalized.filter(sample => (
+            !sample.accepted
+            && !['calibrating', 'tracking_started'].includes(sample.status)
+        )).length;
+        const weakCount = normalized.filter(sample => (
+            classifyGpsSignal(sample.accuracy, options) === 'weak'
+            || classifyGpsSignal(sample.accuracy, options) === 'rejected'
+        )).length;
+        const firstTimestamp = normalized
+            .map(sample => sample.timestamp)
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b)[0] || null;
+        const lastTimestamp = normalized
+            .map(sample => sample.timestamp)
+            .filter(Number.isFinite)
+            .sort((a, b) => b - a)[0] || null;
+        const p95Accuracy = percentileNumber(accuracies, 0.95);
+        let grade = 'not-ready';
+        let recommendation = 'Collect at least four GPS readings while walking a campus route.';
+
+        if (normalized.length >= 4) {
+            if (p95Accuracy <= 20 && acceptedCount / normalized.length >= 0.8) {
+                grade = 'excellent';
+                recommendation = 'GPS quality is field-ready with the current safe routing thresholds.';
+            } else if (p95Accuracy <= 35 && acceptedCount / normalized.length >= 0.6) {
+                grade = 'good';
+                recommendation = 'GPS is usable. Repeat the walk near buildings to confirm signal stability.';
+            } else if (p95Accuracy <= 60) {
+                grade = 'fair';
+                recommendation = 'Signal is inconsistent. Test in a more open area and keep Tap My Location available.';
+            } else {
+                grade = 'poor';
+                recommendation = 'GPS is too weak for reliable routing in this area. Use Tap My Location as the fallback.';
+            }
+        }
+
+        return {
+            sampleCount: normalized.length,
+            acceptedCount,
+            rejectedCount,
+            weakCount,
+            acceptedRate: normalized.length ? acceptedCount / normalized.length : 0,
+            averageAccuracy: accuracies.length
+                ? accuracies.reduce((total, value) => total + value, 0) / accuracies.length
+                : null,
+            medianAccuracy: percentileNumber(accuracies, 0.5),
+            p95Accuracy,
+            maxAccuracy: accuracies.length ? Math.max(...accuracies) : null,
+            averageSnapDistance: snapDistances.length
+                ? snapDistances.reduce((total, value) => total + value, 0) / snapDistances.length
+                : null,
+            maxSnapDistance: snapDistances.length ? Math.max(...snapDistances) : null,
+            durationMs: firstTimestamp !== null && lastTimestamp !== null
+                ? Math.max(0, lastTimestamp - firstTimestamp)
+                : 0,
+            grade,
+            recommendation,
+        };
+    }
+
     global.WayfindingRouting = Object.freeze({
         isPathBlocked,
         shortestPath,
         outdoorShortestPath,
         indoorShortestPath,
+        selectBestEntranceCandidate,
         normalizeBearing,
         bearingBetween,
         relativeTurn,
         cardinalDirection,
+        distanceMeters,
+        evaluateGpsQualitySamples,
+        nextGpsOffRouteConfirmation,
+        classifyGpsSignal,
+        summarizeGpsCalibration,
     });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -10,7 +10,7 @@
     pointer-events: none !important;
 }
 
-<!-- ROUTE STATUS BUBBLE REMOVED / HIDDEN FALLBACK -->
+    /* Route status bubble removed / hidden fallback. */
     #route-status-bubble,
     body.indoor-open #route-status-bubble {
         display: none !important;

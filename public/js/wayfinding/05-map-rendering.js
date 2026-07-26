@@ -1,3 +1,25 @@
+    const buildingVisualLayers = new Map();
+    let selectedBuildingVisualId = null;
+    let buildingDepthLayerGroup = null;
+
+    function setSelectedBuildingVisual(buildingId) {
+        selectedBuildingVisualId = Number(buildingId) || null;
+
+        buildingVisualLayers.forEach((geojsonLayer, layerBuildingId) => {
+            if (!geojsonLayer || typeof geojsonLayer.eachLayer !== 'function') return;
+
+            geojsonLayer.eachLayer(pathLayer => {
+                const element = pathLayer?.getElement ? pathLayer.getElement() : null;
+                if (!element) return;
+
+                element.classList.toggle(
+                    'building-selected',
+                    Number(layerBuildingId) === selectedBuildingVisualId
+                );
+            });
+        });
+    }
+
     function getPathType(feature) {
         const props = feature.properties || {};
         let type = String(props.type || 'walkway').trim().toLowerCase();
@@ -197,11 +219,19 @@
 
     function renderBuildings() {
         let geojsonLayers = [];
+        buildingVisualLayers.clear();
+
+        if (buildingDepthLayerGroup) {
+            map.removeLayer(buildingDepthLayerGroup);
+        }
+
+        buildingDepthLayerGroup = L.layerGroup().addTo(map);
         updateBuildingPerformanceMode();
 
         buildingRecords.forEach((building, index) => {
             const buildingName = building.name || building.properties?.name || 'Building';
-            const baseColor = normalizeColor(building.color || building.properties?.color || '#2b82cc');
+            const sourceColor = normalizeColor(building.color || building.properties?.color || '#2b82cc');
+            const baseColor = mixColors(sourceColor, '#a1b9c9', 0.36);
 
             const geojson = {
                 type: 'Feature',
@@ -217,22 +247,53 @@
             const className = `fake-3d-building-${index}`;
             addDynamicBuildingStyle(className, baseColor);
 
+            const farDepthColor = darkenColor(baseColor, 0.46);
+            const nearDepthColor = darkenColor(baseColor, 0.28);
+
+            L.geoJSON(geojson, {
+                pane: 'buildingDepthPane',
+                renderer: OUTDOOR_BUILDING_DEPTH_RENDERER,
+                interactive: false,
+                className: 'building-depth-solid building-depth-solid-far',
+                style: {
+                    color: farDepthColor,
+                    weight: 1,
+                    fillColor: farDepthColor,
+                    fillOpacity: 0.46,
+                    lineJoin: 'round'
+                }
+            }).addTo(buildingDepthLayerGroup);
+
+            L.geoJSON(geojson, {
+                pane: 'buildingDepthPane',
+                renderer: OUTDOOR_BUILDING_DEPTH_RENDERER,
+                interactive: false,
+                className: 'building-depth-solid building-depth-solid-near',
+                style: {
+                    color: nearDepthColor,
+                    weight: 1,
+                    fillColor: nearDepthColor,
+                    fillOpacity: 0.88,
+                    lineJoin: 'round'
+                }
+            }).addTo(buildingDepthLayerGroup);
+
             /*
             |--------------------------------------------------------------------------
             | BUILDING LAYER ONLY
             |--------------------------------------------------------------------------
-            | No duplicate shadow polygons are drawn here.
-            | Desktop/mobile shadows are handled by lightweight CSS drop-shadow.
+            | The top polygon remains interactive. Two non-interactive depth layers
+            | live in their own pane so their appearance never waits for a zoom repaint.
             */
             const layer = L.geoJSON(geojson, {
                 pane: 'buildingsPane',
                 renderer: OUTDOOR_BUILDINGS_RENDERER,
                 className: `fake-3d-building ${className}`,
                 style: {
-                    color: '#1f2937',
-                    weight: 1.5,
+                    color: darkenColor(baseColor, 0.32),
+                    weight: 1.25,
                     fillColor: baseColor,
-                    fillOpacity: 1,
+                    fillOpacity: 0.98,
                     lineJoin: 'round'
                 },
                 onEachFeature: function(feature, layer) {
@@ -244,6 +305,7 @@
                     `);
 
                     layer.on('click', () => {
+                        setSelectedBuildingVisual(bId);
                         destinationBuildingSelect.value = String(bId);
                         selectedDestinationBuildingId = Number(bId);
                         updateRouteLabels();
@@ -257,8 +319,13 @@
             }).addTo(map);
 
             applyBuildingDepthVariables(layer, baseColor);
+            buildingVisualLayers.set(Number(building.id), layer);
             geojsonLayers.push(layer);
         });
+
+        if (selectedBuildingVisualId) {
+            setSelectedBuildingVisual(selectedBuildingVisualId);
+        }
 
         if (geojsonLayers.length > 0) {
             const group = L.featureGroup(geojsonLayers);

@@ -541,40 +541,10 @@
             @endif
         </div>
 
-        @if($rooms->count())
-            <div class="px-4 py-3 border-top">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div class="muted-small">
-                        Showing {{ $rooms->firstItem() }} to {{ $rooms->lastItem() }}
-                        of {{ $rooms->total() }} indoor rooms
-                    </div>
-
-                    @if ($rooms->hasPages())
-                        <ul class="custom-pagination">
-                            @if ($rooms->onFirstPage())
-                                <li class="disabled"><span>«</span></li>
-                            @else
-                                <li><a href="{{ $rooms->previousPageUrl() }}">«</a></li>
-                            @endif
-
-                            @foreach ($rooms->getUrlRange(1, $rooms->lastPage()) as $page => $url)
-                                @if ($page == $rooms->currentPage())
-                                    <li class="active"><span>{{ $page }}</span></li>
-                                @else
-                                    <li><a href="{{ $url }}">{{ $page }}</a></li>
-                                @endif
-                            @endforeach
-
-                            @if ($rooms->hasMorePages())
-                                <li><a href="{{ $rooms->nextPageUrl() }}">»</a></li>
-                            @else
-                                <li class="disabled"><span>»</span></li>
-                            @endif
-                        </ul>
-                    @endif
-                </div>
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $rooms,
+            'label' => 'indoor rooms',
+        ])
     </div>
 </div>
 

@@ -1208,6 +1208,7 @@ function openIndoorPanelForBuilding(buildingId) {
         const SAME_FLOOR_BONUS = 120;
         const CLOSEST_FLOOR_BONUS = 95;
         const SIDE_ENTRANCE_PENALTY_FOR_UPPER = 45;
+        const MAIN_ENTRANCE_TIE_METERS = 15;
         const INDOOR_WEIGHT = 0.16;
         const OUTDOOR_WEIGHT = 0.62;
 
@@ -1396,25 +1397,20 @@ function openIndoorPanelForBuilding(buildingId) {
             return a.indoorCost - b.indoorCost;
         }
 
-        function debugEntranceDecision(chosen, rule) {
-            console.table(validCandidates.map(c => ({
-                selected: c === chosen ? 'YES' : '',
-                rule,
-                outdoor_entrance: c.outdoorEntrance?.name || c.outdoorEntrance?.id,
-                indoor_entrance: c.indoorEntranceFeature?.properties?.name || c.indoorEntranceFeature?.properties?.id,
-                direct_m: Number(c.directDoorMeters.toFixed(2)),
-                outdoor_cost: Number(c.outdoorCost.toFixed(2)),
-                indoor_cost: Number(c.indoorCost.toFixed(2)),
-                total_cost: Number(c.totalCost.toFixed(2)),
-                indoor_floor: c.indoorEntranceFloor,
-                room_floor: c.roomFloor,
-                floor_diff: c.floorDiff,
-                same_floor: c.isSameFloorEntrance,
-                closest_floor_group: c.floorDiff === minFloorDiff,
-                main_primary: c.primaryOrMain,
-                side: c.sideEntrance,
-                smart_score: Number(smartScore(c).toFixed(2))
-            })));
+        /*
+        |--------------------------------------------------------------------------
+        | RULE 0: Shortest complete ground/first-floor route.
+        |--------------------------------------------------------------------------
+        | Compare the walk to each outdoor entrance plus its linked indoor route
+        | to the room. Main wins only when the choices are within a small tie
+        | margin; a meaningfully shorter side entrance wins automatically.
+        */
+        if (roomFloor <= 1) {
+            return window.WayfindingRouting.selectBestEntranceCandidate(
+                validCandidates,
+                INDOOR_WEIGHT,
+                MAIN_ENTRANCE_TIE_METERS
+            );
         }
 
         /*
@@ -1428,7 +1424,6 @@ function openIndoorPanelForBuilding(buildingId) {
 
         if (sameFloorDoorwayCandidates.length) {
             const chosen = sameFloorDoorwayCandidates[0];
-            debugEntranceDecision(chosen, 'SAME_FLOOR_DOORWAY_LOCK');
             return chosen;
         }
 
@@ -1453,7 +1448,6 @@ function openIndoorPanelForBuilding(buildingId) {
                     bestClosestFloor.totalCost <= nearestAny.totalCost + UPPER_CLOSEST_FLOOR_TOTAL_EXTRA_M;
 
                 if (closestFloorStillPractical) {
-                    debugEntranceDecision(bestClosestFloor, 'UPPER_CLOSEST_FLOOR_PRIORITY');
                     return bestClosestFloor;
                 }
             }
@@ -1474,7 +1468,6 @@ function openIndoorPanelForBuilding(buildingId) {
 
         if (wrongFloorDoorwayCandidates.length) {
             const chosen = wrongFloorDoorwayCandidates[0];
-            debugEntranceDecision(chosen, 'NEAR_DOORWAY_LOCK');
             return chosen;
         }
 
@@ -1494,7 +1487,6 @@ function openIndoorPanelForBuilding(buildingId) {
                     bestSameFloor.directDoorMeters <= nearestAny.directDoorMeters + ROOM_1F_SAME_FLOOR_WINDOW_M;
 
                 if (sameFloorStillPractical) {
-                    debugEntranceDecision(bestSameFloor, 'ROOM_1F_SAME_FLOOR_PRACTICAL');
                     return bestSameFloor;
                 }
             }
@@ -1506,7 +1498,6 @@ function openIndoorPanelForBuilding(buildingId) {
         |--------------------------------------------------------------------------
         */
         const chosen = [...validCandidates].sort(sortSmart)[0];
-        debugEntranceDecision(chosen, 'SMART_SCORE_FALLBACK');
         return chosen;
     }
 
@@ -1699,6 +1690,9 @@ function openIndoorPanelForBuilding(buildingId) {
 
         roomList.innerHTML = '';
         closeIndoorPanelFn();
+        if (typeof closeRouteBuildingPopup === 'function') {
+            closeRouteBuildingPopup();
+        }
     }
 
     window.routeToIndoorRoom = function(roomId) {

@@ -517,9 +517,7 @@ window.routeToCampusEvent = routeToCampusEvent;
             body.map-moving .fake-3d-building:hover,
             .leaflet-buildingsPane-pane .leaflet-interactive,
             .leaflet-buildingsPane-pane .leaflet-interactive:hover {
-                filter:
-                    drop-shadow(3px 4px 1px rgba(15, 23, 42, 0.42))
-                    drop-shadow(6px 7px 4px rgba(15, 23, 42, 0.18)) !important;
+                filter: none !important;
                 transform: none !important;
             }
         }
@@ -531,9 +529,7 @@ window.routeToCampusEvent = routeToCampusEvent;
             body.map-moving .fake-3d-building:hover,
             .leaflet-buildingsPane-pane .leaflet-interactive,
             .leaflet-buildingsPane-pane .leaflet-interactive:hover {
-                filter:
-                    drop-shadow(2px 3px 1px rgba(15, 23, 42, 0.44))
-                    drop-shadow(4px 5px 3px rgba(15, 23, 42, 0.18)) !important;
+                filter: none !important;
             }
         }
     `;

@@ -375,99 +375,36 @@
             return;
         }
     }
-    async function loadAllData() {
-        setIndoorLoading(true);
+    let wayfindingDataInteractionsBound = false;
+    let wayfindingDataLoadSequence = 0;
 
-        const [
-            buildings,
-            paths,
-            entries,
-            entrances,
-            hazards,
-            landuses,
-            indoorMaps,
-            indoorRooms,
-            indoorPaths,
-            indoorEntrances,
-            buildingEntranceLinks,
-            indoorStairsLinks,
-            events
-        ] = await Promise.all([
-            fetchJson('/api/buildings'),
-            fetchJson('/api/paths'),
-            fetchJson('/api/entry-points'),
-            fetchJson('/api/building-entrances'),
-            fetchJson('/api/hazard-points'),
-            fetchJson('/api/landuses'),
-            fetchJson('/api/indoor-maps'),
-            fetchJson('/api/indoor-rooms'),
-            fetchJson('/api/indoor-paths'),
-            fetchJson('/api/indoor-entrances'),
-            fetchJson('/api/building-entrance-links'),
-            fetchJson('/api/indoor-stairs-links'),
-            fetchJson('/api/campus-events')
-        ]);
+    const EMPTY_WAYFINDING_FEATURE_COLLECTION = {
+        type: 'FeatureCollection',
+        features: []
+    };
 
-        buildingRecords = buildings || [];
-        landuseRecords = (landuses || []).map(landuse => ({
-            ...landuse,
-            type: landuse.type ?? landuse.landuse_type ?? landuse.properties?.type ?? null,
-            landuse_type: landuse.landuse_type ?? landuse.type ?? landuse.properties?.landuse_type ?? null,
-            properties: {
-                ...(landuse.properties || {}),
-                type: landuse.properties?.type ?? landuse.type ?? landuse.landuse_type ?? null,
-                landuse_type: landuse.properties?.landuse_type ?? landuse.landuse_type ?? landuse.type ?? null,
-            }
-        }));
-        campusEvents = events || [];
-        pathGeojson = paths || {
-            type: 'FeatureCollection',
-            features: []
-        };
-        entryPoints = entries || [];
-        buildingEntrances = entrances || [];
-        hazardPoints = hazards || [];
+    function settledValue(results, index, fallback) {
+        return results[index]?.status === 'fulfilled'
+            ? results[index].value
+            : fallback;
+    }
 
-        allIndoorMaps = (indoorMaps || []).map(normalizeIndoorMapRecord);
-        allIndoorRooms = normalizeFeatureCollection(indoorRooms);
-        allIndoorPaths = normalizeFeatureCollection(indoorPaths);
-        allIndoorEntrances = normalizeFeatureCollection(indoorEntrances);
-        allBuildingEntranceLinks = buildingEntranceLinks || [];
-        allIndoorStairsLinks = indoorStairsLinks || [];
+    function failedDataLabels(definitions, results) {
+        return definitions
+            .filter((definition, index) => results[index]?.status === 'rejected')
+            .map(definition => definition.label);
+    }
 
-        buildOutdoorGraph(pathGeojson);
-        drawHazardMarkers();
-        renderBuildings();
-        renderLanduses();
-        renderPaths();
-        renderCampusEventMarkers();
+    function staleDataLabels(definitions) {
+        const staleUrls = window.__wayfindingStaleDataUrls || new Set();
+        return definitions
+            .filter(definition => staleUrls.has(definition.url))
+            .map(definition => `${definition.label} (saved copy)`);
+    }
 
-        defaultEntrySelect.innerHTML = '<option value="">Default Start</option>';
-        entryPoints.forEach(point => {
-            const nodeKey = nearestNodeKey(Number(point.latitude), Number(point.longitude));
-            defaultEntrySelect.innerHTML += `
-                <option
-                    value="${nodeKey || ''}"
-                    data-entry-id="${point.id}"
-                    data-name="${point.name || ''}"
-                    data-latitude="${point.latitude ?? ''}"
-                    data-longitude="${point.longitude ?? ''}">
-                    ${point.name || 'Entry Point'}
-                </option>
-            `;
-        });
-
-        destinationBuildingSelect.innerHTML = '<option value="">Select Destination Building</option>';
-        buildingRecords.forEach(building => {
-            destinationBuildingSelect.innerHTML += `
-        <option value="${building.id}">
-            ${building.name || 'Building'}
-        </option>
-    `;
-        });
-
-        populateLanduseSelect();
-        populateDestinationRoomSelect();
+    function bindWayfindingDataInteractionsOnce() {
+        if (wayfindingDataInteractionsBound) return;
+        wayfindingDataInteractionsBound = true;
 
         destinationBuildingSelect.addEventListener('change', function() {
             selectedDestinationBuildingId = this.value ? Number(this.value) : null;
@@ -560,20 +497,205 @@
             updateDestinationUi();
             updateRouteLabels();
         });
+    }
 
-        ensureIndoorMap();
+    function revealOutdoorMap() {
+        const mapElement = document.getElementById('map');
+        if (mapElement) mapElement.style.opacity = '1';
+        setIndoorLoading(false);
+    }
+
+    async function loadAllData() {
+        const loadSequence = ++wayfindingDataLoadSequence;
+        setIndoorLoading(true);
+        window.__wayfindingStaleDataUrls?.clear?.();
+        window.WayfindingDataStatus?.loading(
+            'Loading paths, buildings, entrances, and safety data first…'
+        );
+
+        const essentialDefinitions = [
+            { key: 'buildings', label: 'Buildings', url: '/api/buildings', fallback: [] },
+            { key: 'paths', label: 'Campus paths', url: '/api/paths', fallback: EMPTY_WAYFINDING_FEATURE_COLLECTION },
+            { key: 'entries', label: 'Entry points', url: '/api/entry-points', fallback: [] },
+            { key: 'entrances', label: 'Building entrances', url: '/api/building-entrances', fallback: [] },
+            { key: 'hazards', label: 'Hazard updates', url: '/api/hazard-points', fallback: [] },
+            { key: 'landuses', label: 'Campus areas', url: '/api/landuses', fallback: [] },
+        ];
+
+        const essentialResults = await Promise.allSettled(
+            essentialDefinitions.map(definition => fetchJson(definition.url))
+        );
+
+        if (loadSequence !== wayfindingDataLoadSequence) return;
+
+        const buildings = settledValue(essentialResults, 0, []);
+        const paths = settledValue(
+            essentialResults,
+            1,
+            EMPTY_WAYFINDING_FEATURE_COLLECTION
+        );
+        const entries = settledValue(essentialResults, 2, []);
+        const entrances = settledValue(essentialResults, 3, []);
+        const hazards = settledValue(essentialResults, 4, []);
+        const landuses = settledValue(essentialResults, 5, []);
+
+        buildingRecords = buildings || [];
+        landuseRecords = (landuses || []).map(landuse => ({
+            ...landuse,
+            type: landuse.type ?? landuse.landuse_type ?? landuse.properties?.type ?? null,
+            landuse_type: landuse.landuse_type ?? landuse.type ?? landuse.properties?.landuse_type ?? null,
+            properties: {
+                ...(landuse.properties || {}),
+                type: landuse.properties?.type ?? landuse.type ?? landuse.landuse_type ?? null,
+                landuse_type: landuse.properties?.landuse_type ?? landuse.landuse_type ?? landuse.type ?? null,
+            }
+        }));
+        pathGeojson = paths || EMPTY_WAYFINDING_FEATURE_COLLECTION;
+        entryPoints = entries || [];
+        buildingEntrances = entrances || [];
+        hazardPoints = hazards || [];
+
+        buildOutdoorGraph(pathGeojson);
+        drawHazardMarkers();
+        renderBuildings();
+        renderLanduses();
+        renderPaths();
+
+        defaultEntrySelect.innerHTML = '<option value="">Default Start</option>';
+        entryPoints.forEach(point => {
+            const nodeKey = nearestNodeKey(Number(point.latitude), Number(point.longitude));
+            defaultEntrySelect.innerHTML += `
+                <option
+                    value="${nodeKey || ''}"
+                    data-entry-id="${point.id}"
+                    data-name="${point.name || ''}"
+                    data-latitude="${point.latitude ?? ''}"
+                    data-longitude="${point.longitude ?? ''}">
+                    ${point.name || 'Entry Point'}
+                </option>
+            `;
+        });
+
+        destinationBuildingSelect.innerHTML = '<option value="">Select Destination Building</option>';
+        buildingRecords.forEach(building => {
+            destinationBuildingSelect.innerHTML += `
+                <option value="${building.id}">
+                    ${building.name || 'Building'}
+                </option>
+            `;
+        });
+
+        populateLanduseSelect();
+        if (destinationRoomSelect) {
+            destinationRoomSelect.innerHTML = '<option value="">Loading rooms and offices…</option>';
+        }
+
+        bindWayfindingDataInteractionsOnce();
         updateDestinationUi();
         updateShadows();
         updateRouteLabels();
         setActiveStartModeButton('default');
-        setRouteResultLabel('Ready');
+        setRouteResultLabel('Campus outdoor map ready.');
+        revealOutdoorMap();
 
-        setTimeout(() => {
-            document.getElementById('map').style.opacity = '1';
-            if (indoorMap) indoorMap.invalidateSize();
-            setIndoorLoading(false);
-        }, 150);
+        const failedEssential = failedDataLabels(essentialDefinitions, essentialResults);
+        const staleEssential = staleDataLabels(essentialDefinitions);
+
+        if (failedEssential.length || staleEssential.length) {
+            window.WayfindingDataStatus?.partial(
+                [...failedEssential, ...staleEssential],
+                {
+                    critical: failedEssential.includes('Campus paths'),
+                    usingCache: staleEssential.length > 0,
+                }
+            );
+        } else {
+            window.WayfindingDataStatus?.coreReady();
+        }
+
+        const optionalDefinitions = [
+            { key: 'indoorMaps', label: 'Indoor maps', url: '/api/indoor-maps', fallback: [] },
+            { key: 'indoorRooms', label: 'Indoor rooms', url: '/api/indoor-rooms', fallback: EMPTY_WAYFINDING_FEATURE_COLLECTION },
+            { key: 'indoorPaths', label: 'Indoor paths', url: '/api/indoor-paths', fallback: EMPTY_WAYFINDING_FEATURE_COLLECTION },
+            { key: 'indoorEntrances', label: 'Indoor entrances', url: '/api/indoor-entrances', fallback: EMPTY_WAYFINDING_FEATURE_COLLECTION },
+            { key: 'buildingEntranceLinks', label: 'Entrance links', url: '/api/building-entrance-links', fallback: [] },
+            { key: 'indoorStairsLinks', label: 'Indoor stairs', url: '/api/indoor-stairs-links', fallback: [] },
+            { key: 'events', label: 'Campus events', url: '/api/campus-events', fallback: [] },
+        ];
+
+        const optionalResults = await Promise.allSettled(
+            optionalDefinitions.map(definition => fetchJson(definition.url))
+        );
+
+        if (loadSequence !== wayfindingDataLoadSequence) return;
+
+        allIndoorMaps = (settledValue(optionalResults, 0, []) || [])
+            .map(normalizeIndoorMapRecord);
+        allIndoorRooms = normalizeFeatureCollection(
+            settledValue(optionalResults, 1, EMPTY_WAYFINDING_FEATURE_COLLECTION)
+        );
+        allIndoorPaths = normalizeFeatureCollection(
+            settledValue(optionalResults, 2, EMPTY_WAYFINDING_FEATURE_COLLECTION)
+        );
+        allIndoorEntrances = normalizeFeatureCollection(
+            settledValue(optionalResults, 3, EMPTY_WAYFINDING_FEATURE_COLLECTION)
+        );
+        allBuildingEntranceLinks = settledValue(optionalResults, 4, []) || [];
+        allIndoorStairsLinks = settledValue(optionalResults, 5, []) || [];
+        campusEvents = settledValue(optionalResults, 6, []) || [];
+
+        populateDestinationRoomSelect();
+        renderCampusEventMarkers();
+        ensureIndoorMap();
+        updateDestinationUi();
+        updateRouteLabels();
+        if (indoorMap) indoorMap.invalidateSize();
+
+        const failedOptional = failedDataLabels(optionalDefinitions, optionalResults);
+        const staleOptional = staleDataLabels(optionalDefinitions);
+        const allUnavailable = [...failedEssential, ...failedOptional];
+        const allStale = [...staleEssential, ...staleOptional];
+        const hasActiveRoute = window.WayfindingNavigationUi
+            ?.getState?.()
+            ?.hasRoute === true;
+
+        if (allUnavailable.length || allStale.length) {
+            window.WayfindingDataStatus?.partial(
+                [...allUnavailable, ...allStale],
+                {
+                    critical: allUnavailable.includes('Campus paths'),
+                    usingCache: allStale.length > 0,
+                }
+            );
+            if (!hasActiveRoute) {
+                setRouteResultLabel(
+                    allUnavailable.includes('Campus paths')
+                        ? 'Campus paths are unavailable. Retry data loading before creating a route.'
+                        : 'Campus map ready with limited optional data.'
+                );
+            }
+        } else {
+            window.WayfindingDataStatus?.ready();
+            if (!hasActiveRoute) {
+                setRouteResultLabel('Ready');
+            }
+        }
     }
+
+    window.retryWayfindingData = function () {
+        return loadAllData().catch(error => {
+            console.error('Wayfinding data retry failed:', error);
+            revealOutdoorMap();
+            window.WayfindingDataStatus?.partial(
+                ['Campus navigation data'],
+                { critical: true, usingCache: false }
+            );
+            window.showWayfindingToast?.(
+                'Campus data could not be refreshed. Check your connection and retry.',
+                { kind: 'error' }
+            );
+        });
+    };
 
     closeIndoorPanel.addEventListener('click', closeIndoorPanelFn);
     indoorBackdrop.addEventListener('click', closeIndoorPanelFn);

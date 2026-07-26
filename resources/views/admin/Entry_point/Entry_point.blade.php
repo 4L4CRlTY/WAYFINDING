@@ -388,40 +388,10 @@
             @endif
         </div>
 
-        @if($entryPoints->count())
-            <div class="px-4 py-3 border-top">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div class="muted-small">
-                        Showing {{ $entryPoints->firstItem() }} to {{ $entryPoints->lastItem() }}
-                        of {{ $entryPoints->total() }} entry points
-                    </div>
-
-                    @if ($entryPoints->hasPages())
-                        <ul class="custom-pagination">
-                            @if ($entryPoints->onFirstPage())
-                                <li class="disabled"><span>«</span></li>
-                            @else
-                                <li><a href="{{ $entryPoints->previousPageUrl() }}">«</a></li>
-                            @endif
-
-                            @foreach ($entryPoints->getUrlRange(1, $entryPoints->lastPage()) as $page => $url)
-                                @if ($page == $entryPoints->currentPage())
-                                    <li class="active"><span>{{ $page }}</span></li>
-                                @else
-                                    <li><a href="{{ $url }}">{{ $page }}</a></li>
-                                @endif
-                            @endforeach
-
-                            @if ($entryPoints->hasMorePages())
-                                <li><a href="{{ $entryPoints->nextPageUrl() }}">»</a></li>
-                            @else
-                                <li class="disabled"><span>»</span></li>
-                            @endif
-                        </ul>
-                    @endif
-                </div>
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $entryPoints,
+            'label' => 'entry points',
+        ])
     </div>
 </div>
 

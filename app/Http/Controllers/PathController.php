@@ -10,10 +10,40 @@ use Illuminate\Support\Facades\File;
 
 class PathController extends Controller
 {
-    public function Path()
+    public function Path(Request $request)
     {
-        $paths = Path::latest()->paginate(10);
-        return view('admin.path.path', compact('paths'));
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+        $normalizedSearch = strtolower($search);
+
+        $paths = Path::query()
+            ->when($search !== '', function ($query) use ($search, $pattern, $normalizedSearch) {
+                $query->where(function ($searchQuery) use ($search, $pattern, $normalizedSearch) {
+                    $searchQuery->where('name', 'LIKE', $pattern)
+                        ->orWhere('type', 'LIKE', $pattern)
+                        ->orWhere('hazard_note', 'LIKE', $pattern);
+
+                    if (is_numeric($search)) {
+                        $numericSearch = (int) $search;
+                        $searchQuery->orWhere('id', $numericSearch)
+                            ->orWhere('risk_level', $numericSearch)
+                            ->orWhere('difficulty_level', $numericSearch);
+                    }
+
+                    if (in_array($normalizedSearch, ['blocked', 'closed', 'yes', '1'], true)) {
+                        $searchQuery->orWhere('is_blocked', true);
+                    }
+
+                    if (in_array($normalizedSearch, ['unblocked', 'open', 'clear', 'no', '0'], true)) {
+                        $searchQuery->orWhere('is_blocked', false);
+                    }
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.path.path', compact('paths', 'search'));
     }
 
     public function uploadPath(Request $request)
@@ -27,15 +57,15 @@ class PathController extends Controller
             $content = file_get_contents($file->getRealPath());
             $geojson = json_decode($content, true);
 
-            if (!$this->isValidGeoJson($geojson)) {
+            if (! $this->isValidGeoJson($geojson)) {
                 return back()->with('error', 'Invalid GeoJSON format. FeatureCollection or features not found.');
             }
 
             $folderPath = public_path('Paths');
-            $currentFilePath = $folderPath . DIRECTORY_SEPARATOR . 'path.geojson';
-            $backupFilePath = $folderPath . DIRECTORY_SEPARATOR . 'path_backup.geojson';
+            $currentFilePath = $folderPath.DIRECTORY_SEPARATOR.'path.geojson';
+            $backupFilePath = $folderPath.DIRECTORY_SEPARATOR.'path_backup.geojson';
 
-            if (!File::exists($folderPath)) {
+            if (! File::exists($folderPath)) {
                 File::makeDirectory($folderPath, 0755, true);
             }
 
@@ -49,7 +79,7 @@ class PathController extends Controller
             $savedContent = File::get($currentFilePath);
             $savedGeojson = json_decode($savedContent, true);
 
-            if (!$this->isValidGeoJson($savedGeojson)) {
+            if (! $this->isValidGeoJson($savedGeojson)) {
                 return back()->with('error', 'Saved GeoJSON file is invalid.');
             }
 
@@ -59,7 +89,7 @@ class PathController extends Controller
 
             return back()->with('success', 'Paths uploaded successfully. Current file saved and previous version backed up.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Upload failed: ' . $e->getMessage());
+            return back()->with('error', 'Upload failed: '.$e->getMessage());
         }
     }
 
@@ -67,17 +97,17 @@ class PathController extends Controller
     {
         try {
             $folderPath = public_path('Paths');
-            $currentFilePath = $folderPath . DIRECTORY_SEPARATOR . 'path.geojson';
-            $backupFilePath = $folderPath . DIRECTORY_SEPARATOR . 'path_backup.geojson';
+            $currentFilePath = $folderPath.DIRECTORY_SEPARATOR.'path.geojson';
+            $backupFilePath = $folderPath.DIRECTORY_SEPARATOR.'path_backup.geojson';
 
-            if (!File::exists($backupFilePath)) {
+            if (! File::exists($backupFilePath)) {
                 return back()->with('error', 'No backup file found. Nothing to restore.');
             }
 
             $backupContent = File::get($backupFilePath);
             $backupGeojson = json_decode($backupContent, true);
 
-            if (!$this->isValidGeoJson($backupGeojson)) {
+            if (! $this->isValidGeoJson($backupGeojson)) {
                 return back()->with('error', 'Backup GeoJSON is invalid.');
             }
 
@@ -93,7 +123,7 @@ class PathController extends Controller
 
             return back()->with('success', 'Previous path upload restored successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Reset failed: ' . $e->getMessage());
+            return back()->with('error', 'Reset failed: '.$e->getMessage());
         }
     }
 
@@ -181,9 +211,9 @@ class PathController extends Controller
 
         foreach ($geojson['features'] as $feature) {
             if (
-                !isset($feature['type']) ||
+                ! isset($feature['type']) ||
                 $feature['type'] !== 'Feature' ||
-                !isset($feature['geometry'])
+                ! isset($feature['geometry'])
             ) {
                 continue;
             }

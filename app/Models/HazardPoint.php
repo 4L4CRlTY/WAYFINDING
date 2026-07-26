@@ -36,4 +36,5 @@ class HazardPoint extends Model
     {
         return $this->belongsTo(Path::class);
     }
+
 }

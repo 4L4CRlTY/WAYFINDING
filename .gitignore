@@ -18,6 +18,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/playwright-report
+/test-results
 /vendor
 _ide_helper.php
 Homestead.json

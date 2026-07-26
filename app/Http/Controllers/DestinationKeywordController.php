@@ -3,15 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Building;
-use App\Models\Landuse;
-use App\Models\IndoorRoom;
 use App\Models\DestinationKeyword;
+use App\Models\IndoorRoom;
+use App\Models\Landuse;
+use App\Services\DestinationKeywordSynchronizer;
 use Illuminate\Http\Request;
 
 class DestinationKeywordController extends Controller
 {
-    public function DestinationKeyword()
+    public function DestinationKeyword(Request $request)
     {
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+
         $buildings = Building::select('id', 'name')
             ->orderBy('name')
             ->get();
@@ -24,13 +28,59 @@ class DestinationKeywordController extends Controller
             ->orderBy('name')
             ->get();
 
-        $keywords = DestinationKeyword::orderByDesc('id')->paginate(10);
+        $keywords = DestinationKeyword::query()
+            ->when($search !== '', function ($query) use ($search, $pattern) {
+                $query->where(function ($searchQuery) use ($search, $pattern) {
+                    $searchQuery->where('keyword', 'LIKE', $pattern)
+                        ->orWhere('destination_type', 'LIKE', $pattern)
+                        ->orWhere(function ($destinationQuery) use ($pattern) {
+                            $destinationQuery->where('destination_type', 'building')
+                                ->whereIn('destination_id', Building::query()
+                                    ->select('id')
+                                    ->where('name', 'LIKE', $pattern));
+                        })
+                        ->orWhere(function ($destinationQuery) use ($pattern) {
+                            $destinationQuery->where('destination_type', 'landuse')
+                                ->whereIn('destination_id', Landuse::query()
+                                    ->select('id')
+                                    ->where('name', 'LIKE', $pattern));
+                        })
+                        ->orWhere(function ($destinationQuery) use ($pattern) {
+                            $destinationQuery->where('destination_type', 'room')
+                                ->whereIn('destination_id', IndoorRoom::query()
+                                    ->select('id')
+                                    ->where(function ($roomQuery) use ($pattern) {
+                                        $roomQuery->where('name', 'LIKE', $pattern)
+                                            ->orWhere('room_code', 'LIKE', $pattern)
+                                            ->orWhere('type', 'LIKE', $pattern)
+                                            ->orWhereHas('indoorMap', function ($mapQuery) use ($pattern) {
+                                                $mapQuery->where('name', 'LIKE', $pattern)
+                                                    ->orWhere('floor_label', 'LIKE', $pattern)
+                                                    ->orWhereHas('building', function ($buildingQuery) use ($pattern) {
+                                                        $buildingQuery->where('name', 'LIKE', $pattern);
+                                                    });
+                                            });
+                                    }));
+                        });
+
+                    if (is_numeric($search)) {
+                        $numericSearch = (int) $search;
+                        $searchQuery->orWhere('id', $numericSearch)
+                            ->orWhere('destination_id', $numericSearch)
+                            ->orWhere('priority', $numericSearch);
+                    }
+                });
+            })
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.Destination.Destination_keyword', compact(
             'buildings',
             'landuses',
             'rooms',
-            'keywords'
+            'keywords',
+            'search'
         ));
     }
 
@@ -47,7 +97,7 @@ class DestinationKeywordController extends Controller
         $destinationId = (int) $request->destination_id;
         $priority = (int) ($request->priority ?? 1);
 
-        if (!$this->destinationExists($destinationType, $destinationId)) {
+        if (! $this->destinationExists($destinationType, $destinationId)) {
             return redirect()
                 ->back()
                 ->withInput()
@@ -92,7 +142,7 @@ class DestinationKeywordController extends Controller
 
         return redirect()
             ->route('admin.destination-keyword')
-            ->with('success', $savedCount . ' keyword(s) saved successfully.');
+            ->with('success', $savedCount.' keyword(s) saved successfully.');
     }
 
     public function destroy(DestinationKeyword $destinationKeyword)
@@ -102,6 +152,19 @@ class DestinationKeywordController extends Controller
         return redirect()
             ->route('admin.destination-keyword')
             ->with('success', 'Keyword deleted successfully.');
+    }
+
+    public function sync(DestinationKeywordSynchronizer $synchronizer)
+    {
+        $result = $synchronizer->sync();
+
+        return redirect()
+            ->route('admin.destination-keyword')
+            ->with(
+                'success',
+                "{$result['created']} missing keyword(s) generated for "
+                ."{$result['buildings']} buildings and {$result['rooms']} rooms."
+            );
     }
 
     private function destinationExists(string $type, int $id): bool

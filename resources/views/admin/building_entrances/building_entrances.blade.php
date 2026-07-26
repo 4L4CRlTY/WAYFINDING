@@ -691,11 +691,10 @@
             </table>
         </div>
 
-        @if($entrances->count())
-            <div class="px-4 py-3 border-top entrance-pagination-wrap d-flex justify-content-center">
-                {{ $entrances->links() }}
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $entrances,
+            'label' => 'building entrances',
+        ])
     </div>
 </div>
 

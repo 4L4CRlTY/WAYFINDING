@@ -112,6 +112,117 @@ test('indoor routing may enter the selected destination room', () => {
     assert.equal(result.totalCost, 5);
 });
 
+test('entrance selection uses a shorter side entrance for the complete route', () => {
+    const mainEntrance = {
+        name: 'Main Entrance',
+        primaryOrMain: true,
+        isSameFloorEntrance: true,
+        directDoorMeters: 70,
+        outdoorCost: 92,
+        indoorCost: 310,
+        outdoorResult: { path: ['start', 'main-node'] },
+    };
+    const sideEntrance = {
+        name: 'Side Entrance',
+        primaryOrMain: false,
+        sideEntrance: true,
+        isSameFloorEntrance: true,
+        directDoorMeters: 18,
+        outdoorCost: 24,
+        indoorCost: 40,
+        outdoorResult: { path: ['start', 'side-branch', 'side-node'] },
+    };
+
+    const selected = routing.selectBestEntranceCandidate(
+        [mainEntrance, sideEntrance],
+        0.16,
+        15,
+    );
+
+    assert.equal(selected.name, 'Side Entrance');
+});
+
+test('entrance selection stops at main when the side route passes it first', () => {
+    const mainEntrance = {
+        name: 'Main Entrance',
+        primaryOrMain: true,
+        sideEntrance: false,
+        isSameFloorEntrance: true,
+        outdoorCost: 20,
+        indoorCost: 300,
+        outdoorResult: { path: ['start', 'main-node'] },
+    };
+    const sideEntrance = {
+        name: 'Side Entrance',
+        primaryOrMain: false,
+        sideEntrance: true,
+        isSameFloorEntrance: true,
+        outdoorCost: 100,
+        indoorCost: 20,
+        outdoorResult: { path: ['start', 'main-node', 'side-node'] },
+    };
+
+    const selected = routing.selectBestEntranceCandidate(
+        [sideEntrance, mainEntrance],
+        0.16,
+        15,
+    );
+
+    assert.equal(selected.name, 'Main Entrance');
+});
+
+test('entrance selection keeps main when complete routes are effectively tied', () => {
+    const mainEntrance = {
+        name: 'Main Entrance',
+        primaryOrMain: true,
+        isSameFloorEntrance: true,
+        directDoorMeters: 36,
+        outdoorCost: 44,
+        indoorCost: 80,
+    };
+    const sideEntrance = {
+        name: 'Side Entrance',
+        primaryOrMain: false,
+        isSameFloorEntrance: true,
+        directDoorMeters: 32,
+        outdoorCost: 39,
+        indoorCost: 74,
+    };
+
+    const selected = routing.selectBestEntranceCandidate(
+        [sideEntrance, mainEntrance],
+        0.16,
+        15,
+    );
+
+    assert.equal(selected.name, 'Main Entrance');
+});
+
+test('entrance selection does not trade a same-floor entrance for a shorter wrong-floor route', () => {
+    const sameFloorMain = {
+        name: 'Main Entrance',
+        primaryOrMain: true,
+        isSameFloorEntrance: true,
+        outdoorCost: 80,
+        indoorCost: 120,
+    };
+    const wrongFloorSide = {
+        name: 'Side Entrance',
+        primaryOrMain: false,
+        isSameFloorEntrance: false,
+        outdoorCost: 5,
+        indoorCost: 10,
+    };
+
+    const selected = routing.selectBestEntranceCandidate(
+        [wrongFloorSide, sameFloorMain],
+        0.16,
+        15,
+    );
+
+    assert.equal(selected.name, 'Main Entrance');
+});
+
 test('navigation bearings and turn directions are calculated consistently', () => {
     assert.equal(Math.round(routing.bearingBetween([10, 124], [11, 124])), 0);
     assert.equal(Math.round(routing.bearingBetween([10, 124], [10, 125])), 90);
@@ -121,4 +232,99 @@ test('navigation bearings and turn directions are calculated consistently', () =
     assert.equal(routing.relativeTurn(0, 90).type, 'right');
     assert.equal(routing.relativeTurn(90, 0).type, 'left');
     assert.equal(routing.relativeTurn(0, 180).type, 'u_turn');
+});
+
+test('GPS quality lock requires four stable accurate readings', () => {
+    const stableSamples = [
+        { lat: 10.25118810, lng: 124.98544340, accuracy: 8 },
+        { lat: 10.25118812, lng: 124.98544342, accuracy: 7 },
+        { lat: 10.25118809, lng: 124.98544339, accuracy: 9 },
+        { lat: 10.25118811, lng: 124.98544341, accuracy: 6 },
+    ];
+
+    const waiting = routing.evaluateGpsQualitySamples(stableSamples.slice(0, 3));
+    const locked = routing.evaluateGpsQualitySamples(stableSamples);
+
+    assert.equal(waiting.locked, false);
+    assert.equal(waiting.reason, 'samples');
+    assert.equal(waiting.sampleCount, 3);
+    assert.equal(locked.locked, true);
+    assert.equal(locked.sampleCount, 4);
+    assert.ok(locked.spread < 10);
+    assert.ok(Math.abs(locked.point.lat - 10.251188105) < 0.000000001);
+});
+
+test('GPS quality lock rejects weak accuracy and unstable sample spread', () => {
+    const weakAccuracy = routing.evaluateGpsQualitySamples([
+        { lat: 10.25118, lng: 124.98544, accuracy: 8 },
+        { lat: 10.25118, lng: 124.98544, accuracy: 7 },
+        { lat: 10.25118, lng: 124.98544, accuracy: 35 },
+    ]);
+    const unstable = routing.evaluateGpsQualitySamples([
+        { lat: 10.25118, lng: 124.98544, accuracy: 8 },
+        { lat: 10.25128, lng: 124.98544, accuracy: 8 },
+        { lat: 10.25138, lng: 124.98544, accuracy: 8 },
+        { lat: 10.25148, lng: 124.98544, accuracy: 8 },
+    ]);
+
+    assert.equal(weakAccuracy.locked, false);
+    assert.equal(weakAccuracy.reason, 'accuracy');
+    assert.equal(weakAccuracy.sampleCount, 0);
+    assert.equal(unstable.locked, false);
+    assert.equal(unstable.reason, 'spread');
+    assert.ok(unstable.spread > 10);
+});
+
+test('off-route rerouting requires three consecutive confirmations', () => {
+    const first = routing.nextGpsOffRouteConfirmation(0, false, 3);
+    const second = routing.nextGpsOffRouteConfirmation(first.count, false, 3);
+    const recovered = routing.nextGpsOffRouteConfirmation(second.count, true, 3);
+    const third = routing.nextGpsOffRouteConfirmation(second.count, false, 3);
+
+    assert.deepEqual({ ...first }, { count: 1, confirmed: false });
+    assert.deepEqual({ ...second }, { count: 2, confirmed: false });
+    assert.deepEqual({ ...recovered }, { count: 0, confirmed: false });
+    assert.deepEqual({ ...third }, { count: 3, confirmed: true });
+});
+
+test('GPS signal classification follows the safe field thresholds', () => {
+    assert.equal(routing.classifyGpsSignal(null), 'unknown');
+    assert.equal(routing.classifyGpsSignal(8), 'strong');
+    assert.equal(routing.classifyGpsSignal(30), 'fair');
+    assert.equal(routing.classifyGpsSignal(52), 'weak');
+    assert.equal(routing.classifyGpsSignal(75), 'rejected');
+});
+
+test('GPS calibration summary reports field quality and acceptance rate', () => {
+    const samples = [
+        { timestamp: 1000, accuracy: 6, snapDistance: 2, accepted: true, status: 'accepted' },
+        { timestamp: 2000, accuracy: 8, snapDistance: 3, accepted: true, status: 'accepted' },
+        { timestamp: 3000, accuracy: 9, snapDistance: 2, accepted: true, status: 'accepted' },
+        { timestamp: 4000, accuracy: 10, snapDistance: 4, accepted: true, status: 'accepted' },
+        { timestamp: 5000, accuracy: 12, snapDistance: 3, accepted: true, status: 'accepted' },
+    ];
+    const summary = routing.summarizeGpsCalibration(samples);
+
+    assert.equal(summary.sampleCount, 5);
+    assert.equal(summary.acceptedCount, 5);
+    assert.equal(summary.acceptedRate, 1);
+    assert.equal(summary.durationMs, 4000);
+    assert.equal(summary.grade, 'excellent');
+    assert.ok(summary.p95Accuracy > 10);
+    assert.ok(summary.averageSnapDistance < 4);
+});
+
+test('GPS calibration summary warns when field readings are unreliable', () => {
+    const summary = routing.summarizeGpsCalibration([
+        { timestamp: 1000, accuracy: 70, accepted: false, status: 'weak_accuracy' },
+        { timestamp: 2000, accuracy: 85, accepted: false, status: 'weak_accuracy' },
+        { timestamp: 3000, accuracy: 90, accepted: false, status: 'off_path' },
+        { timestamp: 4000, accuracy: 75, accepted: false, status: 'off_path' },
+    ]);
+
+    assert.equal(summary.grade, 'poor');
+    assert.equal(summary.acceptedRate, 0);
+    assert.equal(summary.rejectedCount, 4);
+    assert.equal(summary.weakCount, 4);
+    assert.match(summary.recommendation, /Tap My Location/);
 });

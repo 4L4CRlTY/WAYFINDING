@@ -22,13 +22,28 @@
     const GPS_MAX_SNAP_RADIUS_M = 30;          // strict cap to avoid snapping to wrong campus path
     const GPS_SNAP_GRACE_M = 4;                // small tolerance for QGIS/path offset
     const GPS_ACTIVE_ROUTE_EXTRA_M = 6;        // active route gets a little more allowance
-    const GPS_MIN_SAMPLES = 2;                 // enough to establish an initial direction
+    const GPS_QUALITY_LOCK_REQUIRED_SAMPLES = 4;
+    const GPS_QUALITY_LOCK_MAX_ACCURACY_M = 20;
+    const GPS_QUALITY_LOCK_MAX_SPREAD_M = 10;
+    const GPS_OFF_ROUTE_CONFIRMATION_SAMPLES = 3;
     const GPS_BAD_JUMP_SPEED_MPS = 14;         // reject only physically implausible jumps
     const GPS_SMOOTH_FACTOR = 0.58;             // responsive enough for walking guidance
     const GPS_REROUTE_INTERVAL_MS = 2500;
     const GPS_REROUTE_MIN_MOVE_M = 4;
     const GPS_ARRIVAL_DISTANCE_M = 10;
     const GPS_TURN_NOTICE_DISTANCE_M = 22;
+    const GPS_CALIBRATION_THRESHOLDS = Object.freeze({
+        strongAccuracy: GPS_QUALITY_LOCK_MAX_ACCURACY_M,
+        fairAccuracy: GPS_PREVIEW_ACCURACY_M,
+        rejectAccuracy: GPS_REJECT_ACCURACY_M,
+        maxSpread: GPS_QUALITY_LOCK_MAX_SPREAD_M,
+        requiredLockSamples: GPS_QUALITY_LOCK_REQUIRED_SAMPLES,
+        minSnapRadius: GPS_MIN_SNAP_RADIUS_M,
+        maxSnapRadius: GPS_MAX_SNAP_RADIUS_M,
+        snapGrace: GPS_SNAP_GRACE_M,
+        requiredOffRouteSamples: GPS_OFF_ROUTE_CONFIRMATION_SAMPLES,
+        arrivalDistance: GPS_ARRIVAL_DISTANCE_M,
+    });
 
     function clampGpsMeters(value, min, max) {
         value = Number(value || 0);
@@ -49,10 +64,14 @@
     }
 
     let liveGpsWatchId = null;
+    let liveGpsProvider = null;
     let liveGpsMarker = null;
     let liveGpsAccuracyCircle = null;
     let liveGpsStatusEl = null;
     let liveGpsSamples = [];
+    let gpsQualityLockSamples = [];
+    let gpsQualityLockAcquired = false;
+    let consecutiveOffRouteReadings = 0;
     let lastRawGpsLatLng = null;
     let lastRawGpsTime = null;
     let lastSmoothGpsLatLng = null;
@@ -69,6 +88,7 @@
     let lastLiveRerouteLatLng = null;
     let lastLiveRerouteNodeKey = null;
     let drawingLiveGpsReroute = false;
+    let liveGpsProviderName = 'device';
 
     const baseSelectGpsMode = typeof selectGpsMode === 'function' ? selectGpsMode : null;
     const baseSelectPickPathMode = typeof selectPickPathMode === 'function' ? selectPickPathMode : null;
@@ -76,6 +96,150 @@
     const baseResetRouteSelection = typeof resetRouteSelection === 'function' ? resetRouteSelection : null;
     const baseDrawOutdoorRoute = typeof drawOutdoorRoute === 'function' ? drawOutdoorRoute : null;
     const baseClearRouteLayer = typeof clearRouteLayer === 'function' ? clearRouteLayer : null;
+
+    function emitGpsDiagnostic(type, detail = {}) {
+        window.dispatchEvent(new CustomEvent('wayfinding:gps-diagnostic', {
+            detail: {
+                type,
+                timestamp: Number(detail.timestamp || Date.now()),
+                provider: liveGpsProviderName,
+                thresholds: GPS_CALIBRATION_THRESHOLDS,
+                routeActive: Boolean(activeOutdoorDestinationKey),
+                ...detail,
+            },
+        }));
+    }
+
+    function emitGpsReading(status, sample, qualityLock, detail = {}) {
+        emitGpsDiagnostic('reading', {
+            status,
+            lat: Number(sample?.latLng?.lat),
+            lng: Number(sample?.latLng?.lng),
+            accuracy: Number(sample?.accuracy || 999),
+            heading: Number.isFinite(Number(sample?.heading))
+                ? Number(sample.heading)
+                : null,
+            speed: Number.isFinite(Number(sample?.speed))
+                ? Number(sample.speed)
+                : null,
+            altitude: Number.isFinite(Number(sample?.altitude))
+                ? Number(sample.altitude)
+                : null,
+            qualityLocked: qualityLock?.locked === true,
+            qualitySamples: Number(qualityLock?.sampleCount || 0),
+            spread: Number(qualityLock?.spread || 0),
+            offRouteCount: consecutiveOffRouteReadings,
+            timestamp: Number(sample?.time || Date.now()),
+            ...detail,
+        });
+    }
+
+    function getOutdoorGpsProvider() {
+        const simulator = window.WayfindingGpsSimulator;
+
+        if (
+            window.WAYFINDING_GPS_SIMULATOR_ENABLED === true
+            && simulator
+            && simulator.geolocation
+        ) {
+            return simulator.geolocation;
+        }
+
+        return navigator.geolocation || null;
+    }
+
+    function clearOutdoorGpsWatch() {
+        if (liveGpsWatchId === null) return;
+
+        if (liveGpsProvider && typeof liveGpsProvider.clearWatch === 'function') {
+            liveGpsProvider.clearWatch(liveGpsWatchId);
+        }
+
+        liveGpsWatchId = null;
+        liveGpsProvider = null;
+    }
+
+    function setGpsQualityLockDataset(state) {
+        if (!document.body) return;
+
+        if (state) {
+            document.body.dataset.gpsQualityLock = state;
+        } else {
+            delete document.body.dataset.gpsQualityLock;
+        }
+    }
+
+    function resetGpsQualityLock() {
+        gpsQualityLockSamples = [];
+        gpsQualityLockAcquired = false;
+        consecutiveOffRouteReadings = 0;
+        setGpsQualityLockDataset('waiting');
+    }
+
+    function evaluateGpsQualityLock(sample) {
+        if (gpsQualityLockAcquired) {
+            return {
+                locked: true,
+                justLocked: false,
+                point: sample.latLng,
+                accuracy: sample.accuracy,
+                sampleCount: GPS_QUALITY_LOCK_REQUIRED_SAMPLES,
+                spread: 0,
+            };
+        }
+
+        gpsQualityLockSamples.push(sample);
+        gpsQualityLockSamples = gpsQualityLockSamples.slice(
+            -(GPS_QUALITY_LOCK_REQUIRED_SAMPLES * 2)
+        );
+
+        const evaluation = window.WayfindingRouting.evaluateGpsQualitySamples(
+            gpsQualityLockSamples,
+            {
+                requiredSamples: GPS_QUALITY_LOCK_REQUIRED_SAMPLES,
+                maxAccuracy: GPS_QUALITY_LOCK_MAX_ACCURACY_M,
+                maxSpread: GPS_QUALITY_LOCK_MAX_SPREAD_M,
+            }
+        );
+
+        if (!evaluation.locked) {
+            setGpsQualityLockDataset('waiting');
+
+            return {
+                ...evaluation,
+                point: evaluation.point
+                    ? L.latLng(evaluation.point.lat, evaluation.point.lng)
+                    : sample.latLng,
+            };
+        }
+
+        gpsQualityLockAcquired = true;
+        setGpsQualityLockDataset('locked');
+
+        return {
+            ...evaluation,
+            justLocked: true,
+            point: L.latLng(evaluation.point.lat, evaluation.point.lng),
+        };
+    }
+
+    function showGpsQualityLockStatus(lockResult) {
+        const accuracy = Math.round(Number(lockResult.accuracy || 999));
+        const spread = Math.round(Number(lockResult.spread || 0));
+        const progress = `${lockResult.sampleCount}/${GPS_QUALITY_LOCK_REQUIRED_SAMPLES}`;
+        let message = `Hold still while GPS collects ${GPS_QUALITY_LOCK_REQUIRED_SAMPLES} reliable readings.`;
+
+        if (lockResult.reason === 'accuracy') {
+            message = `Current accuracy is ${accuracy}m. GPS needs ${GPS_QUALITY_LOCK_MAX_ACCURACY_M}m or better for four consecutive readings.`;
+        } else if (lockResult.reason === 'spread') {
+            message = `Readings are spread across ${spread}m. Keep still until they remain within ${GPS_QUALITY_LOCK_MAX_SPREAD_M}m.`;
+        } else if (lockResult.sampleCount > 0) {
+            message = `Accuracy is ${accuracy}m and spread is ${spread}m. Keep the phone still for a stable lock.`;
+        }
+
+        setLiveGpsStatus('loading', `GPS quality lock (${progress})`, message);
+        setRouteResultLabel(`Calibrating GPS: ${progress} stable readings.`);
+    }
 
     function toLiveLatLng(point) {
         if (!point) return null;
@@ -136,6 +300,7 @@
             <div class="live-gps-status-actions">
                 <button type="button" class="live-gps-mini-btn" onclick="toggleOutdoorLiveGpsFollow()" id="live-gps-follow-btn">Follow: ON</button>
                 <button type="button" class="live-gps-mini-btn ghost" onclick="selectPickPathMode()">Tap My Location</button>
+                <button type="button" class="live-gps-mini-btn ghost" onclick="openGpsDiagnostics()">GPS Details</button>
             </div>
         `;
         document.body.appendChild(liveGpsStatusEl);
@@ -154,9 +319,19 @@
         if (titleEl) titleEl.textContent = title || 'Outdoor Live GPS';
         if (textEl) textEl.textContent = text || '';
         if (followBtn) followBtn.textContent = liveGpsFollow ? 'Follow: ON' : 'Follow: OFF';
+
+        window.WayfindingNavigationUi?.updateGpsStatus(
+            kind || 'loading',
+            title || 'Outdoor Live GPS',
+            text || ''
+        );
     }
 
     function setLiveGpsGuidance(instruction = null) {
+        if (instruction) {
+            window.WayfindingNavigationUi?.updateGuidance(instruction);
+        }
+
         const guidanceEl = document.getElementById('live-gps-guidance');
         const titleEl = document.getElementById('live-gps-guidance-title');
         const metaEl = document.getElementById('live-gps-guidance-meta');
@@ -194,6 +369,8 @@
             liveGpsStatusEl.remove();
             liveGpsStatusEl = null;
         }
+
+        window.WayfindingNavigationUi?.clearGpsStatus();
     }
 
     function removeLiveGpsMarkerOnly() {
@@ -356,6 +533,7 @@
         if (activeRouteSnap.snapped) {
             return {
                 ...activeRouteSnap,
+                activeRouteDistance: activeRouteSnap.distance,
                 allowedDistance: activeSnapRadius,
                 accuracy: Number(accuracy || 999)
             };
@@ -365,6 +543,7 @@
         if (campusPathSnap.snapped) {
             return {
                 ...campusPathSnap,
+                activeRouteDistance: activeRouteSnap.distance,
                 allowedDistance: pathSnapRadius,
                 accuracy: Number(accuracy || 999)
             };
@@ -374,6 +553,7 @@
         return {
             point: gpsLatLng,
             distance: nearestDistance,
+            activeRouteDistance: activeRouteSnap.distance,
             allowedDistance: pathSnapRadius,
             snapped: false,
             source: 'raw_gps',
@@ -409,6 +589,7 @@
         lastLiveRerouteAt = 0;
         lastLiveRerouteLatLng = null;
         lastLiveRerouteNodeKey = null;
+        consecutiveOffRouteReadings = 0;
         setLiveGpsGuidance(null);
     }
 
@@ -417,6 +598,7 @@
 
         activeOutdoorRouteResult = result;
         activeOutdoorDestinationKey = result.path[result.path.length - 1];
+        consecutiveOffRouteReadings = 0;
     }
 
     function getRouteProgress(position) {
@@ -564,6 +746,14 @@
 
         if (!instruction) return;
 
+        if (
+            window.WayfindingNavigationUi
+            && !window.WayfindingNavigationUi.isNavigationStarted()
+        ) {
+            setRouteResultLabel('Route preview ready. Start navigation when you are ready to walk.');
+            return;
+        }
+
         if (instruction.kind === 'arrived') {
             setLiveGpsStatus('good', 'Destination reached', 'Continue to the indicated entrance or room marker for an indoor destination.');
             setRouteResultLabel('Destination reached.');
@@ -631,7 +821,19 @@
         const sample = {
             latLng: L.latLng(Number(position.coords.latitude), Number(position.coords.longitude)),
             accuracy: Number(position.coords.accuracy || 999),
-            time: Date.now()
+            heading: position.coords.heading === null
+                || position.coords.heading === undefined
+                ? null
+                : Number(position.coords.heading),
+            speed: position.coords.speed === null
+                || position.coords.speed === undefined
+                ? null
+                : Number(position.coords.speed),
+            altitude: position.coords.altitude === null
+                || position.coords.altitude === undefined
+                ? null
+                : Number(position.coords.altitude),
+            time: Number(position.timestamp || Date.now())
         };
 
         liveGpsSamples.push(sample);
@@ -739,12 +941,10 @@
     }
 
     function stopOutdoorLiveGpsWatchOnly() {
-        if (liveGpsWatchId !== null) {
-            navigator.geolocation.clearWatch(liveGpsWatchId);
-            liveGpsWatchId = null;
-        }
+        clearOutdoorGpsWatch();
 
         liveGpsSamples = [];
+        resetGpsQualityLock();
         lastRawGpsLatLng = null;
         lastRawGpsTime = null;
         lastSmoothGpsLatLng = null;
@@ -796,10 +996,32 @@
         if (!position || !position.coords) return;
 
         const latestSample = collectGpsSample(position);
-        const rawLatLng = latestSample.latLng;
-        const accuracy = Number(latestSample.accuracy || 999);
+        const qualityLock = evaluateGpsQualityLock(latestSample);
+        let rawLatLng = qualityLock.point || latestSample.latLng;
+        let accuracy = Number(qualityLock.accuracy || latestSample.accuracy || 999);
         const sampleTime = Number(position.timestamp || Date.now());
-        const reportedHeading = Number(position.coords.heading);
+        const reportedHeading = position.coords.heading === null
+            || position.coords.heading === undefined
+            ? null
+            : Number(position.coords.heading);
+
+        if (!qualityLock.locked) {
+            updateRawGpsAccuracyCircle(latestSample.latLng, latestSample.accuracy);
+            updateLiveGpsVisual(
+                latestSample.latLng,
+                latestSample.latLng,
+                latestSample.accuracy,
+                null
+            );
+            emitGpsReading('calibrating', latestSample, qualityLock, {
+                accepted: false,
+                reason: qualityLock.reason || 'samples',
+                snapRadius: getGpsSnapRadiusMeters(latestSample.accuracy),
+            });
+            showGpsQualityLockStatus(qualityLock);
+            return;
+        }
+
         const movementDistance = lastNavigationPosition
             ? map.distance(lastNavigationPosition, rawLatLng)
             : 0;
@@ -817,28 +1039,13 @@
 
         lastNavigationPosition = rawLatLng;
 
-        console.log('[Outdoor Live GPS]', {
-            accuracy: Math.round(accuracy),
-            sampleCount: liveGpsSamples.length,
-            snapRadius: Math.round(getGpsSnapRadiusMeters(accuracy)),
-            lat: rawLatLng.lat,
-            lng: rawLatLng.lng,
-            heading
-        });
-
-        if (!liveGpsHasAcceptedFix && liveGpsSamples.length < GPS_MIN_SAMPLES) {
-            updateRawGpsAccuracyCircle(latestSample.latLng, latestSample.accuracy);
-            updateLiveGpsVisual(rawLatLng, rawLatLng, accuracy, heading);
-            setLiveGpsStatus(
-                'loading',
-                `Checking GPS (${Math.round(latestSample.accuracy)}m)`,
-                'Waiting for one more reading before live navigation starts.'
-            );
-            return;
-        }
-
         if (accuracy > GPS_REJECT_ACCURACY_M) {
             updateRawGpsAccuracyCircle(rawLatLng, accuracy);
+            emitGpsReading('weak_accuracy', latestSample, qualityLock, {
+                accepted: false,
+                reason: 'accuracy',
+                snapRadius: getGpsSnapRadiusMeters(accuracy),
+            });
             setLiveGpsStatus(
                 'weak',
                 `GPS weak (${Math.round(accuracy)}m)`,
@@ -857,6 +1064,12 @@
 
             if (jumpDistance > plausibleDistance && accuracy > GPS_STRONG_ACCURACY_M) {
                 updateRawGpsAccuracyCircle(rawLatLng, accuracy);
+                emitGpsReading('jump_rejected', latestSample, qualityLock, {
+                    accepted: false,
+                    reason: 'implausible_jump',
+                    jumpDistance,
+                    snapRadius: getGpsSnapRadiusMeters(accuracy),
+                });
                 setLiveGpsStatus(
                     'weak',
                     `GPS jump ignored (${Math.round(jumpDistance)}m)`,
@@ -877,14 +1090,79 @@
             ? (snapResult.source === 'active_route' ? `locked to active route (${snapDistanceText}, ${snapRadiusText})` : `snapped to QGIS path (${snapDistanceText}, ${snapRadiusText})`)
             : `not close to any QGIS path (${snapDistanceText}, ${snapRadiusText})`;
 
+        if (activeOutdoorDestinationKey && snapResult.source !== 'active_route') {
+            const offRouteConfirmation = window.WayfindingRouting.nextGpsOffRouteConfirmation(
+                consecutiveOffRouteReadings,
+                false,
+                GPS_OFF_ROUTE_CONFIRMATION_SAMPLES
+            );
+            consecutiveOffRouteReadings = offRouteConfirmation.count;
+
+            if (!offRouteConfirmation.confirmed) {
+                const activeDistance = Number.isFinite(snapResult.activeRouteDistance)
+                    ? `${Math.round(snapResult.activeRouteDistance)}m from the active route`
+                    : 'outside the active route snap area';
+
+                updateRawGpsAccuracyCircle(rawLatLng, accuracy);
+                updateLiveGpsVisual(
+                    rawLatLng,
+                    lastSmoothGpsLatLng || lastSnappedGpsLatLng || rawLatLng,
+                    accuracy,
+                    heading
+                );
+                emitGpsReading('off_route_confirming', latestSample, qualityLock, {
+                    accepted: false,
+                    reason: 'off_route_confirmation',
+                    heading,
+                    snapDistance: snapResult.distance,
+                    activeRouteDistance: snapResult.activeRouteDistance,
+                    snapRadius: snapResult.allowedDistance,
+                    snapSource: snapResult.source,
+                    offRouteCount: consecutiveOffRouteReadings,
+                });
+                setLiveGpsStatus(
+                    'weak',
+                    `Confirming route position (${consecutiveOffRouteReadings}/${GPS_OFF_ROUTE_CONFIRMATION_SAMPLES})`,
+                    `This reading is ${activeDistance}. The route will change only after repeated confirmation.`
+                );
+
+                if (lastSnappedGpsLatLng) {
+                    updateNavigationGuidance(lastSnappedGpsLatLng);
+                }
+
+                return;
+            }
+        } else {
+            consecutiveOffRouteReadings = window.WayfindingRouting
+                .nextGpsOffRouteConfirmation(
+                    consecutiveOffRouteReadings,
+                    true,
+                    GPS_OFF_ROUTE_CONFIRMATION_SAMPLES
+                )
+                .count;
+        }
+
         if (!snapResult.snapped || !snappedLatLng) {
             updateLiveGpsVisual(rawLatLng, rawLatLng, accuracy, heading);
+            emitGpsReading('off_path', latestSample, qualityLock, {
+                accepted: false,
+                reason: 'outside_snap_radius',
+                heading,
+                snapDistance: snapResult.distance,
+                activeRouteDistance: snapResult.activeRouteDistance,
+                snapRadius: snapResult.allowedDistance,
+                snapSource: snapResult.source,
+            });
             setLiveGpsStatus(
                 'weak',
                 `GPS off path (${Math.round(accuracy)}m)`,
                 `Nearest path is ${snapDistanceText}. Tracking continues; move closer to a walkway or use Tap My Location.`
             );
             return;
+        }
+
+        if (consecutiveOffRouteReadings >= GPS_OFF_ROUTE_CONFIRMATION_SAMPLES) {
+            consecutiveOffRouteReadings = 0;
         }
 
         const smoothLatLng = liveGpsHasAcceptedFix
@@ -898,6 +1176,17 @@
 
         updateGpsRouteStart(snappedLatLng, 'live_gps_snapped');
         refreshActiveRouteFromGps(snappedLatLng);
+
+        emitGpsReading('accepted', latestSample, qualityLock, {
+            accepted: true,
+            heading,
+            snappedLat: Number(snappedLatLng.lat),
+            snappedLng: Number(snappedLatLng.lng),
+            snapDistance: snapResult.distance,
+            activeRouteDistance: snapResult.activeRouteDistance,
+            snapRadius: snapResult.allowedDistance,
+            snapSource: snapResult.source,
+        });
 
         setLiveGpsStatus(
             accuracy <= GPS_STRONG_ACCURACY_M ? 'good' : 'weak',
@@ -928,6 +1217,11 @@
         if (error?.code === 2) message = 'GPS position unavailable. Move to an open area or use Tap My Location.';
         if (error?.code === 3) message = 'GPS timed out. Try again or use Tap My Location.';
 
+        emitGpsDiagnostic('error', {
+            status: 'gps_error',
+            code: Number(error?.code || 0),
+            message,
+        });
         setLiveGpsStatus('bad', 'GPS unavailable', message);
         setRouteResultLabel(message);
     }
@@ -938,12 +1232,23 @@
         hidePickPathHelper();
         setActiveStartModeButton('gps');
 
-        if (!navigator.geolocation) {
+        const gpsProvider = getOutdoorGpsProvider();
+        const usingSimulator = window.WAYFINDING_GPS_SIMULATOR_ENABLED === true
+            && window.WayfindingGpsSimulator
+            && gpsProvider === window.WayfindingGpsSimulator.geolocation;
+        liveGpsProviderName = usingSimulator ? 'simulator' : 'device';
+
+        if (!gpsProvider) {
+            liveGpsProviderName = 'unavailable';
+            emitGpsDiagnostic('error', {
+                status: 'unsupported',
+                message: 'Geolocation is not supported on this device/browser.',
+            });
             alert('Geolocation is not supported on this device/browser. Please use Tap My Location.');
             return;
         }
 
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        if (!usingSimulator && location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
             alert('GPS requires HTTPS when deployed online. Please use HTTPS hosting.');
             return;
         }
@@ -955,6 +1260,7 @@
         }
 
         liveGpsSamples = [];
+        resetGpsQualityLock();
         lastRawGpsLatLng = null;
         lastRawGpsTime = null;
         lastSmoothGpsLatLng = null;
@@ -968,10 +1274,20 @@
         clearStartMarker();
         removeLiveGpsMarkerOnly();
 
-        setLiveGpsStatus('loading', 'Starting live GPS tracking...', 'Keep location permission enabled. The marker and route will update as you walk.');
-        setRouteResultLabel('Live GPS tracking started. Waiting for a trusted location update.');
+        setLiveGpsStatus(
+            'loading',
+            'Starting GPS quality lock...',
+            `Hold the phone still. Waiting for ${GPS_QUALITY_LOCK_REQUIRED_SAMPLES} readings at ${GPS_QUALITY_LOCK_MAX_ACCURACY_M}m accuracy or better.`
+        );
+        setRouteResultLabel('Live GPS tracking started. Calibrating a stable location lock.');
 
-        liveGpsWatchId = navigator.geolocation.watchPosition(
+        liveGpsProvider = gpsProvider;
+        emitGpsDiagnostic('state', {
+            status: 'tracking_started',
+            qualityLocked: false,
+            accepted: false,
+        });
+        liveGpsWatchId = gpsProvider.watchPosition(
             handleLiveGpsPosition,
             handleLiveGpsError,
             {
@@ -983,12 +1299,11 @@
     }
 
     function stopOutdoorLiveGpsTracking(options = {}) {
-        if (liveGpsWatchId !== null) {
-            navigator.geolocation.clearWatch(liveGpsWatchId);
-            liveGpsWatchId = null;
-        }
+        const wasTracking = liveGpsWatchId !== null;
+        clearOutdoorGpsWatch();
 
         liveGpsSamples = [];
+        resetGpsQualityLock();
         lastRawGpsLatLng = null;
         lastRawGpsTime = null;
         lastSmoothGpsLatLng = null;
@@ -1016,10 +1331,21 @@
             startSourceType = null;
             updateRouteLabels();
         }
+
+        if (wasTracking) {
+            emitGpsDiagnostic('state', {
+                status: 'tracking_stopped',
+                accepted: false,
+            });
+        }
     }
 
     function toggleOutdoorLiveGpsFollow() {
         liveGpsFollow = !liveGpsFollow;
+        emitGpsDiagnostic('state', {
+            status: liveGpsFollow ? 'follow_enabled' : 'follow_paused',
+            accepted: liveGpsHasAcceptedFix,
+        });
         setLiveGpsStatus(
             liveGpsFollow ? 'good' : 'loading',
             liveGpsFollow ? 'Follow mode enabled' : 'Follow mode paused',
@@ -1101,4 +1427,71 @@
     window.toggleOutdoorLiveGpsFollow = toggleOutdoorLiveGpsFollow;
     window.activateTapMyLocationFallback = activateTapMyLocationFallback;
     window.refreshActiveRouteFromGps = refreshActiveRouteFromGps;
+    window.refreshOutdoorLiveGpsGuidance = function () {
+        if (lastSnappedGpsLatLng) {
+            updateNavigationGuidance(lastSnappedGpsLatLng);
+        }
+    };
+    window.WayfindingGpsCalibration = Object.freeze({
+        thresholds: GPS_CALIBRATION_THRESHOLDS,
+        getState() {
+            return {
+                tracking: liveGpsWatchId !== null,
+                provider: liveGpsProviderName,
+                qualityLocked: gpsQualityLockAcquired,
+                qualitySamples: gpsQualityLockSamples.length,
+                acceptedFix: liveGpsHasAcceptedFix,
+                follow: liveGpsFollow,
+                offRouteCount: consecutiveOffRouteReadings,
+                routeActive: Boolean(activeOutdoorDestinationKey),
+                lastRawPosition: lastRawGpsLatLng
+                    ? {
+                        lat: Number(lastRawGpsLatLng.lat),
+                        lng: Number(lastRawGpsLatLng.lng),
+                    }
+                    : null,
+                lastSnappedPosition: lastSnappedGpsLatLng
+                    ? {
+                        lat: Number(lastSnappedGpsLatLng.lat),
+                        lng: Number(lastSnappedGpsLatLng.lng),
+                    }
+                    : null,
+            };
+        },
+    });
+
+    if (window.WAYFINDING_GPS_SIMULATOR_ENABLED === true) {
+        window.getWayfindingGpsQualityState = function () {
+            return {
+                locked: gpsQualityLockAcquired,
+                sampleCount: gpsQualityLockSamples.length,
+                requiredSamples: GPS_QUALITY_LOCK_REQUIRED_SAMPLES,
+                maxAccuracy: GPS_QUALITY_LOCK_MAX_ACCURACY_M,
+                maxSpread: GPS_QUALITY_LOCK_MAX_SPREAD_M,
+                consecutiveOffRouteReadings,
+                requiredOffRouteReadings: GPS_OFF_ROUTE_CONFIRMATION_SAMPLES,
+            };
+        };
+
+        window.getWayfindingGpsSimulatorRoute = function () {
+            if (!activeOutdoorRouteResult?.path || activeOutdoorRouteResult.path.length < 2) {
+                return null;
+            }
+
+            const points = activeOutdoorRouteResult.path
+                .map(key => toLiveLatLng(parseCoordKey(key)))
+                .filter(Boolean)
+                .map(point => ({
+                    lat: Number(point.lat),
+                    lng: Number(point.lng),
+                }));
+
+            if (points.length < 2) return null;
+
+            return {
+                destinationKey: activeOutdoorDestinationKey,
+                points,
+            };
+        };
+    }
 })();

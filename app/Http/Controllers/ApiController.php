@@ -539,7 +539,31 @@ class ApiController extends Controller
         }
 
         /*
-        |--------------------------------------------------------------------------
+        | An exact building-only query must not be captured by room codes that
+        | reuse the building acronym (for example IT versus IT-101).
+        */
+        if (
+            $detectedBuilding
+            && $normalized === $normalizeText($detectedBuildingKeyword['keyword'] ?? '')
+        ) {
+            return response()->json([
+                'success' => true,
+                'is_keyword_match' => true,
+                'source' => 'destination_keywords',
+                'match_type' => 'building',
+                'matched_keyword' => $detectedBuildingKeyword['keyword'],
+                'matched_keywords' => [$detectedBuildingKeyword['keyword']],
+                'matched_keyword_ids' => [$detectedBuildingKeyword['model']->id ?? null],
+                'result' => [
+                    'destination_type' => 'building',
+                    'destination_id' => $detectedBuilding->id,
+                    'label' => $detectedBuilding->name ?: 'Building',
+                ],
+            ]);
+        }
+
+        /*
+        |-------------------------------------------------------------------------- 
         | Room keyword has highest priority, but building context filters it.
         |--------------------------------------------------------------------------
         */

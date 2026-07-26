@@ -630,40 +630,10 @@
             @endif
         </div>
 
-        @if($maps->count())
-            <div class="px-4 py-3 border-top">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div class="muted-small">
-                        Showing {{ $maps->firstItem() }} to {{ $maps->lastItem() }}
-                        of {{ $maps->total() }} indoor maps
-                    </div>
-
-                    @if ($maps->hasPages())
-                        <ul class="custom-pagination">
-                            @if ($maps->onFirstPage())
-                                <li class="disabled"><span>«</span></li>
-                            @else
-                                <li><a href="{{ $maps->previousPageUrl() }}">«</a></li>
-                            @endif
-
-                            @foreach ($maps->getUrlRange(1, $maps->lastPage()) as $page => $url)
-                                @if ($page == $maps->currentPage())
-                                    <li class="active"><span>{{ $page }}</span></li>
-                                @else
-                                    <li><a href="{{ $url }}">{{ $page }}</a></li>
-                                @endif
-                            @endforeach
-
-                            @if ($maps->hasMorePages())
-                                <li><a href="{{ $maps->nextPageUrl() }}">»</a></li>
-                            @else
-                                <li class="disabled"><span>»</span></li>
-                            @endif
-                        </ul>
-                    @endif
-                </div>
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $maps,
+            'label' => 'indoor maps',
+        ])
     </div>
 </div>
 

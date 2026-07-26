@@ -10,11 +10,26 @@ use Illuminate\Support\Facades\File;
 
 class EntryPointController extends Controller
 {
-    public function EntryPoint()
+    public function EntryPoint(Request $request)
     {
-        $entryPoints = EntryPoint::latest()->paginate(10);
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
 
-        return view('admin.Entry_point.Entry_point', compact('entryPoints'));
+        $entryPoints = EntryPoint::query()
+            ->when($search !== '', function ($query) use ($search, $pattern) {
+                $query->where(function ($searchQuery) use ($search, $pattern) {
+                    $searchQuery->where('name', 'LIKE', $pattern);
+
+                    if (is_numeric($search)) {
+                        $searchQuery->orWhere('id', (int) $search);
+                    }
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.Entry_point.Entry_point', compact('entryPoints', 'search'));
     }
 
     public function uploadEntryPoint(Request $request)
@@ -28,15 +43,15 @@ class EntryPointController extends Controller
             $content = file_get_contents($file->getRealPath());
             $geojson = json_decode($content, true);
 
-            if (!$this->isValidGeoJson($geojson)) {
+            if (! $this->isValidGeoJson($geojson)) {
                 return back()->with('error', 'Invalid GeoJSON format.');
             }
 
             $folderPath = public_path('EntryPoints');
-            $currentFile = $folderPath . '/entry_points.geojson';
-            $backupFile = $folderPath . '/entry_points_backup.geojson';
+            $currentFile = $folderPath.'/entry_points.geojson';
+            $backupFile = $folderPath.'/entry_points_backup.geojson';
 
-            if (!File::exists($folderPath)) {
+            if (! File::exists($folderPath)) {
                 File::makeDirectory($folderPath, 0755, true);
             }
 
@@ -59,7 +74,9 @@ class EntryPointController extends Controller
 
                 foreach ($saved['features'] as $feature) {
 
-                    if (!isset($feature['geometry'])) continue;
+                    if (! isset($feature['geometry'])) {
+                        continue;
+                    }
 
                     EntryPoint::create([
                         'name' => $feature['properties']['name'] ?? 'No Name',
@@ -79,10 +96,10 @@ class EntryPointController extends Controller
     {
         try {
             $folderPath = public_path('EntryPoints');
-            $currentFile = $folderPath . '/entry_points.geojson';
-            $backupFile = $folderPath . '/entry_points_backup.geojson';
+            $currentFile = $folderPath.'/entry_points.geojson';
+            $backupFile = $folderPath.'/entry_points_backup.geojson';
 
-            if (!File::exists($backupFile)) {
+            if (! File::exists($backupFile)) {
                 return back()->with('error', 'No backup found.');
             }
 
@@ -93,7 +110,9 @@ class EntryPointController extends Controller
 
                 foreach ($backup['features'] as $feature) {
 
-                    if (!isset($feature['geometry'])) continue;
+                    if (! isset($feature['geometry'])) {
+                        continue;
+                    }
 
                     EntryPoint::create([
                         'name' => $feature['properties']['name'] ?? 'No Name',

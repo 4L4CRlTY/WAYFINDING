@@ -153,14 +153,74 @@
         }
     }
 
-    async function fetchJson(url) {
-        const res = await fetch(url, {
-            headers: {
-                'Accept': 'application/json'
+    const WAYFINDING_RESPONSE_CACHE_PREFIX = 'wayfinding:last-known:v1:';
+    const WAYFINDING_CACHEABLE_ENDPOINT = /^\/api\/(?:buildings|paths|entry-points|building-entrances|hazard-points|landuses|indoor-maps|indoor-rooms|indoor-paths|indoor-entrances|building-entrance-links|indoor-stairs-links|campus-events)(?:\?|$)/;
+    const WAYFINDING_MAX_CACHED_RESPONSE_CHARS = 750000;
+
+    window.__wayfindingStaleDataUrls = window.__wayfindingStaleDataUrls || new Set();
+
+    function readLastKnownWayfindingResponse(url) {
+        if (!WAYFINDING_CACHEABLE_ENDPOINT.test(url)) return null;
+
+        try {
+            const cached = window.localStorage.getItem(
+                `${WAYFINDING_RESPONSE_CACHE_PREFIX}${url}`
+            );
+            if (!cached) return null;
+
+            const parsed = JSON.parse(cached);
+            if (!parsed || !Object.prototype.hasOwnProperty.call(parsed, 'data')) {
+                return null;
             }
-        });
-        if (!res.ok) throw new Error(`Failed to load ${url}`);
-        return await res.json();
+
+            return parsed.data;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function saveLastKnownWayfindingResponse(url, data) {
+        if (!WAYFINDING_CACHEABLE_ENDPOINT.test(url)) return;
+
+        try {
+            const payload = JSON.stringify({
+                savedAt: Date.now(),
+                data,
+            });
+
+            if (payload.length > WAYFINDING_MAX_CACHED_RESPONSE_CHARS) return;
+
+            window.localStorage.setItem(
+                `${WAYFINDING_RESPONSE_CACHE_PREFIX}${url}`,
+                payload
+            );
+        } catch (error) {
+            /* Storage quota/privacy mode must never block live map loading. */
+        }
+    }
+
+    async function fetchJson(url) {
+        try {
+            const res = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!res.ok) throw new Error(`Failed to load ${url}`);
+
+            const data = await res.json();
+            saveLastKnownWayfindingResponse(url, data);
+            return data;
+        } catch (error) {
+            const lastKnown = readLastKnownWayfindingResponse(url);
+
+            if (lastKnown !== null) {
+                window.__wayfindingStaleDataUrls.add(url);
+                return lastKnown;
+            }
+
+            throw error;
+        }
     }
 
 

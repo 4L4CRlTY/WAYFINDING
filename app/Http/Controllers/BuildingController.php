@@ -12,13 +12,14 @@ class BuildingController extends Controller
 {
     public function Buildings(Request $request)
     {
-        $search = trim($request->get('search', ''));
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
 
         $buildings = Building::query()
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'LIKE', "%{$search}%")
-                        ->orWhere('color', 'LIKE', "%{$search}%");
+            ->when($search !== '', function ($query) use ($search, $pattern) {
+                $query->where(function ($q) use ($search, $pattern) {
+                    $q->where('name', 'LIKE', $pattern)
+                        ->orWhere('color', 'LIKE', $pattern);
 
                     if (is_numeric($search)) {
                         $q->orWhere('id', (int) $search);
@@ -43,15 +44,15 @@ class BuildingController extends Controller
             $content = file_get_contents($file->getRealPath());
             $geojson = json_decode($content, true);
 
-            if (!$this->isValidGeoJson($geojson)) {
+            if (! $this->isValidGeoJson($geojson)) {
                 return back()->with('error', 'Invalid GeoJSON format. FeatureCollection or features not found.');
             }
 
             $folderPath = public_path('Buildings');
-            $currentFilePath = $folderPath . DIRECTORY_SEPARATOR . 'buildings.geojson';
-            $backupFilePath = $folderPath . DIRECTORY_SEPARATOR . 'buildings_backup.geojson';
+            $currentFilePath = $folderPath.DIRECTORY_SEPARATOR.'buildings.geojson';
+            $backupFilePath = $folderPath.DIRECTORY_SEPARATOR.'buildings_backup.geojson';
 
-            if (!File::exists($folderPath)) {
+            if (! File::exists($folderPath)) {
                 File::makeDirectory($folderPath, 0755, true);
             }
 
@@ -68,7 +69,7 @@ class BuildingController extends Controller
             $savedContent = File::get($currentFilePath);
             $savedGeojson = json_decode($savedContent, true);
 
-            if (!$this->isValidGeoJson($savedGeojson)) {
+            if (! $this->isValidGeoJson($savedGeojson)) {
                 return back()->with('error', 'Saved GeoJSON file is invalid.');
             }
 
@@ -78,7 +79,7 @@ class BuildingController extends Controller
 
             return back()->with('success', 'Buildings uploaded successfully. Current file saved and previous version backed up.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Upload failed: ' . $e->getMessage());
+            return back()->with('error', 'Upload failed: '.$e->getMessage());
         }
     }
 
@@ -86,17 +87,17 @@ class BuildingController extends Controller
     {
         try {
             $folderPath = public_path('Buildings');
-            $currentFilePath = $folderPath . DIRECTORY_SEPARATOR . 'buildings.geojson';
-            $backupFilePath = $folderPath . DIRECTORY_SEPARATOR . 'buildings_backup.geojson';
+            $currentFilePath = $folderPath.DIRECTORY_SEPARATOR.'buildings.geojson';
+            $backupFilePath = $folderPath.DIRECTORY_SEPARATOR.'buildings_backup.geojson';
 
-            if (!File::exists($backupFilePath)) {
+            if (! File::exists($backupFilePath)) {
                 return back()->with('error', 'No backup file found. Nothing to restore.');
             }
 
             $backupContent = File::get($backupFilePath);
             $backupGeojson = json_decode($backupContent, true);
 
-            if (!$this->isValidGeoJson($backupGeojson)) {
+            if (! $this->isValidGeoJson($backupGeojson)) {
                 return back()->with('error', 'Backup GeoJSON is invalid.');
             }
 
@@ -112,7 +113,7 @@ class BuildingController extends Controller
 
             return back()->with('success', 'Previous buildings upload restored successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Reset failed: ' . $e->getMessage());
+            return back()->with('error', 'Reset failed: '.$e->getMessage());
         }
     }
 
@@ -182,9 +183,9 @@ class BuildingController extends Controller
 
         foreach ($geojson['features'] as $feature) {
             if (
-                !isset($feature['type']) ||
+                ! isset($feature['type']) ||
                 $feature['type'] !== 'Feature' ||
-                !isset($feature['geometry'])
+                ! isset($feature['geometry'])
             ) {
                 continue;
             }

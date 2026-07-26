@@ -562,7 +562,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="{{ asset('css/futuristic-public.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/futuristic-public.css') }}?v={{ filemtime(public_path('css/futuristic-public.css')) }}">
 </head>
 <body class="public-future public-welcome">
     @php

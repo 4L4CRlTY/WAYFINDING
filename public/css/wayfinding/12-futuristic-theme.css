@@ -48,6 +48,22 @@ body {
     background-size: auto, 72px 72px, 72px 72px;
 }
 
+.building-depth-solid {
+    pointer-events: none !important;
+    filter: none !important;
+    transition: none !important;
+    vector-effect: non-scaling-stroke;
+    shape-rendering: geometricPrecision;
+}
+
+.building-depth-solid-far {
+    transform: translate(3.5px, 3.5px);
+}
+
+.building-depth-solid-near {
+    transform: translate(1.75px, 1.75px);
+}
+
 /* Shared HUD surfaces */
 .campus-brand-wrap,
 .floating-ai-badge,
@@ -55,7 +71,6 @@ body {
 .floating-action-card,
 .ai-transform-panel,
 .premium-legend,
-.campus-rotate-control,
 .user-profile-menu,
 .campus-event-panel-card,
 .route-building-popup,
@@ -144,28 +159,6 @@ body {
     background: var(--future-primary) !important;
 }
 
-.campus-rotate-control {
-    border-radius: 18px 6px 18px 6px !important;
-}
-
-.campus-rotate-btn,
-.campus-rotate-reset {
-    color: var(--future-text) !important;
-    background: rgba(66, 217, 255, 0.1) !important;
-    border: 1px solid rgba(66, 217, 255, 0.16) !important;
-}
-
-.campus-rotate-reset {
-    background: linear-gradient(135deg, var(--future-primary-bright), var(--future-primary)) !important;
-    box-shadow: 0 0 20px rgba(66, 217, 255, 0.16);
-}
-
-.campus-rotate-btn:hover,
-.campus-rotate-reset:hover {
-    border-color: var(--future-line-strong) !important;
-    box-shadow: 0 0 20px rgba(66, 217, 255, 0.2) !important;
-}
-
 /* Main navigator */
 .floating-ai-badge {
     position: relative;
@@ -233,7 +226,7 @@ body {
 .floating-start-bar .floating-mode-btn.default {
     position: relative;
     overflow: hidden;
-    min-height: 40px !important;
+    min-height: 44px !important;
     border: 1px solid rgba(126, 176, 214, 0.22) !important;
     border-radius: 13px 4px 13px 4px !important;
     color: #c6d7e4 !important;
@@ -821,7 +814,7 @@ input:focus-visible {
     }
 
     .floating-mode-btn {
-        min-height: 37px !important;
+        min-height: 44px !important;
         border-radius: 11px 4px 11px 4px !important;
         letter-spacing: 0 !important;
     }

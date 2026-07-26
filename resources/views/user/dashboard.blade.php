@@ -1,16 +1,34 @@
+@php
+    $gpsSimulatorEnabled = app()->environment('local')
+        && config('app.debug')
+        && request()->boolean('gps_simulator');
+    $gpsDiagnosticsEnabled = config('app.debug')
+        && ($gpsSimulatorEnabled || request()->boolean('gps_diagnostics'));
+@endphp
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#18375d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Campus Nav">
+    <meta name="wayfinding-service-worker"
+          content="/sw.js?v={{ filemtime(public_path('sw.js')) }}">
+    <link rel="manifest"
+          href="/manifest.webmanifest?v={{ filemtime(public_path('manifest.webmanifest')) }}">
+    <link rel="apple-touch-icon" href="/icons/pwa-icon-180.png">
     <title>SLSU Campus - Smart Navigation</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    @vite('resources/css/wayfinding.css')
 
-    @include('user.style.style')
+    @if($gpsSimulatorEnabled)
+        <link rel="stylesheet"
+              href="{{ asset('css/wayfinding/13-gps-simulator.css') }}?v={{ filemtime(public_path('css/wayfinding/13-gps-simulator.css')) }}">
+    @endif
 </head>
 
 <body>
@@ -47,7 +65,10 @@
             @endif
         </button>
 
-        <div class="user-profile-menu" id="user-profile-menu">
+        <div class="user-profile-menu"
+             id="user-profile-menu"
+             role="menu"
+             aria-label="User account menu">
             <div class="user-profile-info">
                 <div class="user-profile-avatar">
                     @if(auth()->check() && auth()->user()->photo)
@@ -66,6 +87,23 @@
                     </div>
                 </div>
             </div>
+
+            <section class="pwa-profile-status"
+                     id="pwa-profile-status"
+                     data-state="preparing"
+                     aria-label="Offline app status">
+                <span class="pwa-status-dot" aria-hidden="true"></span>
+                <div class="pwa-status-copy">
+                    <strong id="pwa-status-label">Preparing offline access</strong>
+                    <small id="pwa-status-detail">Campus data is saved securely as it loads.</small>
+                </div>
+                <button type="button"
+                        class="pwa-install-button"
+                        id="pwa-install-button"
+                        hidden>
+                    Install Campus App
+                </button>
+            </section>
 
             <form method="POST" action="{{ route('user.logout') }}" class="user-logout-form">
                 @csrf
@@ -109,7 +147,13 @@
             </div>
 
             <!-- MAIN ORB BUTTON -->
-            <button type="button" class="floating-main-pin" id="destination-menu-toggle" onclick="toggleFloatingActionCard()">
+            <button type="button"
+                    class="floating-main-pin"
+                    id="destination-menu-toggle"
+                    onclick="toggleFloatingActionCard()"
+                    aria-label="Choose a destination"
+                    aria-expanded="false"
+                    aria-controls="floating-action-card">
                 <span class="pin-disc">
                     <span class="pin-icon">
                         <span class="pin-hole"></span>
@@ -119,7 +163,10 @@
 
             <!-- TRANSFORMED TEXT SEARCH BAR -->
             <div class="ai-transform-panel ai-search-panel" id="ai-search-panel" style="display:none;">
-                <button type="button" class="ai-transform-close" onclick="closeAiTransformPanel()">×</button>
+                <button type="button"
+                        class="ai-transform-close"
+                        onclick="closeAiTransformPanel()"
+                        aria-label="Close text search">×</button>
 
                 <div class="ai-transform-kicker">
                     <span class="ai-dot tiny"></span>
@@ -128,6 +175,7 @@
 
                 <div class="ai-search-row">
                     <input type="text" id="destination-search-input" class="ai-search-input"
+                        aria-label="Search for a campus destination"
                         placeholder="Ask: IT building room 202...">
 
                     <button type="button" class="ai-search-submit" onclick="searchTextDestination()">
@@ -155,7 +203,10 @@
 
             <!-- TRANSFORMED VOICE RECORDER -->
             <div class="ai-transform-panel ai-voice-panel" id="ai-voice-panel" style="display:none;">
-                <button type="button" class="ai-transform-close" onclick="closeAiTransformPanel()">×</button>
+                <button type="button"
+                        class="ai-transform-close"
+                        onclick="closeAiTransformPanel()"
+                        aria-label="Close voice search">×</button>
 
                 <div class="ai-transform-kicker">
                     <span class="ai-dot tiny"></span>
@@ -198,32 +249,425 @@
         </div>
 
         <div class="floating-start-bar">
-            <button type="button" class="floating-mode-btn pick" onclick="selectPickPathMode()">
+            <button type="button"
+                    class="floating-mode-btn pick"
+                    onclick="selectPickPathMode()"
+                    aria-pressed="false">
                 📍 PICK PATH
             </button>
 
-            <button type="button" class="floating-mode-btn gps" onclick="selectGpsMode()">
+            <button type="button"
+                    class="floating-mode-btn gps"
+                    onclick="selectGpsMode()"
+                    aria-pressed="false">
                 🧭 USE GPS
             </button>
 
-            <button type="button" class="floating-mode-btn default active" onclick="selectDefaultMode()">
+            <button type="button"
+                    class="floating-mode-btn default active"
+                    onclick="selectDefaultMode()"
+                    aria-pressed="true">
                 🗺️ DEFAULT ROUTE
             </button>
         </div>
     </div>
 
+    <button type="button"
+            class="navigation-details-toggle navigation-action"
+            id="navigation-details-toggle"
+            aria-label="Show route details"
+            aria-controls="navigation-sheet"
+            aria-expanded="false"
+            hidden>
+        <svg class="navigation-details-toggle-icon"
+             viewBox="0 0 24 24"
+             aria-hidden="true">
+            <path d="M6 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm12 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM7.5 7.5l7.2 7.2M14 8h4v4" />
+        </svg>
+        <span id="navigation-details-toggle-label">Route</span>
+    </button>
+
+    <button type="button"
+            class="navigation-details-toggle navigation-action cr-navigation-toggle"
+            id="cr-navigation-toggle"
+            style="left:auto; right:7px;"
+            aria-label="Find the nearest comfort room"
+            aria-haspopup="dialog"
+            aria-controls="cr-navigation-modal"
+            onclick="openCrNavigator(this)">
+        <span aria-hidden="true">🚻</span>
+        <span>CR</span>
+    </button>
+
+    <!-- UNIFIED ROUTE DETAILS + LIVE NAVIGATION -->
+    <section id="navigation-sheet"
+             class="navigation-sheet"
+             aria-label="Navigation status"
+             aria-live="polite"
+             aria-atomic="false"
+             hidden>
+        <div class="navigation-sheet-glow" aria-hidden="true"></div>
+
+        <header class="navigation-sheet-header">
+            <div class="navigation-status-lockup">
+                <span class="navigation-status-dot" id="navigation-status-dot" aria-hidden="true"></span>
+                <div>
+                    <div class="navigation-kicker" id="navigation-kicker">Route Preview</div>
+                    <h2 class="navigation-destination" id="navigation-destination">Choose a destination</h2>
+                </div>
+            </div>
+
+            <button type="button"
+                    class="navigation-collapse-btn"
+                    id="navigation-collapse-btn"
+                    aria-label="Hide route details"
+                    aria-expanded="true">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </header>
+
+        <div class="navigation-sheet-body" id="navigation-sheet-body">
+            <div class="navigation-guidance" id="navigation-guidance">
+                <div class="navigation-guidance-arrow" id="navigation-guidance-arrow" aria-hidden="true">↑</div>
+                <div class="navigation-guidance-copy">
+                    <div class="navigation-guidance-title" id="navigation-guidance-title">Route preview ready</div>
+                    <div class="navigation-guidance-meta" id="navigation-guidance-meta">
+                        Review the highlighted path, then start navigation.
+                    </div>
+                </div>
+            </div>
+
+            <div class="navigation-metrics" aria-label="Route summary">
+                <div class="navigation-metric">
+                    <span class="navigation-metric-label">Distance</span>
+                    <strong id="navigation-distance">--</strong>
+                </div>
+                <div class="navigation-metric">
+                    <span class="navigation-metric-label">Walk time</span>
+                    <strong id="navigation-eta">--</strong>
+                </div>
+                @if($gpsDiagnosticsEnabled)
+                    <button type="button"
+                            class="navigation-metric navigation-metric-action"
+                            id="gps-diagnostics-toggle"
+                            aria-expanded="false"
+                            aria-controls="gps-diagnostics-panel">
+                        <span class="navigation-metric-label">Location</span>
+                        <strong id="navigation-gps-quality">Not active</strong>
+                        <small>Open testing tools</small>
+                    </button>
+                @else
+                    <div class="navigation-metric navigation-location-card">
+                        <span class="navigation-metric-label">Location</span>
+                        <strong id="navigation-gps-quality">Not active</strong>
+                        <small>Tap Use GPS when ready</small>
+                    </div>
+                @endif
+                <div class="navigation-metric">
+                    <span class="navigation-metric-label">Route safety</span>
+                    <strong id="navigation-safety">Checking</strong>
+                </div>
+            </div>
+
+            <p class="navigation-status-message"
+               id="route-result-label"
+               role="status">
+                Choose a destination to create a route.
+            </p>
+
+            <div class="navigation-actions">
+                <button type="button"
+                        class="navigation-action"
+                        id="navigation-recenter-btn">
+                    Recenter
+                </button>
+                <button type="button"
+                        class="navigation-action"
+                        id="navigation-pause-btn"
+                        hidden>
+                    Pause
+                </button>
+                <button type="button"
+                        class="navigation-action danger"
+                        id="navigation-end-btn">
+                    End
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div class="cr-navigation-modal"
+         id="cr-navigation-modal"
+         hidden>
+        <section class="cr-navigation-dialog"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="cr-navigation-title"
+                 tabindex="-1">
+            <header class="cr-navigation-header">
+                <div>
+                    <div class="cr-navigation-kicker">Quick Campus Assistance</div>
+                    <h2 id="cr-navigation-title">Find the Nearest CR</h2>
+                    <p>Choose where you are starting. We will suggest the closest reachable comfort rooms.</p>
+                </div>
+                <button type="button"
+                        class="cr-navigation-close"
+                        id="cr-navigation-close"
+                        aria-label="Close CR navigation">
+                    &times;
+                </button>
+            </header>
+
+            <div class="cr-navigation-modes" id="cr-navigation-modes">
+                <button type="button" class="cr-navigation-mode" data-cr-mode="gps">
+                    <span class="cr-navigation-mode-icon" aria-hidden="true">⌖</span>
+                    <span>
+                        <strong>Use GPS</strong>
+                        <small>Use your current location</small>
+                    </span>
+                </button>
+                <button type="button" class="cr-navigation-mode" data-cr-mode="path">
+                    <span class="cr-navigation-mode-icon" aria-hidden="true">⌁</span>
+                    <span>
+                        <strong>Pick Path</strong>
+                        <small>Tap your position on the map</small>
+                    </span>
+                </button>
+                <button type="button" class="cr-navigation-mode" data-cr-mode="default">
+                    <span class="cr-navigation-mode-icon" aria-hidden="true">◆</span>
+                    <span>
+                        <strong>Default</strong>
+                        <small>Start from the campus entrance</small>
+                    </span>
+                </button>
+            </div>
+
+            <div class="cr-navigation-status"
+                 id="cr-navigation-status"
+                 role="status"
+                 hidden>
+                <span class="cr-navigation-spinner" aria-hidden="true"></span>
+                <span id="cr-navigation-status-text">Checking campus routes…</span>
+            </div>
+
+            <section class="cr-navigation-results"
+                     id="cr-navigation-results"
+                     aria-labelledby="cr-navigation-results-title"
+                     hidden>
+                <div class="cr-navigation-results-head">
+                    <div>
+                        <span>Suggested Destinations</span>
+                        <h3 id="cr-navigation-results-title">Nearest Comfort Rooms</h3>
+                    </div>
+                    <button type="button" id="cr-navigation-change-start">Change Start</button>
+                </div>
+                <div class="cr-navigation-context" id="cr-navigation-context"></div>
+                <div class="cr-navigation-range-legend"
+                     aria-label="Distance highlight guide">
+                    <span><i class="is-nearest" aria-hidden="true"></i>Nearest</span>
+                    <span><i class="is-close-range" aria-hidden="true"></i>Within 25 m</span>
+                    <span><i class="is-nearby-range" aria-hidden="true"></i>Within 100 m</span>
+                </div>
+                <ol class="cr-navigation-list" id="cr-navigation-list"></ol>
+            </section>
+        </section>
+    </div>
+
+    @if($gpsDiagnosticsEnabled)
+        <!-- DEVELOPMENT / FIELD-CALIBRATION TOOLS -->
+        <aside id="gps-diagnostics-panel"
+           class="gps-diagnostics-panel"
+           role="dialog"
+           aria-modal="false"
+           aria-labelledby="gps-diagnostics-title"
+           tabindex="-1"
+           hidden>
+        <div class="gps-diagnostics-glow" aria-hidden="true"></div>
+
+        <header class="gps-diagnostics-header">
+            <div>
+                <div class="gps-diagnostics-kicker">Real-device field test</div>
+                <h2 id="gps-diagnostics-title">GPS Diagnostics</h2>
+            </div>
+            <button type="button"
+                    class="gps-diagnostics-close"
+                    id="gps-diagnostics-close"
+                    aria-label="Close GPS diagnostics">×</button>
+        </header>
+
+        <div class="gps-diagnostics-signal">
+            <span class="gps-diagnostics-signal-dot" aria-hidden="true"></span>
+            <div>
+                <strong id="gps-diagnostics-signal-label">GPS not active</strong>
+                <span id="gps-diagnostics-signal-message">Start recording to begin a field test.</span>
+            </div>
+        </div>
+
+        <div class="gps-diagnostics-metrics" aria-label="Live GPS measurements">
+            <div class="gps-diagnostics-metric">
+                <span>Accuracy</span>
+                <strong id="gps-diagnostics-accuracy">--</strong>
+            </div>
+            <div class="gps-diagnostics-metric">
+                <span>Path offset</span>
+                <strong id="gps-diagnostics-snap-distance">--</strong>
+            </div>
+            <div class="gps-diagnostics-metric">
+                <span>Heading</span>
+                <strong id="gps-diagnostics-heading">--</strong>
+            </div>
+            <div class="gps-diagnostics-metric">
+                <span>Speed</span>
+                <strong id="gps-diagnostics-speed">--</strong>
+            </div>
+            <div class="gps-diagnostics-metric">
+                <span>Quality lock</span>
+                <strong id="gps-diagnostics-lock">0 / 4</strong>
+            </div>
+            <div class="gps-diagnostics-metric">
+                <span>Off-route check</span>
+                <strong id="gps-diagnostics-off-route">0 / 3</strong>
+            </div>
+        </div>
+
+        <div class="gps-diagnostics-warning" id="gps-diagnostics-warning" role="status">
+            Keep the phone steady in an open area while the quality lock is starting.
+        </div>
+
+        <section class="gps-calibration-session" aria-labelledby="gps-session-title">
+            <div class="gps-calibration-session-head">
+                <div>
+                    <span class="gps-calibration-eyebrow">Calibration session</span>
+                    <h3 id="gps-session-title">Walk-test recording</h3>
+                </div>
+                <span class="gps-recording-badge" id="gps-recording-badge">Stopped</span>
+            </div>
+
+            <div class="gps-calibration-summary">
+                <div>
+                    <span>Samples</span>
+                    <strong id="gps-session-samples">0</strong>
+                </div>
+                <div>
+                    <span>Accepted</span>
+                    <strong id="gps-session-accepted">--</strong>
+                </div>
+                <div>
+                    <span>95% accuracy</span>
+                    <strong id="gps-session-p95">--</strong>
+                </div>
+                <div>
+                    <span>Duration</span>
+                    <strong id="gps-session-duration">0:00</strong>
+                </div>
+            </div>
+
+            <div class="gps-calibration-grade">
+                <span id="gps-session-grade">Not ready</span>
+                <p id="gps-session-recommendation">
+                    Collect at least four GPS readings while walking a campus route.
+                </p>
+            </div>
+        </section>
+
+        <details class="gps-threshold-details">
+            <summary>Safe routing thresholds</summary>
+            <div class="gps-threshold-grid">
+                <span>Strong lock <strong>≤20m</strong></span>
+                <span>Usable preview <strong>≤45m</strong></span>
+                <span>Reject reading <strong>&gt;60m</strong></span>
+                <span>Path snap cap <strong>30m</strong></span>
+                <span>Arrival radius <strong>10m</strong></span>
+                <span>Off-route confirm <strong>3 readings</strong></span>
+            </div>
+        </details>
+
+        <div class="gps-diagnostics-actions">
+            <button type="button" class="gps-diagnostics-btn primary" id="gps-session-start">
+                Start Recording
+            </button>
+            <button type="button" class="gps-diagnostics-btn" id="gps-session-stop" disabled>
+                Stop
+            </button>
+            <button type="button" class="gps-diagnostics-btn" id="gps-session-export" disabled>
+                Export CSV
+            </button>
+            <button type="button" class="gps-diagnostics-btn ghost" id="gps-session-clear" disabled>
+                Clear
+            </button>
+        </div>
+
+        <p class="gps-diagnostics-privacy">
+            Coordinates stay on this device unless you choose Export CSV. Recording does not upload GPS data.
+        </p>
+        </aside>
+    @endif
+
+    <!-- CONNECTION / PARTIAL-DATA STATUS -->
+    <aside id="wayfinding-connection-banner"
+           class="wayfinding-connection-banner"
+           role="status"
+           aria-live="polite"
+           hidden>
+        <span class="connection-indicator" aria-hidden="true"></span>
+        <div class="connection-copy">
+            <strong id="wayfinding-connection-title">Campus data status</strong>
+            <span id="wayfinding-connection-message"></span>
+        </div>
+        <button type="button"
+                id="wayfinding-retry-btn"
+                class="wayfinding-retry-btn">
+            Retry
+        </button>
+        <button type="button"
+                id="wayfinding-connection-close"
+                class="wayfinding-connection-close"
+                aria-label="Dismiss connection message">×</button>
+    </aside>
+
+    <aside id="pwa-update-banner"
+           class="pwa-update-banner"
+           role="status"
+           aria-live="polite"
+           hidden>
+        <div class="pwa-update-copy">
+            <strong>Navigation update ready</strong>
+            <span>Reload when it is safe to use the latest campus app version.</span>
+        </div>
+        <div class="pwa-update-actions">
+            <button type="button" id="pwa-update-button">Reload Update</button>
+            <button type="button"
+                    class="pwa-update-later"
+                    id="pwa-update-dismiss">Later</button>
+        </div>
+    </aside>
+
+    <!-- ACCESSIBLE NON-BLOCKING NOTIFICATIONS -->
+    <div id="wayfinding-toast-region"
+         class="wayfinding-toast-region"
+         role="region"
+         aria-label="System notifications"
+         aria-live="polite"
+         aria-relevant="additions"></div>
 
 
 
     <!-- BROWSE OPTIONS MODAL - ENHANCED USER FRIENDLY DESTINATION PICKER -->
-    <div class="floating-modal-backdrop" id="browseOptionsModal" style="display:none;">
-        <div class="floating-modal-card browse-destination-card">
+    <div class="floating-modal-backdrop"
+         id="browseOptionsModal"
+         style="display:none;"
+         aria-hidden="true">
+        <div class="floating-modal-card browse-destination-card"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="browse-destination-title"
+             tabindex="-1">
             <div class="browse-modal-glow"></div>
 
             <div class="browse-modal-header">
                 <div>
                     <div class="floating-modal-kicker">Smart Destination Picker</div>
-                    <div class="floating-modal-title">Browse Destination</div>
+                    <div class="floating-modal-title" id="browse-destination-title">Browse Destination</div>
                     <div class="floating-modal-subtitle">
                         Filter by destination type, building, floor, then choose the exact room or office.
                     </div>
@@ -236,7 +680,7 @@
 
             <!-- Hidden but still needed by script -->
             <div class="route-field default-entry-hidden">
-                <label class="route-label">Default Starting Point</label>
+                <label class="route-label" for="default-entry-select">Default Starting Point</label>
                 <select id="default-entry-select" class="route-select">
                     <option value="">Default Start</option>
                 </select>
@@ -269,7 +713,7 @@
             </div>
 
             <div class="route-field browse-native-type-select">
-                <label class="route-label">Destination Type</label>
+                <label class="route-label" for="destination-type-select">Destination Type</label>
                 <select id="destination-type-select" class="route-select">
                     <option value="building">Building</option>
                     <option value="landuse">Landuse Area</option>
@@ -286,6 +730,7 @@
                 </div>
 
                 <div class="route-field no-margin">
+                    <label class="sr-only" for="destination-building-select">Destination building</label>
                     <select id="destination-building-select" class="route-select browse-big-select">
                         <option value="">Select Destination Building</option>
                     </select>
@@ -301,6 +746,7 @@
                 </div>
 
                 <div class="route-field no-margin">
+                    <label class="sr-only" for="destination-landuse-select">Destination landuse area</label>
                     <select id="destination-landuse-select" class="route-select browse-big-select">
                         <option value="">Select Landuse Area</option>
                     </select>
@@ -320,14 +766,14 @@
 
                 <div class="room-filter-grid">
                     <div class="route-field">
-                        <label class="route-label">Building Filter</label>
+                        <label class="route-label" for="room-building-filter-select">Building Filter</label>
                         <select id="room-building-filter-select" class="route-select browse-big-select">
                             <option value="">All Buildings</option>
                         </select>
                     </div>
 
                     <div class="route-field">
-                        <label class="route-label">Search Room / Office</label>
+                        <label class="route-label" for="room-office-search-input">Search Room / Office</label>
                         <div class="browse-search-shell">
                             <span class="browse-search-icon">⌕</span>
                             <input type="text" id="room-office-search-input" class="browse-search-input" placeholder="Search room code, office, CR...">
@@ -343,6 +789,7 @@
                 </div>
 
                 <!-- Hidden select kept for existing route logic. Cards below update this value. -->
+                <label class="sr-only" for="destination-room-select">Destination room or office</label>
                 <select id="destination-room-select" class="route-select browse-hidden-room-select">
                     <option value="">Select Room / Office</option>
                 </select>
@@ -372,8 +819,15 @@
 
 
     <!-- ROUTE / BUILDING INDOOR POPUP -->
-    <div id="route-building-popup" class="route-building-popup" style="display:none;">
-        <button type="button" class="route-building-popup-close" onclick="closeRouteBuildingPopup()">×</button>
+    <div id="route-building-popup"
+         class="route-building-popup"
+         role="dialog"
+         aria-label="Indoor navigation available"
+         style="display:none;">
+        <button type="button"
+                class="route-building-popup-close"
+                onclick="closeRouteBuildingPopup()"
+                aria-label="Close indoor navigation prompt">×</button>
 
         <div class="route-building-popup-head">
             <div class="route-building-popup-icon">🏢</div>
@@ -421,23 +875,16 @@
     </div>
 
 
-
-
-    <!-- CAMPUS MAP ROTATION CONTROL -->
-    <div class="campus-rotate-control" id="campus-rotate-control" aria-label="Map rotation controls">
-        <button type="button" class="campus-rotate-btn" onclick="rotateMapLeft()" title="Rotate left">↺</button>
-        <button type="button" class="campus-rotate-reset" onclick="resetMapRotation()" title="Reset map north">
-            <span class="campus-compass-arrow">▲</span>
-            <span id="campus-rotate-value">0°</span>
-        </button>
-        <button type="button" class="campus-rotate-btn" onclick="rotateMapRight()" title="Rotate right">↻</button>
-    </div>
-
     <div id="map"></div>
 
     <div class="indoor-backdrop" id="indoorBackdrop"></div>
 
-    <div class="indoor-panel" id="indoorPanel">
+    <div class="indoor-panel"
+         id="indoorPanel"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="indoorTitle"
+         tabindex="-1">
         <div class="indoor-header">
             <div>
                 <div class="indoor-title" id="indoorTitle">Indoor Navigation</div>
@@ -478,9 +925,45 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="{{ asset('js/wayfinding-routing.js') }}?v={{ filemtime(public_path('js/wayfinding-routing.js')) }}"></script>
-    @include('user.script.script')
+    @if($gpsSimulatorEnabled)
+        <script>window.WAYFINDING_GPS_SIMULATOR_ENABLED = true;</script>
+    @endif
+
+    @vite('resources/js/wayfinding-entry.js')
+
+    <script>
+        window.openCrNavigator = async function(trigger) {
+            if (trigger) {
+                trigger.disabled = true;
+                trigger.setAttribute('aria-busy', 'true');
+            }
+
+            try {
+                await import(@json(
+                    asset('js/wayfinding/15-cr-navigation.js')
+                    . '?v='
+                    . filemtime(public_path('js/wayfinding/15-cr-navigation.js'))
+                ));
+                await window.WayfindingCrNavigation.open(trigger);
+            } catch (error) {
+                console.error('Unable to open CR navigation:', error);
+                window.showWayfindingToast?.(
+                    'CR navigation could not open. Please reload and try again.',
+                    { kind: 'error' }
+                );
+            } finally {
+                if (trigger) {
+                    trigger.disabled = false;
+                    trigger.removeAttribute('aria-busy');
+                }
+            }
+        };
+    </script>
+
+    @if($gpsSimulatorEnabled)
+        <script type="module"
+                src="{{ asset('js/wayfinding/13-gps-simulator.js') }}?v={{ filemtime(public_path('js/wayfinding/13-gps-simulator.js')) }}"></script>
+    @endif
 </body>
 
 </html>

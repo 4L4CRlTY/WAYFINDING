@@ -11,18 +11,46 @@ use Illuminate\Support\Facades\File;
 
 class IndoorEntranceController extends Controller
 {
-    public function IndoorEntrances()
+    public function IndoorEntrances(Request $request)
     {
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+
         $indoorMaps = IndoorMap::with('building')
             ->orderBy('building_id')
             ->orderBy('floor_number')
             ->get();
 
         $entrances = IndoorEntrance::with('indoorMap.building')
-            ->latest()
-            ->paginate(10);
+            ->when($search !== '', function ($query) use ($search, $pattern) {
+                $query->where(function ($searchQuery) use ($search, $pattern) {
+                    $searchQuery->where('name', 'LIKE', $pattern)
+                        ->orWhere('ent_type', 'LIKE', $pattern)
+                        ->orWhere('room_code', 'LIKE', $pattern)
+                        ->orWhereHas('indoorMap', function ($mapQuery) use ($search, $pattern) {
+                            $mapQuery->where(function ($mapSearchQuery) use ($search, $pattern) {
+                                $mapSearchQuery->where('name', 'LIKE', $pattern)
+                                    ->orWhere('floor_label', 'LIKE', $pattern)
+                                    ->orWhereHas('building', function ($buildingQuery) use ($pattern) {
+                                        $buildingQuery->where('name', 'LIKE', $pattern);
+                                    });
 
-        return view('admin.indoor_entrances.indoor_entrance', compact('indoorMaps', 'entrances'));
+                                if (is_numeric($search)) {
+                                    $mapSearchQuery->orWhere('floor_number', (int) $search);
+                                }
+                            });
+                        });
+
+                    if (is_numeric($search)) {
+                        $searchQuery->orWhere('id', (int) $search);
+                    }
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.indoor_entrances.indoor_entrance', compact('indoorMaps', 'entrances', 'search'));
     }
 
     public function uploadIndoorEntrances(Request $request)
@@ -39,19 +67,19 @@ class IndoorEntranceController extends Controller
             $content = file_get_contents($file->getRealPath());
             $geojson = json_decode($content, true);
 
-            if (!$this->isValidGeoJson($geojson)) {
+            if (! $this->isValidGeoJson($geojson)) {
                 return back()->with('error', 'Invalid GeoJSON format. FeatureCollection or features not found.');
             }
 
             $buildingName = $indoorMap->building->name ?? 'building';
             $buildingSlug = str($buildingName)->slug('_');
-            $floorLabel = strtolower($indoorMap->floor_label ?? ($indoorMap->floor_number . 'f'));
+            $floorLabel = strtolower($indoorMap->floor_label ?? ($indoorMap->floor_number.'f'));
 
             $folderPath = public_path("indoor_entrances/{$buildingSlug}/{$floorLabel}");
-            $currentFilePath = $folderPath . DIRECTORY_SEPARATOR . 'indoor_entrances.geojson';
-            $backupFilePath = $folderPath . DIRECTORY_SEPARATOR . 'indoor_entrances_backup.geojson';
+            $currentFilePath = $folderPath.DIRECTORY_SEPARATOR.'indoor_entrances.geojson';
+            $backupFilePath = $folderPath.DIRECTORY_SEPARATOR.'indoor_entrances_backup.geojson';
 
-            if (!File::exists($folderPath)) {
+            if (! File::exists($folderPath)) {
                 File::makeDirectory($folderPath, 0755, true);
             }
 
@@ -68,7 +96,7 @@ class IndoorEntranceController extends Controller
             $savedContent = File::get($currentFilePath);
             $savedGeojson = json_decode($savedContent, true);
 
-            if (!$this->isValidGeoJson($savedGeojson)) {
+            if (! $this->isValidGeoJson($savedGeojson)) {
                 return back()->with('error', 'Saved GeoJSON file is invalid.');
             }
 
@@ -78,7 +106,7 @@ class IndoorEntranceController extends Controller
 
             return back()->with('success', 'Indoor entrances uploaded successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Upload failed: ' . $e->getMessage());
+            return back()->with('error', 'Upload failed: '.$e->getMessage());
         }
     }
 
@@ -105,7 +133,7 @@ class IndoorEntranceController extends Controller
 
             return back()->with('success', 'Indoor entrance updated successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Update failed: ' . $e->getMessage());
+            return back()->with('error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -126,9 +154,9 @@ class IndoorEntranceController extends Controller
 
             IndoorEntrance::whereIn('indoor_map_id', $indoorMapIds)->delete();
 
-            return back()->with('success', $deletedCount . ' indoor entrance(s) deleted successfully for the selected building.');
+            return back()->with('success', $deletedCount.' indoor entrance(s) deleted successfully for the selected building.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Delete all failed: ' . $e->getMessage());
+            return back()->with('error', 'Delete all failed: '.$e->getMessage());
         }
     }
 
@@ -139,7 +167,7 @@ class IndoorEntranceController extends Controller
 
             return back()->with('success', 'Indoor entrance deleted successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Delete failed: ' . $e->getMessage());
+            return back()->with('error', 'Delete failed: '.$e->getMessage());
         }
     }
 
@@ -158,9 +186,9 @@ class IndoorEntranceController extends Controller
 
         foreach ($geojson['features'] as $feature) {
             if (
-                !isset($feature['type']) ||
+                ! isset($feature['type']) ||
                 $feature['type'] !== 'Feature' ||
-                !isset($feature['geometry'])
+                ! isset($feature['geometry'])
             ) {
                 continue;
             }

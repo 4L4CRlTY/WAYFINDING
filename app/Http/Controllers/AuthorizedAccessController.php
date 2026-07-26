@@ -12,14 +12,40 @@ use Illuminate\View\View;
 
 class AuthorizedAccessController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+        $normalizedSearch = strtolower($search);
+
         return view('admin.authorized_access.index', [
             'authorizedUsers' => User::query()
                 ->where('role', 'authorized_user')
+                ->when($search !== '', function ($query) use ($search, $pattern, $normalizedSearch) {
+                    $query->where(function ($searchQuery) use ($search, $pattern, $normalizedSearch) {
+                        $searchQuery->where('username', 'LIKE', $pattern)
+                            ->orWhere('email', 'LIKE', $pattern)
+                            ->orWhere('position', 'LIKE', $pattern)
+                            ->orWhere('authorized_permissions', 'LIKE', $pattern);
+
+                        if (is_numeric($search)) {
+                            $searchQuery->orWhere('id', (int) $search);
+                        }
+
+                        if (in_array($normalizedSearch, ['active', 'enabled', 'yes', '1'], true)) {
+                            $searchQuery->orWhere('status', '1');
+                        }
+
+                        if (in_array($normalizedSearch, ['inactive', 'disabled', 'no', '0'], true)) {
+                            $searchQuery->orWhere('status', '0');
+                        }
+                    });
+                })
                 ->latest()
-                ->paginate(10),
+                ->paginate(10)
+                ->withQueryString(),
             'features' => config('authorized_features', []),
+            'search' => $search,
         ]);
     }
 

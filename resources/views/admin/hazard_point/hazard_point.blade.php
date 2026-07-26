@@ -99,6 +99,11 @@
         margin-bottom: 16px;
     }
 
+    .hazard-building-shape {
+        filter: drop-shadow(2px 3px 2px rgba(24, 55, 93, 0.28));
+        transition: fill-opacity 0.16s ease, stroke-width 0.16s ease;
+    }
+
     .hazard-table-card {
         margin-top: 24px;
         border: none;
@@ -364,13 +369,13 @@
     <div class="hazard-card">
         <div class="hazard-card-header">
             <h4>Hazard Point Map</h4>
-            <p>Select a campus path directly on the map before saving a hazard point.</p>
+            <p>Campus buildings and paths are shown below. Click a path to place a hazard point.</p>
         </div>
 
         <div class="hazard-card-body">
             <div class="hazard-map-note">
                 <i class="ri-map-pin-line me-1"></i>
-                Click directly on a path to place a hazard point.
+                Blue shapes are campus buildings. Click directly on a path to place the hazard marker.
             </div>
 
             <div id="hazardMap"></div>
@@ -618,17 +623,17 @@
             @endif
         </div>
 
-        @if($hazardPoints->count())
-            <div class="px-4 py-3 border-top hazard-pagination-wrap d-flex justify-content-center">
-                {{ $hazardPoints->links() }}
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $hazardPoints,
+            'label' => 'hazard points',
+        ])
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
+    const buildingFeatures = @json($buildingFeatures);
     const pathFeatures = @json($pathFeatures);
     const hazardPointsMap = @json($hazardPointsMap);
 
@@ -641,7 +646,60 @@
     }).addTo(map);
 
     let selectedMarker = null;
+    let selectedBuildingLayer = null;
+    let buildingLayers = [];
     let pathLayers = [];
+
+    function getBuildingStyle(feature, selected = false) {
+        return {
+            color: selected ? '#f8fafc' : '#18375d',
+            weight: selected ? 4 : 2,
+            fillColor: feature.properties?.color || '#2b82cc',
+            fillOpacity: selected ? 0.92 : 0.76,
+            className: 'hazard-building-shape'
+        };
+    }
+
+    function highlightBuilding(layer) {
+        if (selectedBuildingLayer?.feature) {
+            selectedBuildingLayer.setStyle(getBuildingStyle(selectedBuildingLayer.feature));
+        }
+
+        selectedBuildingLayer = layer;
+
+        if (selectedBuildingLayer?.feature) {
+            selectedBuildingLayer.setStyle(getBuildingStyle(selectedBuildingLayer.feature, true));
+        }
+    }
+
+    buildingFeatures.forEach(feature => {
+        if (!feature?.geometry) return;
+
+        const layerGroup = L.geoJSON(feature, {
+            style: candidate => getBuildingStyle(candidate),
+            onEachFeature: function (candidate, layer) {
+                const buildingId = String(candidate.properties?.id || '');
+                const buildingName = candidate.properties?.name || `Building #${buildingId}`;
+
+                layer.bindTooltip(buildingName, {
+                    direction: 'top',
+                    sticky: true
+                });
+                layer.bindPopup(`
+                    <strong>${buildingName}</strong><br>
+                    <small>Campus building</small>
+                `);
+
+                layer.on('click', function (event) {
+                    L.DomEvent.stopPropagation(event);
+                    highlightBuilding(layer);
+                    layer.openPopup(event.latlng);
+                });
+            }
+        }).addTo(map);
+
+        buildingLayers.push(layerGroup);
+    });
 
     function getPathStyle(feature) {
         const type = feature.properties?.type || 'walkway';
@@ -710,8 +768,10 @@
         pathLayers.push(layer);
     });
 
-    if (pathLayers.length > 0) {
-        const group = L.featureGroup(pathLayers);
+    const visibleCampusLayers = [...buildingLayers, ...pathLayers];
+
+    if (visibleCampusLayers.length > 0) {
+        const group = L.featureGroup(visibleCampusLayers);
         map.fitBounds(group.getBounds(), { padding: [30, 30] });
     } else {
         map.setView([10.2925, 124.9985], 18);

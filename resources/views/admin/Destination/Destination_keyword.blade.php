@@ -115,6 +115,26 @@
         transform: translateY(-1px);
     }
 
+    .dk-btn-sync {
+        width: 100%;
+        margin-bottom: 18px;
+        background: linear-gradient(135deg, #18375d, #68a7ee);
+        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(24, 55, 93, 0.18);
+    }
+
+    .dk-btn-sync:hover {
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .dk-sync-note {
+        margin: -8px 0 18px;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
     .dk-btn-danger {
         background: #fee2e2;
         color: #b91c1c;
@@ -384,6 +404,17 @@
             </div>
 
             <div class="dk-card-body">
+                <form action="{{ route('admin.destination-keyword.sync') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="dk-btn dk-btn-sync">
+                        <i class="ri-magic-line me-1"></i>
+                        Generate Missing Building & Room Keywords
+                    </button>
+                    <p class="dk-sync-note">
+                        Adds names, room codes, acronyms, and common aliases without deleting your manual keywords.
+                    </p>
+                </form>
+
                 <form action="{{ route('admin.destination-keyword.store') }}" method="POST">
                     @csrf
 
@@ -572,43 +603,10 @@
                         </table>
                     </div>
 
-                    @if ($keywords->hasPages())
-                        <div class="dk-pagination">
-                            <ul class="dk-custom-pagination">
-                                @if ($keywords->onFirstPage())
-                                    <li class="disabled">
-                                        <span>«</span>
-                                    </li>
-                                @else
-                                    <li>
-                                        <a href="{{ $keywords->previousPageUrl() }}">«</a>
-                                    </li>
-                                @endif
-
-                                @foreach ($keywords->getUrlRange(1, $keywords->lastPage()) as $page => $url)
-                                    @if ($page == $keywords->currentPage())
-                                        <li class="active">
-                                            <span>{{ $page }}</span>
-                                        </li>
-                                    @else
-                                        <li>
-                                            <a href="{{ $url }}">{{ $page }}</a>
-                                        </li>
-                                    @endif
-                                @endforeach
-
-                                @if ($keywords->hasMorePages())
-                                    <li>
-                                        <a href="{{ $keywords->nextPageUrl() }}">»</a>
-                                    </li>
-                                @else
-                                    <li class="disabled">
-                                        <span>»</span>
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
-                    @endif
+                    @include('admin.partials.pagination', [
+                        'paginator' => $keywords,
+                        'label' => 'destination keywords',
+                    ])
                 @else
                     <div class="dk-empty">
                         No destination keywords found yet.

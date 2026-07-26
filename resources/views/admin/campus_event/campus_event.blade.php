@@ -444,7 +444,7 @@
         <div class="event-table-header">
             <h5>Campus Events List</h5>
             <span class="muted-small">
-                Total Events: {{ $campusEvents->count() }}
+                Total Events: {{ $campusEvents->total() }}
             </span>
         </div>
 
@@ -600,6 +600,11 @@
                 </div>
             @endif
         </div>
+
+        @include('admin.partials.pagination', [
+            'paginator' => $campusEvents,
+            'label' => 'campus events',
+        ])
     </div>
 
 </div>

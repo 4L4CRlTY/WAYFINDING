@@ -588,40 +588,10 @@
             @endif
         </div>
 
-        @if($paths->count())
-            <div class="px-4 py-3 border-top">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div class="muted-small">
-                        Showing {{ $paths->firstItem() }} to {{ $paths->lastItem() }}
-                        of {{ $paths->total() }} indoor paths
-                    </div>
-
-                    @if ($paths->hasPages())
-                        <ul class="custom-pagination">
-                            @if ($paths->onFirstPage())
-                                <li class="disabled"><span>«</span></li>
-                            @else
-                                <li><a href="{{ $paths->previousPageUrl() }}">«</a></li>
-                            @endif
-
-                            @foreach ($paths->getUrlRange(1, $paths->lastPage()) as $page => $url)
-                                @if ($page == $paths->currentPage())
-                                    <li class="active"><span>{{ $page }}</span></li>
-                                @else
-                                    <li><a href="{{ $url }}">{{ $page }}</a></li>
-                                @endif
-                            @endforeach
-
-                            @if ($paths->hasMorePages())
-                                <li><a href="{{ $paths->nextPageUrl() }}">»</a></li>
-                            @else
-                                <li class="disabled"><span>»</span></li>
-                            @endif
-                        </ul>
-                    @endif
-                </div>
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $paths,
+            'label' => 'indoor paths',
+        ])
     </div>
 </div>
 

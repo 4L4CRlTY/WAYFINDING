@@ -274,11 +274,10 @@
                     @endforelse
                 </div>
 
-                @if ($authorizedUsers->hasPages())
-                    <div class="authorized-pagination">
-                        {{ $authorizedUsers->links() }}
-                    </div>
-                @endif
+                @include('admin.partials.pagination', [
+                    'paginator' => $authorizedUsers,
+                    'label' => 'authorized accounts',
+                ])
             </section>
         </div>
     </div>

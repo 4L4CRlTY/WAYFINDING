@@ -1,0 +1,571 @@
+/* =========================================================
+   UNIFIED NAVIGATION + ACCESSIBLE FEEDBACK
+   Keeps route, GPS, connection, and recovery feedback in one
+   lightweight UI layer above the existing map controls.
+========================================================= */
+
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.navigation-sheet {
+    --navigation-accent: #25c9f2;
+    position: fixed;
+    z-index: 10060;
+    left: 50%;
+    bottom: 82px;
+    width: min(520px, calc(100vw - 28px));
+    color: #f7fbff;
+    border: 1px solid rgba(66, 211, 255, 0.48);
+    border-radius: 22px;
+    background:
+        linear-gradient(145deg, rgba(24, 55, 93, 0.98), rgba(4, 25, 43, 0.98));
+    box-shadow:
+        0 24px 60px rgba(0, 16, 30, 0.42),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 0 30px rgba(37, 201, 242, 0.14);
+    overflow: hidden;
+    transform: translateX(-50%);
+    isolation: isolate;
+    transition:
+        width 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+.navigation-sheet[hidden] {
+    display: none !important;
+}
+
+.navigation-sheet-glow {
+    position: absolute;
+    z-index: -1;
+    inset: -70% auto auto 35%;
+    width: 280px;
+    height: 230px;
+    border-radius: 50%;
+    background: rgba(37, 201, 242, 0.13);
+    filter: blur(28px);
+    pointer-events: none;
+}
+
+.navigation-sheet.is-warning {
+    --navigation-accent: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.58);
+}
+
+.navigation-sheet.is-danger {
+    --navigation-accent: #fb7185;
+    border-color: rgba(251, 113, 133, 0.62);
+}
+
+.navigation-sheet.is-arrived {
+    --navigation-accent: #34d399;
+    border-color: rgba(52, 211, 153, 0.62);
+}
+
+.navigation-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px 16px 12px;
+}
+
+.navigation-status-lockup {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.navigation-status-dot {
+    flex: 0 0 auto;
+    width: 11px;
+    height: 11px;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    border-radius: 999px;
+    background: var(--navigation-accent);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--navigation-accent) 14%, transparent),
+                0 0 18px var(--navigation-accent);
+}
+
+.navigation-kicker {
+    margin-bottom: 2px;
+    color: #8fe9ff;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.navigation-destination {
+    max-width: 390px;
+    margin: 0;
+    overflow: hidden;
+    color: #ffffff;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.navigation-collapse-btn {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    color: #dff8ff;
+    border: 1px solid rgba(118, 224, 255, 0.28);
+    border-radius: 13px;
+    background: rgba(2, 25, 43, 0.56);
+    cursor: pointer;
+}
+
+.navigation-collapse-btn span {
+    font-size: 23px;
+    line-height: 1;
+}
+
+.navigation-sheet-body {
+    display: grid;
+    gap: 12px;
+    padding: 0 16px 16px;
+}
+
+.navigation-sheet.is-location-only {
+    top: 138px;
+    bottom: auto;
+}
+
+.navigation-guidance {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 66px;
+    padding: 11px 12px;
+    border: 1px solid rgba(116, 219, 249, 0.2);
+    border-radius: 16px;
+    background: rgba(1, 25, 43, 0.58);
+}
+
+.navigation-guidance-arrow {
+    flex: 0 0 auto;
+    width: 43px;
+    height: 43px;
+    display: grid;
+    place-items: center;
+    color: #062035;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #c8f6ff, var(--navigation-accent));
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--navigation-accent) 25%, transparent);
+    font-size: 24px;
+    font-weight: 900;
+    transition: transform 180ms ease;
+}
+
+.navigation-guidance-copy {
+    min-width: 0;
+}
+
+.navigation-guidance-title {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.navigation-guidance-meta {
+    margin-top: 3px;
+    color: #b8d1e1;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.navigation-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.navigation-metric {
+    min-width: 0;
+    padding: 9px 8px;
+    border: 1px solid rgba(117, 209, 238, 0.16);
+    border-radius: 13px;
+    background: rgba(5, 30, 51, 0.62);
+}
+
+.navigation-metric-label {
+    display: block;
+    margin-bottom: 3px;
+    overflow: hidden;
+    color: #7da9c2;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.navigation-metric strong {
+    display: block;
+    overflow: hidden;
+    color: #f6fbff;
+    font-size: 11px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.navigation-status-message {
+    min-height: 18px;
+    margin: 0;
+    color: #b8d1e1;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.navigation-actions {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.35fr) repeat(3, minmax(70px, 0.75fr));
+    gap: 8px;
+}
+
+.navigation-action {
+    min-height: 42px;
+    padding: 9px 10px;
+    color: #d9eef9;
+    border: 1px solid rgba(119, 211, 239, 0.22);
+    border-radius: 12px;
+    background: rgba(5, 31, 52, 0.78);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.navigation-action:hover,
+.navigation-action:focus-visible {
+    border-color: rgba(115, 227, 255, 0.7);
+    outline: none;
+}
+
+.navigation-action.primary {
+    color: #062338;
+    border-color: rgba(154, 239, 255, 0.85);
+    background: linear-gradient(135deg, #9deeff, #25c9f2);
+    box-shadow: 0 8px 20px rgba(37, 201, 242, 0.2);
+}
+
+.navigation-action.danger {
+    color: #fecdd3;
+    border-color: rgba(251, 113, 133, 0.24);
+    background: rgba(77, 18, 34, 0.48);
+}
+
+.wayfinding-navigation-enhanced .live-gps-status-card {
+    display: none !important;
+}
+
+/* Connection state */
+.wayfinding-connection-banner {
+    position: fixed;
+    z-index: 4100;
+    top: 78px;
+    left: 50%;
+    width: min(590px, calc(100vw - 28px));
+    min-height: 56px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 11px 10px 13px;
+    color: #eaf8ff;
+    border: 1px solid rgba(251, 191, 36, 0.48);
+    border-radius: 16px;
+    background: rgba(8, 31, 51, 0.97);
+    box-shadow: 0 18px 42px rgba(0, 14, 26, 0.34);
+    transform: translateX(-50%);
+}
+
+.wayfinding-connection-banner[hidden] {
+    display: none !important;
+}
+
+.connection-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #fbbf24;
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.8);
+}
+
+.wayfinding-connection-banner.is-ready {
+    border-color: rgba(52, 211, 153, 0.42);
+}
+
+.wayfinding-connection-banner.is-ready .connection-indicator {
+    background: #34d399;
+    box-shadow: 0 0 14px rgba(52, 211, 153, 0.72);
+}
+
+.wayfinding-connection-banner.is-offline,
+.wayfinding-connection-banner.is-error {
+    border-color: rgba(251, 113, 133, 0.54);
+}
+
+.wayfinding-connection-banner.is-offline .connection-indicator,
+.wayfinding-connection-banner.is-error .connection-indicator {
+    background: #fb7185;
+    box-shadow: 0 0 14px rgba(251, 113, 133, 0.76);
+}
+
+.connection-copy {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.connection-copy strong {
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.connection-copy span {
+    overflow: hidden;
+    color: #a9c8d9;
+    font-size: 9px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wayfinding-retry-btn,
+.wayfinding-connection-close {
+    min-width: 42px;
+    min-height: 42px;
+    color: #eaf8ff;
+    border: 1px solid rgba(116, 219, 249, 0.26);
+    border-radius: 12px;
+    background: rgba(21, 70, 103, 0.65);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.wayfinding-connection-close {
+    min-width: 42px;
+    font-size: 18px;
+}
+
+/* Toasts */
+.wayfinding-toast-region {
+    position: fixed;
+    z-index: 5000;
+    top: 78px;
+    right: 14px;
+    width: min(360px, calc(100vw - 28px));
+    display: grid;
+    gap: 9px;
+    pointer-events: none;
+}
+
+.wayfinding-toast {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+    padding: 12px;
+    color: #eefaff;
+    border: 1px solid rgba(115, 222, 255, 0.36);
+    border-radius: 15px;
+    background: rgba(5, 29, 48, 0.97);
+    box-shadow: 0 18px 40px rgba(0, 14, 26, 0.3);
+    pointer-events: auto;
+    animation: wayfinding-toast-in 180ms ease-out both;
+}
+
+.wayfinding-toast.is-warning {
+    border-color: rgba(251, 191, 36, 0.52);
+}
+
+.wayfinding-toast.is-error {
+    border-color: rgba(251, 113, 133, 0.56);
+}
+
+.wayfinding-toast.is-success {
+    border-color: rgba(52, 211, 153, 0.48);
+}
+
+.wayfinding-toast-icon {
+    width: 10px;
+    height: 10px;
+    margin-top: 4px;
+    border-radius: 999px;
+    background: #25c9f2;
+    box-shadow: 0 0 13px rgba(37, 201, 242, 0.75);
+}
+
+.wayfinding-toast.is-warning .wayfinding-toast-icon {
+    background: #fbbf24;
+}
+
+.wayfinding-toast.is-error .wayfinding-toast-icon {
+    background: #fb7185;
+}
+
+.wayfinding-toast.is-success .wayfinding-toast-icon {
+    background: #34d399;
+}
+
+.wayfinding-toast-copy {
+    color: #dff3fd;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.5;
+}
+
+.wayfinding-toast-close {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    margin: -5px -5px 0 0;
+    color: #c5dce8;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    cursor: pointer;
+}
+
+@keyframes wayfinding-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 768px) {
+    .navigation-sheet {
+        bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+        width: calc(100vw - 16px);
+        max-height: min(58vh, 450px);
+        border-radius: 20px;
+    }
+
+    .navigation-sheet-header {
+        padding: 12px 13px 10px;
+    }
+
+    .navigation-destination {
+        max-width: calc(100vw - 112px);
+        font-size: 15px;
+    }
+
+    .navigation-sheet-body {
+        gap: 9px;
+        padding: 0 12px 12px;
+    }
+
+    .navigation-guidance {
+        min-height: 60px;
+        padding: 9px 10px;
+    }
+
+    .navigation-guidance-arrow {
+        width: 40px;
+        height: 40px;
+    }
+
+    .navigation-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .navigation-metric {
+        padding: 8px 9px;
+    }
+
+    .navigation-metric-label {
+        font-size: 9px;
+    }
+
+    .navigation-metric strong {
+        font-size: 12px;
+    }
+
+    .navigation-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .navigation-action {
+        min-height: 46px;
+        font-size: 11px;
+    }
+
+    .navigation-sheet.is-location-only {
+        top: 132px;
+        bottom: auto;
+    }
+
+    .wayfinding-connection-banner {
+        top: 68px;
+        width: calc(100vw - 16px);
+    }
+
+    .wayfinding-toast-region {
+        top: 68px;
+        right: 8px;
+        width: calc(100vw - 16px);
+    }
+
+    .floating-start-bar .floating-mode-btn,
+    .floating-mode-btn {
+        min-height: 44px !important;
+        font-size: 10px !important;
+        letter-spacing: 0.01em !important;
+    }
+}
+
+@media (max-width: 420px) {
+    .wayfinding-connection-banner {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .wayfinding-connection-close {
+        display: none;
+    }
+
+    .connection-copy span {
+        white-space: normal;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .navigation-sheet,
+    .navigation-collapse-btn span,
+    .navigation-guidance-arrow,
+    .wayfinding-toast {
+        animation: none !important;
+        transition: none !important;
+    }
+}

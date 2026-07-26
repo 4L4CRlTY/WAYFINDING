@@ -1,0 +1,156 @@
+/* =========================================================
+   INSTALLABLE / OFFLINE CAMPUS NAVIGATION
+========================================================= */
+
+.pwa-profile-status {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 4px 9px;
+    margin: 0 0 10px;
+    padding: 11px;
+    border: 1px solid rgba(90, 217, 255, 0.16);
+    border-radius: 15px;
+    color: #f5fbff;
+    background: rgba(5, 24, 39, 0.5);
+}
+
+.pwa-status-dot {
+    width: 8px;
+    height: 8px;
+    margin-top: 4px;
+    border-radius: 50%;
+    background: #73b8d8;
+    box-shadow: 0 0 11px rgba(115, 184, 216, 0.7);
+}
+
+.pwa-status-copy {
+    min-width: 0;
+}
+
+.pwa-status-copy strong,
+.pwa-status-copy small {
+    display: block;
+}
+
+.pwa-status-copy strong {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.035em;
+}
+
+.pwa-status-copy small {
+    margin-top: 3px;
+    color: #94aec0;
+    font-size: 9px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.pwa-profile-status[data-state="ready"] .pwa-status-dot,
+.pwa-profile-status[data-state="installed"] .pwa-status-dot {
+    background: #40dfb4;
+    box-shadow: 0 0 12px rgba(64, 223, 180, 0.82);
+}
+
+.pwa-profile-status[data-state="offline"] .pwa-status-dot,
+.pwa-profile-status[data-state="secure"] .pwa-status-dot {
+    background: #ffbd66;
+    box-shadow: 0 0 12px rgba(255, 189, 102, 0.78);
+}
+
+.pwa-profile-status[data-state="unsupported"] .pwa-status-dot {
+    background: #ff7894;
+    box-shadow: 0 0 12px rgba(255, 120, 148, 0.75);
+}
+
+.pwa-install-button {
+    grid-column: 1 / -1;
+    min-height: 40px;
+    margin-top: 7px;
+    border: 1px solid rgba(90, 217, 255, 0.42);
+    border-radius: 11px;
+    color: #f7fdff;
+    background: linear-gradient(135deg, #207eae, #18375d);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.pwa-install-button[hidden] {
+    display: none;
+}
+
+.pwa-update-banner {
+    position: fixed;
+    z-index: 10050;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(94px, calc(env(safe-area-inset-bottom) + 82px));
+    width: min(360px, calc(100vw - 36px));
+    padding: 14px;
+    border: 1px solid rgba(90, 217, 255, 0.38);
+    border-radius: 18px;
+    color: #f7fcff;
+    background: linear-gradient(145deg, rgba(24, 55, 93, 0.97), rgba(7, 21, 34, 0.98));
+    box-shadow: 0 24px 58px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.pwa-update-banner[hidden] {
+    display: none;
+}
+
+.pwa-update-copy strong,
+.pwa-update-copy span {
+    display: block;
+}
+
+.pwa-update-copy strong {
+    font-size: 13px;
+}
+
+.pwa-update-copy span {
+    margin-top: 3px;
+    color: #a7c1d1;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.pwa-update-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.pwa-update-actions button {
+    min-height: 40px;
+    flex: 1;
+    border: 1px solid rgba(90, 217, 255, 0.28);
+    border-radius: 11px;
+    color: #f8fdff;
+    background: #1d76a8;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.pwa-update-actions .pwa-update-later {
+    color: #b7cedb;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+    .pwa-update-banner {
+        right: 12px;
+        bottom: calc(max(82px, env(safe-area-inset-bottom) + 74px));
+        width: calc(100vw - 24px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pwa-status-dot {
+        box-shadow: none;
+    }
+}

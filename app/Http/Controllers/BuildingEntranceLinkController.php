@@ -10,8 +10,11 @@ use Illuminate\Http\Request;
 
 class BuildingEntranceLinkController extends Controller
 {
-    public function BuildingEntranceLink()
+    public function BuildingEntranceLink(Request $request)
     {
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+
         $buildings = Building::orderBy('name')->get();
 
         $buildingEntrances = BuildingEntrance::with('building')
@@ -25,18 +28,62 @@ class BuildingEntranceLinkController extends Controller
             ->get();
 
         $links = BuildingEntranceLink::with([
-                'building',
-                'buildingEntrance.building',
-                'indoorEntrance.indoorMap.building',
-            ])
+            'building',
+            'buildingEntrance.building',
+            'indoorEntrance.indoorMap.building',
+        ])
+            ->when($search !== '', function ($query) use ($search, $pattern) {
+                $query->where(function ($searchQuery) use ($search, $pattern) {
+                    $searchQuery->where('name', 'LIKE', $pattern)
+                        ->orWhereHas('building', function ($buildingQuery) use ($pattern) {
+                            $buildingQuery->where('name', 'LIKE', $pattern);
+                        })
+                        ->orWhereHas('buildingEntrance', function ($entranceQuery) use ($pattern) {
+                            $entranceQuery->where(function ($entranceSearchQuery) use ($pattern) {
+                                $entranceSearchQuery->where('name', 'LIKE', $pattern)
+                                    ->orWhere('latitude', 'LIKE', $pattern)
+                                    ->orWhere('longitude', 'LIKE', $pattern)
+                                    ->orWhereHas('building', function ($buildingQuery) use ($pattern) {
+                                        $buildingQuery->where('name', 'LIKE', $pattern);
+                                    });
+                            });
+                        })
+                        ->orWhereHas('indoorEntrance', function ($entranceQuery) use ($search, $pattern) {
+                            $entranceQuery->where(function ($entranceSearchQuery) use ($search, $pattern) {
+                                $entranceSearchQuery->where('name', 'LIKE', $pattern)
+                                    ->orWhere('room_code', 'LIKE', $pattern)
+                                    ->orWhere('ent_type', 'LIKE', $pattern)
+                                    ->orWhereHas('indoorMap', function ($mapQuery) use ($search, $pattern) {
+                                        $mapQuery->where(function ($mapSearchQuery) use ($search, $pattern) {
+                                            $mapSearchQuery->where('name', 'LIKE', $pattern)
+                                                ->orWhere('floor_label', 'LIKE', $pattern)
+                                                ->orWhereHas('building', function ($buildingQuery) use ($pattern) {
+                                                    $buildingQuery->where('name', 'LIKE', $pattern);
+                                                });
+
+                                            if (is_numeric($search)) {
+                                                $mapSearchQuery->orWhere('floor_number', (int) $search);
+                                            }
+                                        });
+                                    });
+                            });
+                        });
+
+                    if (is_numeric($search)) {
+                        $searchQuery->orWhere('id', (int) $search);
+                    }
+                });
+            })
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.building_entrance_link.building_entrance_link', compact(
             'buildings',
             'buildingEntrances',
             'indoorEntrances',
-            'links'
+            'links',
+            'search'
         ));
     }
 
@@ -53,11 +100,11 @@ class BuildingEntranceLinkController extends Controller
             $buildingEntrance = BuildingEntrance::findOrFail($request->building_entrance_id);
             $indoorEntrance = IndoorEntrance::with('indoorMap')->findOrFail($request->indoor_entrance_id);
 
-            if (!in_array($indoorEntrance->ent_type, ['main', 'side', 'back'])) {
+            if (! in_array($indoorEntrance->ent_type, ['main', 'side', 'back'])) {
                 return back()->with('error', 'Selected indoor entrance must be main, side, or back entrance.');
             }
 
-            if (!$indoorEntrance->indoorMap) {
+            if (! $indoorEntrance->indoorMap) {
                 return back()->with('error', 'Selected indoor entrance does not belong to a valid indoor map.');
             }
 
@@ -87,7 +134,7 @@ class BuildingEntranceLinkController extends Controller
 
             return back()->with('success', 'Building entrance link created successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Create failed: ' . $e->getMessage());
+            return back()->with('error', 'Create failed: '.$e->getMessage());
         }
     }
 
@@ -104,11 +151,11 @@ class BuildingEntranceLinkController extends Controller
             $buildingEntrance = BuildingEntrance::findOrFail($request->building_entrance_id);
             $indoorEntrance = IndoorEntrance::with('indoorMap')->findOrFail($request->indoor_entrance_id);
 
-            if (!in_array($indoorEntrance->ent_type, ['main', 'side', 'back'])) {
+            if (! in_array($indoorEntrance->ent_type, ['main', 'side', 'back'])) {
                 return back()->with('error', 'Selected indoor entrance must be main, side, or back entrance.');
             }
 
-            if (!$indoorEntrance->indoorMap) {
+            if (! $indoorEntrance->indoorMap) {
                 return back()->with('error', 'Selected indoor entrance does not belong to a valid indoor map.');
             }
 
@@ -139,7 +186,7 @@ class BuildingEntranceLinkController extends Controller
 
             return back()->with('success', 'Building entrance link updated successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Update failed: ' . $e->getMessage());
+            return back()->with('error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -150,7 +197,7 @@ class BuildingEntranceLinkController extends Controller
 
             return back()->with('success', 'Building entrance link deleted successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Delete failed: ' . $e->getMessage());
+            return back()->with('error', 'Delete failed: '.$e->getMessage());
         }
     }
 }

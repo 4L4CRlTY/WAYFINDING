@@ -884,40 +884,10 @@
             @endif
         </div>
 
-        @if ($landuses->count())
-            <div class="px-4 py-3 border-top">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div class="muted-small">
-                        Showing {{ $landuses->firstItem() }} to {{ $landuses->lastItem() }}
-                        of {{ $landuses->total() }} landuse records
-                    </div>
-
-                    @if ($landuses->hasPages())
-                        <ul class="custom-pagination">
-                            @if ($landuses->onFirstPage())
-                                <li class="disabled"><span>«</span></li>
-                            @else
-                                <li><a href="{{ $landuses->previousPageUrl() }}">«</a></li>
-                            @endif
-
-                            @foreach ($landuses->getUrlRange(1, $landuses->lastPage()) as $page => $url)
-                                @if ($page == $landuses->currentPage())
-                                    <li class="active"><span>{{ $page }}</span></li>
-                                @else
-                                    <li><a href="{{ $url }}">{{ $page }}</a></li>
-                                @endif
-                            @endforeach
-
-                            @if ($landuses->hasMorePages())
-                                <li><a href="{{ $landuses->nextPageUrl() }}">»</a></li>
-                            @else
-                                <li class="disabled"><span>»</span></li>
-                            @endif
-                        </ul>
-                    @endif
-                </div>
-            </div>
-        @endif
+        @include('admin.partials.pagination', [
+            'paginator' => $landuses,
+            'label' => 'landuse records',
+        ])
     </div>
 </div>
 

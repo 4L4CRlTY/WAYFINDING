@@ -11,18 +11,46 @@ use Illuminate\Support\Facades\File;
 
 class IndoorRoomController extends Controller
 {
-    public function IndoorRoom()
+    public function IndoorRoom(Request $request)
     {
+        $search = $this->tableSearch($request);
+        $pattern = $this->tableSearchPattern($search);
+
         $indoorMaps = IndoorMap::with('building')
             ->orderBy('building_id')
             ->orderBy('floor_number')
             ->get();
 
         $rooms = IndoorRoom::with('indoorMap.building')
-            ->latest()
-            ->paginate(10);
+            ->when($search !== '', function ($query) use ($search, $pattern) {
+                $query->where(function ($searchQuery) use ($search, $pattern) {
+                    $searchQuery->where('name', 'LIKE', $pattern)
+                        ->orWhere('room_code', 'LIKE', $pattern)
+                        ->orWhere('type', 'LIKE', $pattern)
+                        ->orWhereHas('indoorMap', function ($mapQuery) use ($search, $pattern) {
+                            $mapQuery->where(function ($mapSearchQuery) use ($search, $pattern) {
+                                $mapSearchQuery->where('name', 'LIKE', $pattern)
+                                    ->orWhere('floor_label', 'LIKE', $pattern)
+                                    ->orWhereHas('building', function ($buildingQuery) use ($pattern) {
+                                        $buildingQuery->where('name', 'LIKE', $pattern);
+                                    });
 
-        return view('admin.indoor_room.indoor_room', compact('indoorMaps', 'rooms'));
+                                if (is_numeric($search)) {
+                                    $mapSearchQuery->orWhere('floor_number', (int) $search);
+                                }
+                            });
+                        });
+
+                    if (is_numeric($search)) {
+                        $searchQuery->orWhere('id', (int) $search);
+                    }
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.indoor_room.indoor_room', compact('indoorMaps', 'rooms', 'search'));
     }
 
     public function uploadIndoorRooms(Request $request)
@@ -39,19 +67,19 @@ class IndoorRoomController extends Controller
             $content = file_get_contents($file->getRealPath());
             $geojson = json_decode($content, true);
 
-            if (!$this->isValidGeoJson($geojson)) {
+            if (! $this->isValidGeoJson($geojson)) {
                 return back()->with('error', 'Invalid GeoJSON format. FeatureCollection or features not found.');
             }
 
             $buildingName = $indoorMap->building->name ?? 'building';
             $buildingSlug = str($buildingName)->slug('_');
-            $floorLabel = strtolower($indoorMap->floor_label ?? ($indoorMap->floor_number . 'f'));
+            $floorLabel = strtolower($indoorMap->floor_label ?? ($indoorMap->floor_number.'f'));
 
             $folderPath = public_path("indoor_rooms/{$buildingSlug}/{$floorLabel}");
-            $currentFilePath = $folderPath . DIRECTORY_SEPARATOR . 'indoor_rooms.geojson';
-            $backupFilePath = $folderPath . DIRECTORY_SEPARATOR . 'indoor_rooms_backup.geojson';
+            $currentFilePath = $folderPath.DIRECTORY_SEPARATOR.'indoor_rooms.geojson';
+            $backupFilePath = $folderPath.DIRECTORY_SEPARATOR.'indoor_rooms_backup.geojson';
 
-            if (!File::exists($folderPath)) {
+            if (! File::exists($folderPath)) {
                 File::makeDirectory($folderPath, 0755, true);
             }
 
@@ -68,7 +96,7 @@ class IndoorRoomController extends Controller
             $savedContent = File::get($currentFilePath);
             $savedGeojson = json_decode($savedContent, true);
 
-            if (!$this->isValidGeoJson($savedGeojson)) {
+            if (! $this->isValidGeoJson($savedGeojson)) {
                 return back()->with('error', 'Saved GeoJSON file is invalid.');
             }
 
@@ -78,7 +106,7 @@ class IndoorRoomController extends Controller
 
             return back()->with('success', 'Indoor rooms uploaded successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Upload failed: ' . $e->getMessage());
+            return back()->with('error', 'Upload failed: '.$e->getMessage());
         }
     }
 
@@ -93,20 +121,20 @@ class IndoorRoomController extends Controller
 
             $buildingName = $indoorMap->building->name ?? 'building';
             $buildingSlug = str($buildingName)->slug('_');
-            $floorLabel = strtolower($indoorMap->floor_label ?? ($indoorMap->floor_number . 'f'));
+            $floorLabel = strtolower($indoorMap->floor_label ?? ($indoorMap->floor_number.'f'));
 
             $folderPath = public_path("indoor_rooms/{$buildingSlug}/{$floorLabel}");
-            $currentFilePath = $folderPath . DIRECTORY_SEPARATOR . 'indoor_rooms.geojson';
-            $backupFilePath = $folderPath . DIRECTORY_SEPARATOR . 'indoor_rooms_backup.geojson';
+            $currentFilePath = $folderPath.DIRECTORY_SEPARATOR.'indoor_rooms.geojson';
+            $backupFilePath = $folderPath.DIRECTORY_SEPARATOR.'indoor_rooms_backup.geojson';
 
-            if (!File::exists($backupFilePath)) {
+            if (! File::exists($backupFilePath)) {
                 return back()->with('error', 'No backup file found. Nothing to restore.');
             }
 
             $backupContent = File::get($backupFilePath);
             $backupGeojson = json_decode($backupContent, true);
 
-            if (!$this->isValidGeoJson($backupGeojson)) {
+            if (! $this->isValidGeoJson($backupGeojson)) {
                 return back()->with('error', 'Backup GeoJSON is invalid.');
             }
 
@@ -122,7 +150,7 @@ class IndoorRoomController extends Controller
 
             return back()->with('success', 'Previous indoor rooms upload restored successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Reset failed: ' . $e->getMessage());
+            return back()->with('error', 'Reset failed: '.$e->getMessage());
         }
     }
 
@@ -149,7 +177,7 @@ class IndoorRoomController extends Controller
 
             return back()->with('success', 'Indoor room updated successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Update failed: ' . $e->getMessage());
+            return back()->with('error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -168,9 +196,9 @@ class IndoorRoomController extends Controller
 
         foreach ($geojson['features'] as $feature) {
             if (
-                !isset($feature['type']) ||
+                ! isset($feature['type']) ||
                 $feature['type'] !== 'Feature' ||
-                !isset($feature['geometry'])
+                ! isset($feature['geometry'])
             ) {
                 continue;
             }

@@ -145,6 +145,7 @@ Route::middleware(['auth', 'roles:admin,authorized_user', 'invalidate.wayfinding
     Route::middleware('authorized.feature:destination_keywords')->group(function () {
         Route::get('/admin/destination-keyword', [DestinationKeywordController::class, 'DestinationKeyword'])->name('admin.destination-keyword');
         Route::post('/admin/destination-keyword/store', [DestinationKeywordController::class, 'store'])->name('admin.destination-keyword.store');
+        Route::post('/admin/destination-keyword/sync', [DestinationKeywordController::class, 'sync'])->name('admin.destination-keyword.sync');
         Route::delete('/admin/destination-keyword/{destinationKeyword}', [DestinationKeywordController::class, 'destroy'])->name('admin.destination-keyword.destroy');
     });
 

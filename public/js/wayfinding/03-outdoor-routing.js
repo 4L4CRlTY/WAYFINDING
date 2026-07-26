@@ -389,7 +389,6 @@
         // 2.5) V3: connect endpoints that are very close to the middle of another path.
         // This is the common reason why the route still goes around even if the paths
         // look connected in QGIS / Leaflet.
-        let nearTouchConnections = 0;
         for (let i = 0; i < segments.length; i++) {
             const source = segments[i];
             const endpoints = [
@@ -410,7 +409,6 @@
 
                     if (projected.distanceMeters <= SNAP_TOLERANCE_METERS) {
                         addSplitPoint(target, projected);
-                        nearTouchConnections++;
                     }
                 });
             }
@@ -497,14 +495,6 @@
                 });
         });
 
-        console.log('[OutdoorGraph V4 no-jump snap] Auto-connected routing graph:', {
-            originalPathFeatures: features.length,
-            builtSegments: segments.length,
-            graphNodes: Object.keys(outdoorNodeCoords).length,
-            graphEdges: Object.values(outdoorGraph).reduce((sum, list) => sum + list.length, 0) / 2,
-            snapToleranceMeters: SNAP_TOLERANCE_METERS,
-            nearTouchConnections
-        });
     }
 
     function dijkstra(startKey, endKey) {
@@ -972,6 +962,7 @@
     function setActiveStartModeButton(mode) {
         document.querySelectorAll('.floating-mode-btn, .mode-pill').forEach(btn => {
             btn.classList.remove('active');
+            btn.setAttribute('aria-pressed', 'false');
         });
 
         const floatingSelector =
@@ -985,7 +976,10 @@
             '.mode-pill.default';
 
         const activeBtn = document.querySelector(floatingSelector) || document.querySelector(oldSelector);
-        if (activeBtn) activeBtn.classList.add('active');
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            activeBtn.setAttribute('aria-pressed', 'true');
+        }
     }
 
     function selectPickPathMode() {
