@@ -582,9 +582,9 @@
             outlineOptions.pane = pane;
         }
 
-        if (pane === 'pathsPane' && typeof OUTDOOR_PATHS_RENDERER !== 'undefined') {
-            polylineOptions.renderer = OUTDOOR_PATHS_RENDERER;
-            outlineOptions.renderer = OUTDOOR_PATHS_RENDERER;
+        if (pane === 'pathsPane' && typeof OUTDOOR_ROUTE_RENDERER !== 'undefined') {
+            polylineOptions.renderer = OUTDOOR_ROUTE_RENDERER;
+            outlineOptions.renderer = OUTDOOR_ROUTE_RENDERER;
         }
 
         const routeOutline = L.polyline(routePoints, outlineOptions).addTo(layerGroup);
@@ -773,7 +773,7 @@
         setRouteResultLabel(startNodeKey ? 'Tap My Location cancelled. Previous start point kept.' : 'Tap My Location cancelled.');
     }
 
-    map.on('move zoomend', function() {
+    map.on('moveend zoomend', function() {
         updatePickPathHelperText();
     });
 

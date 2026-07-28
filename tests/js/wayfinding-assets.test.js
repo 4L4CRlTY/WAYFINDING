@@ -146,11 +146,13 @@ test('mobile outdoor map keeps a buffered render area during panning', () => {
     assert.match(mapDataUi, /\.fake-3d-building\s*\{\s*filter:\s*none !important;/);
     assert.match(mapPerformance, /Static depth polygons stay visible/);
     assert.match(mapPerformance, /Zoom never activates a CSS filter/);
-    assert.match(outdoorRouting, /polylineOptions\.renderer\s*=\s*OUTDOOR_PATHS_RENDERER/);
+    assert.match(outdoorRouting, /polylineOptions\.renderer\s*=\s*OUTDOOR_ROUTE_RENDERER/);
     assert.match(outdoorRouting, /className:\s*'route-line-outline'/);
     assert.match(outdoorRouting, /dashArray:\s*null/);
-    assert.match(mapCore, /updateInterval:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*80\s*:\s*120/);
-    assert.match(mapCore, /keepBuffer:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*4\s*:\s*5/);
+    assert.match(mapCore, /updateWhenIdle:\s*IS_MOBILE_OUTDOOR_VIEW/);
+    assert.match(mapCore, /updateWhenZooming:\s*!IS_MOBILE_OUTDOOR_VIEW/);
+    assert.match(mapCore, /updateInterval:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*180\s*:\s*120/);
+    assert.match(mapCore, /keepBuffer:\s*5/);
     assert.match(theme, /#map \.leaflet-tile-pane\s*\{\s*filter:\s*none !important;/);
 });
 

@@ -9,29 +9,6 @@
     if (window.__finalFake3DLagReducerPatchApplied) return;
     window.__finalFake3DLagReducerPatchApplied = true;
 
-    const body = document.body;
-    let stopTimer = null;
-
-    function movingOn() {
-        if (!body) return;
-        body.classList.add('map-moving-lite-3d');
-        if (stopTimer) clearTimeout(stopTimer);
-    }
-
-    function movingOffSoon() {
-        if (!body) return;
-        if (stopTimer) clearTimeout(stopTimer);
-        stopTimer = setTimeout(() => {
-            body.classList.remove('map-moving-lite-3d');
-        }, 220);
-    }
-
-    if (typeof map !== 'undefined' && map) {
-        map.on('movestart dragstart zoomstart', movingOn);
-        map.on('move zoom', movingOn);
-        map.on('moveend dragend zoomend', movingOffSoon);
-    }
-
     const oldStyle = document.getElementById('final-fake3d-lag-reducer-style');
     if (oldStyle) oldStyle.remove();
 
@@ -54,10 +31,10 @@
         }
 
         /* Static depth polygons stay visible; top building filters stay disabled. */
-        body.map-moving-lite-3d .fake-3d-building,
-        body.map-moving-lite-3d .fake-3d-building:hover,
-        body.map-moving-lite-3d .leaflet-buildingsPane-pane .leaflet-interactive,
-        body.map-moving-lite-3d .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+        body.map-moving .fake-3d-building,
+        body.map-moving .fake-3d-building:hover,
+        body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive,
+        body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive:hover {
             filter: none !important;
             transition: none !important;
             stroke-width: 1.25 !important;
@@ -76,10 +53,10 @@
 
         /* Mobile uses the same static depth polygons without CSS filters. */
         @media (hover: none), (max-width: 768px) {
-            body.map-moving-lite-3d .fake-3d-building,
-            body.map-moving-lite-3d .fake-3d-building:hover,
-            body.map-moving-lite-3d .leaflet-buildingsPane-pane .leaflet-interactive,
-            body.map-moving-lite-3d .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+            body.map-moving .fake-3d-building,
+            body.map-moving .fake-3d-building:hover,
+            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive,
+            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive:hover {
                 filter: none !important;
                 stroke-width: 1.15 !important;
                 fill-opacity: 0.98 !important;
@@ -95,10 +72,10 @@
         }
 
         @media (max-width: 420px) {
-            body.map-moving-lite-3d .fake-3d-building,
-            body.map-moving-lite-3d .fake-3d-building:hover,
-            body.map-moving-lite-3d .leaflet-buildingsPane-pane .leaflet-interactive,
-            body.map-moving-lite-3d .leaflet-buildingsPane-pane .leaflet-interactive:hover,
+            body.map-moving .fake-3d-building,
+            body.map-moving .fake-3d-building:hover,
+            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive,
+            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive:hover,
             body.map-zooming .fake-3d-building,
             body.map-zooming .fake-3d-building:hover,
             body.map-zooming .leaflet-buildingsPane-pane .leaflet-interactive,

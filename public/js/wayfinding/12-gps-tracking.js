@@ -89,6 +89,8 @@
     let lastLiveRerouteNodeKey = null;
     let drawingLiveGpsReroute = false;
     let liveGpsProviderName = 'device';
+    let gpsMapDragActive = false;
+    let pendingGpsRouteRefreshPosition = null;
 
     const baseSelectGpsMode = typeof selectGpsMode === 'function' ? selectGpsMode : null;
     const baseSelectPickPathMode = typeof selectPickPathMode === 'function' ? selectPickPathMode : null;
@@ -766,6 +768,16 @@
     function refreshActiveRouteFromGps(position, force = false) {
         if (!activeOutdoorDestinationKey || !position) return false;
 
+        /*
+        | Manual map dragging must stay responsive. GPS samples are still accepted,
+        | but the route SVG is redrawn only after the finger is released.
+        */
+        if (gpsMapDragActive && !force) {
+            pendingGpsRouteRefreshPosition = L.latLng(position.lat, position.lng);
+            updateNavigationGuidance(position);
+            return false;
+        }
+
         const currentNodeKey = nearestNodeKey(position.lat, position.lng);
         if (!currentNodeKey) return false;
 
@@ -815,6 +827,46 @@
         updateNavigationGuidance(position);
 
         return true;
+    }
+
+    function pauseGpsFollowForManualDrag() {
+        gpsMapDragActive = true;
+
+        if (liveGpsWatchId === null || !liveGpsFollow) {
+            return;
+        }
+
+        liveGpsFollow = false;
+        emitGpsDiagnostic('state', {
+            status: 'follow_paused_by_drag',
+            qualityLocked: gpsQualityLockAcquired,
+            accepted: liveGpsHasAcceptedFix,
+        });
+        setLiveGpsStatus(
+            'loading',
+            'Map follow paused',
+            'You moved the map manually. GPS tracking continues; tap Follow: OFF to recenter and resume map follow.'
+        );
+    }
+
+    function resumeDeferredGpsRouteRefresh() {
+        gpsMapDragActive = false;
+
+        if (!pendingGpsRouteRefreshPosition) {
+            return;
+        }
+
+        const deferredPosition = pendingGpsRouteRefreshPosition;
+        pendingGpsRouteRefreshPosition = null;
+
+        requestAnimationFrame(() => {
+            refreshActiveRouteFromGps(deferredPosition, true);
+        });
+    }
+
+    if (typeof map !== 'undefined' && map) {
+        map.on('dragstart', pauseGpsFollowForManualDrag);
+        map.on('dragend', resumeDeferredGpsRouteRefresh);
     }
 
     function collectGpsSample(position) {
@@ -1204,7 +1256,7 @@
             setRouteResultLabel(`Live GPS ready. Accuracy ${Math.round(accuracy)}m; ${snapText}.`);
         }
 
-        if (liveGpsFollow && smoothLatLng) {
+        if (liveGpsFollow && smoothLatLng && !gpsMapDragActive) {
             map.panTo(smoothLatLng, { animate: true, duration: 0.35 });
         }
     }

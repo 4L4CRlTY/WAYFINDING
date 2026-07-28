@@ -13,6 +13,7 @@
     const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 17;
     const MOBILE_OUTDOOR_MAX_ZOOM_VALUE = 19;
     const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW ? 1 : 0.5;
+    const MOBILE_PATH_CANVAS_PADDING = 0.35;
     const OUTDOOR_VECTOR_RENDERER = L.svg({
         /*
         | Keep GeoJSON buildings and paths rendered beyond the visible viewport.
@@ -21,7 +22,22 @@
         */
         padding: OUTDOOR_VECTOR_RENDER_PADDING
     });
-    const OUTDOOR_PATHS_RENDERER = L.svg({
+    /*
+    | Mobile draws the many static campus path segments in one canvas instead
+    | of maintaining more than one hundred SVG DOM nodes. The computed route
+    | keeps its own SVG renderer below so its color and outline remain crisp.
+    */
+    const OUTDOOR_PATHS_RENDERER = IS_MOBILE_OUTDOOR_VIEW
+        ? L.canvas({
+            pane: 'pathsPane',
+            padding: MOBILE_PATH_CANVAS_PADDING,
+            tolerance: 0
+        })
+        : L.svg({
+            pane: 'pathsPane',
+            padding: OUTDOOR_VECTOR_RENDER_PADDING
+        });
+    const OUTDOOR_ROUTE_RENDERER = L.svg({
         pane: 'pathsPane',
         padding: OUTDOOR_VECTOR_RENDER_PADDING
     });
@@ -77,7 +93,9 @@
         | recalculated using map.latLngToLayerPoint(). If zoom animation is ON,
         | Leaflet scales vector layers while this custom SVG waits until zoomend,
         | so the landuse image looks like it jumps then returns.
-        | Tiles are still smooth because updateWhenZooming + keepBuffer remain enabled.
+        | Mobile keeps a large tile buffer and waits until interaction settles
+        | before requesting more tiles. This prevents network/image decoding work
+        | from competing with finger dragging.
         */
         zoomAnimation: false,
         fadeAnimation: false,
@@ -111,10 +129,10 @@
         |--------------------------------------------------------------------------
         | Load fewer tiles while moving/zooming. This helps mobile smoothness.
         */
-        updateWhenIdle: false,
-        updateWhenZooming: true,
-        updateInterval: IS_MOBILE_OUTDOOR_VIEW ? 80 : 120,
-        keepBuffer: IS_MOBILE_OUTDOOR_VIEW ? 4 : 5
+        updateWhenIdle: IS_MOBILE_OUTDOOR_VIEW,
+        updateWhenZooming: !IS_MOBILE_OUTDOOR_VIEW,
+        updateInterval: IS_MOBILE_OUTDOOR_VIEW ? 180 : 120,
+        keepBuffer: 5
     }).addTo(map);
 
     function updateShadows() {

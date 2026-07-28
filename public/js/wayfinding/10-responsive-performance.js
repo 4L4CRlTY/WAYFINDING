@@ -385,17 +385,31 @@ window.routeToCampusEvent = routeToCampusEvent;
         if (movingTimer) clearTimeout(movingTimer);
     }
 
+    function markMapDragging() {
+        if (!body) return;
+        body.classList.add('map-dragging');
+        markMapMoving();
+    }
+
+    function unmarkMapDragging() {
+        if (!body) return;
+        body.classList.remove('map-dragging');
+        unmarkMapMovingSoon();
+    }
+
     function unmarkMapMovingSoon() {
         if (!body) return;
         if (movingTimer) clearTimeout(movingTimer);
         movingTimer = setTimeout(() => {
             body.classList.remove('map-moving');
-        }, 140);
+        }, 96);
     }
 
     if (typeof map !== 'undefined' && map) {
-        map.on('movestart zoomstart dragstart', markMapMoving);
-        map.on('moveend zoomend dragend', unmarkMapMovingSoon);
+        map.on('movestart zoomstart', markMapMoving);
+        map.on('dragstart', markMapDragging);
+        map.on('moveend zoomend', unmarkMapMovingSoon);
+        map.on('dragend', unmarkMapDragging);
     }
 
     /*
@@ -456,8 +470,8 @@ window.routeToCampusEvent = routeToCampusEvent;
 
 /* =========================================================
    CLEAN MOBILE BUILDING SHADOW RUNTIME PATCH
-   Keeps map-moving class for transition control.
-   Also hides any old duplicate shadow panes if cached.
+   Hides any old duplicate shadow panes if cached.
+   The shared movement controller above owns the map-moving state.
 ========================================================= */
 (function cleanMobileBuildingShadowFix() {
     if (window.__cleanMobileBuildingShadowFixApplied) return;
@@ -465,31 +479,7 @@ window.routeToCampusEvent = routeToCampusEvent;
 
     document.documentElement.style.setProperty('--step', '1px');
 
-    let movingTimer = null;
-
-    function markMoving() {
-        document.body.classList.add('map-moving');
-
-        if (movingTimer) {
-            clearTimeout(movingTimer);
-        }
-    }
-
-    function markStoppedSoon() {
-        if (movingTimer) {
-            clearTimeout(movingTimer);
-        }
-
-        movingTimer = setTimeout(() => {
-            document.body.classList.remove('map-moving');
-        }, 180);
-    }
-
     if (typeof map !== 'undefined' && map) {
-        map.on('movestart zoomstart dragstart', markMoving);
-        map.on('move zoom', markMoving);
-        map.on('moveend zoomend dragend', markStoppedSoon);
-
         const oldShadowPane = map.getPane('buildingShadowPane');
         if (oldShadowPane) {
             oldShadowPane.style.display = 'none';
@@ -548,7 +538,6 @@ window.routeToCampusEvent = routeToCampusEvent;
     window.__threeLayerLightweightFake3DPerformancePatchApplied = true;
 
     const body = document.body;
-    let movingTimer = null;
     let zoomTimer = null;
     let shadowFrame = null;
 
@@ -570,24 +559,9 @@ window.routeToCampusEvent = routeToCampusEvent;
         });
     }
 
-    function markMoving() {
-        if (!body) return;
-        body.classList.add('map-moving');
-        if (movingTimer) clearTimeout(movingTimer);
-    }
-
-    function markStoppedSoon() {
-        if (!body) return;
-        if (movingTimer) clearTimeout(movingTimer);
-
-        movingTimer = setTimeout(() => {
-            body.classList.remove('map-moving');
-        }, 150);
-    }
-
     function markZooming() {
         if (!body) return;
-        body.classList.add('map-zooming', 'map-moving');
+        body.classList.add('map-zooming');
         if (zoomTimer) clearTimeout(zoomTimer);
     }
 
@@ -598,15 +572,12 @@ window.routeToCampusEvent = routeToCampusEvent;
         zoomTimer = setTimeout(() => {
             scheduleUpdateShadows();
             body.classList.remove('map-zooming');
-            markStoppedSoon();
         }, 170);
     }
 
     if (typeof map !== 'undefined' && map) {
         map.on('zoomstart', markZooming);
         map.on('zoomend', markZoomStoppedSoon);
-        map.on('movestart dragstart', markMoving);
-        map.on('moveend dragend', markStoppedSoon);
         map.on('resize', scheduleUpdateShadows);
     }
 

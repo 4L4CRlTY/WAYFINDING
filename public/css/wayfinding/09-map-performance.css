@@ -20,7 +20,7 @@
 }
 
 /* During pan/zoom: temporarily reduce expensive effects only while moving */
-body.map-moving body.map-moving .path-interactive,
+body.map-moving .path-interactive,
 body.map-moving .path-covered-stairs,
 body.map-moving .path-canopy-frames,
 body.map-moving .leaflet-marker-icon,
@@ -30,9 +30,59 @@ body.map-moving .route-building-map-popup {
     animation: none !important;
 }
 
+body.map-moving .path-interactive,
 body.map-moving .path-covered-stairs,
 body.map-moving .path-canopy-frames {
     filter: none !important;
+}
+
+/*
+| Active route mobile drag mode
+| Route geometry and colors remain visible. Only expensive effects are reduced
+| while the user's finger is moving the map, then restored after release.
+*/
+@media (hover: none), (max-width: 768px) {
+    body.map-moving .route-line-live,
+    body.map-moving .route-line-live-indoor,
+    body.map-moving .route-line-outline,
+    body.map-moving .route-line-safe,
+    body.map-moving .route-line-caution,
+    body.map-moving .route-line-danger,
+    body.map-moving .leaflet-marker-icon,
+    body.map-moving .live-gps-heading-arrow,
+    body.map-moving .live-gps-dot,
+    body.map-moving .gps-route-start-pin {
+        filter: none !important;
+        transition: none !important;
+        animation: none !important;
+    }
+
+    body.map-moving .leaflet-buildings-pane svg,
+    body.map-moving .leaflet-buildingDepth-pane svg,
+    body.map-moving .leaflet-paths-pane svg,
+    body.map-moving .leaflet-overlay-pane svg {
+        shape-rendering: optimizeSpeed !important;
+    }
+
+    body.map-dragging .live-gps-pulse,
+    body.map-dragging .hazard-pin,
+    body.map-dragging .ai-dot,
+    body.map-dragging .badge-dot {
+        animation-play-state: paused !important;
+    }
+
+    body.map-dragging .leaflet-popup-pane,
+    body.map-dragging .leaflet-tooltip-pane {
+        visibility: hidden !important;
+    }
+
+    body.map-dragging .leaflet-paths-pane,
+    body.map-dragging .leaflet-buildingDepth-pane,
+    body.map-dragging .leaflet-buildings-pane,
+    body.map-dragging .leaflet-marker-pane,
+    body.map-dragging .leaflet-shadow-pane {
+        pointer-events: none !important;
+    }
 }
 
 /* Pause non-essential pulsing effects while map is moving or tab is hidden */
@@ -49,6 +99,25 @@ body.page-hidden .hazard-pin {
 
 /* Lighter effects on mobile = less lag */
 @media (max-width: 768px) {
+    /*
+    | The path casing already keeps campus roads readable. Removing dozens of
+    | per-path SVG shadows and hover transitions saves substantial phone GPU work.
+    */
+    .path-interactive,
+    .path-interactive:hover,
+    .path-covered-stairs,
+    .path-canopy-frames {
+        filter: none !important;
+        transition: none !important;
+        pointer-events: none !important;
+    }
+
+    .leaflet-paths-pane svg,
+    .leaflet-buildingDepth-pane svg,
+    .leaflet-buildings-pane svg {
+        shape-rendering: optimizeSpeed !important;
+    }
+
     .leaflet-popup-content-wrapper,
     .premium-legend,
     .floating-ai-badge,

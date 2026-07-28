@@ -73,6 +73,7 @@
             lineCap: 'round',
             lineJoin: 'round',
             dashArray: config.dashArray || null,
+            interactive: !IS_MOBILE_OUTDOOR_VIEW,
             className: `path-interactive ${config.className || ''}`
         };
     }
