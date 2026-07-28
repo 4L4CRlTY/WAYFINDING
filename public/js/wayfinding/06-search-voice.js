@@ -178,6 +178,7 @@
         '/api/indoor-entrances',
         '/api/building-entrance-links',
         '/api/indoor-stairs-links',
+        '/api/campus-events',
     ]);
     let wayfindingSnapshotPromise = null;
     let wayfindingSearchIndexPromise = null;
@@ -243,7 +244,8 @@
                 const document = await response.json();
                 if (
                     Number(document?.schema_version) !== 1 ||
-                    !Array.isArray(document?.search_index)
+                    !Array.isArray(document?.search_index) ||
+                    Number(document?.cache_version) !== Number(snapshot.cache_version)
                 ) {
                     return null;
                 }
@@ -264,7 +266,39 @@
             return null;
         }
 
-        return snapshot.datasets[pathname];
+        const dataset = snapshot.datasets[pathname];
+
+        if (pathname === '/api/campus-events') {
+            return normalizeSnapshotCampusEvents(dataset);
+        }
+
+        return dataset;
+    }
+
+    function normalizeSnapshotCampusEvents(events) {
+        if (!Array.isArray(events)) return [];
+
+        const now = Date.now();
+
+        return events
+            .filter(event => {
+                const endsAt = event?.ends_at ? Date.parse(event.ends_at) : null;
+                return endsAt === null || Number.isNaN(endsAt) || endsAt >= now;
+            })
+            .map(event => {
+                const startsAt = event?.starts_at ? Date.parse(event.starts_at) : null;
+                const endsAt = event?.ends_at ? Date.parse(event.ends_at) : null;
+                const isHappeningNow =
+                    startsAt !== null
+                    && !Number.isNaN(startsAt)
+                    && startsAt <= now
+                    && (endsAt === null || Number.isNaN(endsAt) || endsAt >= now);
+
+                return {
+                    ...event,
+                    status: isHappeningNow ? 'happening_now' : 'upcoming',
+                };
+            });
     }
 
     function readLastKnownWayfindingResponse(url) {
@@ -337,72 +371,157 @@
         }
     }
 
-    async function findUniqueExactSnapshotKeyword(message) {
-        const normalized = normalizeDestinationSearchTextFinal(message);
+    function normalizeSnapshotKeywordText(value) {
+        let normalized = String(value || '').toLowerCase();
+        const phrasesToRemove = [
+            'i want to go to',
+            'i wanna go to',
+            'i need to go to',
+            'take me to',
+            'route me to',
+            'bring me to',
+            'navigate to',
+            'go to',
+            'where is',
+            'find',
+            'search',
+            'please',
+            'room',
+            'office',
+            'asa ang',
+            'asa dapit ang',
+            'adto ko sa',
+            'ganahan ko moadto sa',
+            'moadto ko sa',
+            'dad-a ko sa',
+            'pangitaa ang',
+            'pangita ang',
+            'palihog',
+            'kwarto',
+            'opisina',
+        ];
+
+        phrasesToRemove.forEach(phrase => {
+            normalized = normalized.replaceAll(phrase, ' ');
+        });
+
+        return normalized
+            .replace(/[^a-z0-9\s]/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function snapshotKeywordScore(keyword, normalized, queryWords) {
+        const candidate = normalizeSnapshotKeywordText(keyword);
+        if (!candidate) return -1;
+
+        if (normalized === candidate) {
+            return 2000 + candidate.length;
+        }
+
+        const boundedCandidate = new RegExp(
+            `(^|\\s)${candidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`,
+            'u'
+        );
+        if (boundedCandidate.test(normalized)) {
+            return 1700 + candidate.length;
+        }
+        if (normalized.includes(candidate)) {
+            return 1500 + candidate.length;
+        }
+
+        const candidateWords = candidate.split(' ').filter(Boolean);
+        const commonWords = queryWords.filter(word => candidateWords.includes(word));
+        return commonWords.length ? (commonWords.length * 120) + candidate.length : -1;
+    }
+
+    async function findSnapshotKeywordMatch(message) {
+        const normalized = normalizeSnapshotKeywordText(message);
         if (!normalized) return null;
 
         const snapshot = await loadWayfindingSnapshot();
         const searchIndex = await loadWayfindingSearchIndex();
         if (!snapshot || !Array.isArray(searchIndex)) return null;
 
-        const exactMatches = searchIndex.filter(entry =>
-            normalizeDestinationSearchTextFinal(entry?.keyword) === normalized &&
-            entry?.destination_type &&
-            Number(entry?.destination_id) > 0
+        const queryWords = normalized.split(' ').filter(Boolean);
+        const matches = searchIndex
+            .map((entry, index) => {
+                let score = snapshotKeywordScore(entry?.keyword, normalized, queryWords);
+                if (score < 100 || !entry?.result) return null;
+                if (entry.destination_type === 'room') score += 350;
+                if (entry.destination_type === 'building') score += 120;
+
+                return { entry, score, index };
+            })
+            .filter(Boolean)
+            .sort((left, right) =>
+                right.score - left.score
+                || Number(right.entry.priority || 0) - Number(left.entry.priority || 0)
+                || left.index - right.index
+            );
+
+        if (!matches.length) return null;
+
+        const buildingMatch = matches.find(match =>
+            match.entry.destination_type === 'building'
+        ) || null;
+        const detectedBuildingId = Number(
+            buildingMatch?.entry?.result?.destination_id || 0
         );
 
-        // Duplicate aliases and conversational/fuzzy searches retain the
-        // server's full building-context scoring rules.
-        if (exactMatches.length !== 1) return null;
-
-        const entry = exactMatches[0];
-        const datasets = snapshot.datasets || {};
-        let result = null;
-
-        if (entry.destination_type === 'building') {
-            const building = (datasets['/api/buildings'] || []).find(
-                item => Number(item?.id) === Number(entry.destination_id)
-            );
-
-            if (building) {
-                result = {
-                    destination_type: 'building',
-                    destination_id: Number(building.id),
-                    label: building.name || 'Building',
-                };
-            }
-        } else if (entry.destination_type === 'room') {
-            const room = (datasets['/api/indoor-rooms']?.features || []).find(
-                item => Number(item?.properties?.id) === Number(entry.destination_id)
-            );
-            const properties = room?.properties;
-
-            if (properties) {
-                result = {
-                    destination_type: 'room',
-                    destination_id: Number(properties.id),
-                    label: properties.name || properties.room_code || 'Room / Office',
-                    room_code: properties.room_code || null,
-                    building_id: properties.building_id || null,
-                    building_name: properties.building_name || null,
-                    floor_number: properties.floor_number ?? null,
-                    floor_label: properties.floor_label || null,
-                };
-            }
-        } else if (entry.destination_type === 'landuse') {
-            const landuse = (datasets['/api/landuses'] || []).find(
-                item => Number(item?.id) === Number(entry.destination_id)
-            );
-
-            if (landuse) {
-                result = {
-                    destination_type: 'landuse',
-                    destination_id: Number(landuse.id),
-                    label: landuse.name || 'Landuse Area',
-                };
-            }
+        if (
+            buildingMatch
+            && normalized === normalizeSnapshotKeywordText(buildingMatch.entry.keyword)
+        ) {
+            return createSnapshotKeywordResponse(buildingMatch.entry);
         }
 
+        const roomMatches = matches.filter(match =>
+            match.entry.destination_type === 'room'
+        );
+        const roomMatch = roomMatches.find(match =>
+            !detectedBuildingId
+            || Number(match.entry.result?.building_id) === detectedBuildingId
+        );
+
+        if (roomMatch) {
+            const response = createSnapshotKeywordResponse(roomMatch.entry);
+            if (buildingMatch) {
+                response.matched_keywords = [
+                    buildingMatch.entry.keyword,
+                    roomMatch.entry.keyword,
+                ];
+                response.matched_keyword_ids = [
+                    Number(buildingMatch.entry.id),
+                    Number(roomMatch.entry.id),
+                ];
+            }
+            return response;
+        }
+
+        if (detectedBuildingId && roomMatches.length) {
+            return {
+                success: false,
+                is_keyword_match: false,
+                source: 'destination_keywords_snapshot',
+                message: 'A room keyword matched, but it is not under the detected building keyword.',
+            };
+        }
+
+        if (buildingMatch) {
+            return createSnapshotKeywordResponse(buildingMatch.entry);
+        }
+
+        const landuseMatch = matches.find(match =>
+            match.entry.destination_type === 'landuse'
+        );
+        return landuseMatch
+            ? createSnapshotKeywordResponse(landuseMatch.entry)
+            : null;
+    }
+
+    function createSnapshotKeywordResponse(entry) {
+        const result = entry?.result;
         if (!result) return null;
 
         return {
@@ -722,7 +841,7 @@
         try {
             setRouteResultLabel('Checking destination keyword database...');
 
-            const snapshotResponse = await findUniqueExactSnapshotKeyword(message);
+            const snapshotResponse = await findSnapshotKeywordMatch(message);
             const apiResponse = snapshotResponse || await fetchJson(
                 `/api/search-destination?q=${encodeURIComponent(message)}`
             );

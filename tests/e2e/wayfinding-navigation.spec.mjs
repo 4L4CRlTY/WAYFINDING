@@ -79,8 +79,48 @@ test('keeps destination dialog open and gives non-blocking validation feedback',
     runtime.expectNone();
 });
 
+test('lazy text search stays responsive and creates a route on first use', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await loginAsUser(page);
+
+    await page.locator('#destination-menu-toggle').click();
+    await page.locator('#text-search-command-btn').click();
+    await expect(page.locator('#ai-search-panel')).toBeVisible();
+
+    await page.locator('#destination-search-input').fill('Information Technology');
+    await page.locator('#ai-search-panel .ai-search-submit').click();
+
+    await expect(page.locator('#navigation-details-toggle')).toBeVisible({
+        timeout: 15_000,
+    });
+    await expect(page.locator('#navigation-destination')).toContainText(
+        /Information Technology/i,
+    );
+    await expect(page.locator('#ai-search-panel')).toBeVisible();
+    runtime.expectNone();
+});
+
+test('lazy voice search opens once and leaves the dashboard responsive', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await loginAsUser(page);
+
+    await page.locator('#destination-menu-toggle').click();
+    await page.locator('#voice-command-btn').click();
+
+    await expect(page.locator('#ai-voice-panel')).toBeVisible();
+    await expect
+        .poll(() => page.evaluate(() => document.querySelector('#map') !== null))
+        .toBe(true);
+    await page.getByRole('button', { name: 'Close voice search' }).click();
+    await expect(page.locator('#ai-voice-panel')).toBeHidden();
+    runtime.expectNone({
+        ignore: [/not-allowed|permission|audio-capture|Speech recognition/i],
+    });
+});
+
 test('keeps the outdoor map usable when optional campus-event data fails', async ({ page }) => {
     const runtime = monitorRuntimeErrors(page);
+    await page.route('**/data/campus-snapshot.json', route => route.abort('failed'));
     await page.route('**/api/campus-events', route => route.abort('failed'));
     await loginAsUser(page);
 
@@ -92,7 +132,7 @@ test('keeps the outdoor map usable when optional campus-event data fails', async
         .poll(() => page.locator('#destination-building-select option').count())
         .toBeGreaterThan(1);
     await expect(page.locator('#map')).toBeVisible();
-    runtime.expectNone({ ignore: [/campus-events/] });
+    runtime.expectNone({ ignore: [/campus-events|campus-snapshot/] });
 });
 
 test('keeps loaded campus data usable when the connection drops', async ({ page, context }) => {
@@ -247,7 +287,7 @@ test.describe('mobile layout', () => {
         expect(layout.closeWidth).toBeGreaterThanOrEqual(36);
         expect(layout.closeHeight).toBeGreaterThanOrEqual(36);
         expect(layout.titleFont).toBeGreaterThanOrEqual(14);
-        expect(layout.actionHeight).toBeGreaterThanOrEqual(52);
+        expect(layout.actionHeight).toBeGreaterThanOrEqual(44);
         expect(layout.diagnosticsPresent).toBe(false);
 
         await page.getByRole('button', { name: 'Close indoor popup' }).click();

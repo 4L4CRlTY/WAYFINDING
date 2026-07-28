@@ -8,6 +8,7 @@
         "test": "node --test tests/js/wayfinding-assets.test.js tests/js/wayfinding-routing.test.js tests/js/wayfinding-performance.test.js",
         "test:e2e": "playwright test",
         "test:capacity": "node scripts/load-test-campus-snapshot.mjs",
+        "test:capacity:full": "node scripts/load-test-wayfinding.mjs",
         "test:performance": "node scripts/check-wayfinding-bundle.mjs",
         "test:all": "npm test && npm run build && npm run test:performance && npm run test:e2e"
     },

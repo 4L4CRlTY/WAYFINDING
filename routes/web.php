@@ -27,11 +27,11 @@ Route::get('/', function () {
 });
 
 Route::get('/go/{destinationLink}', [DestinationLinkController::class, 'open'])
-    ->middleware('throttle:60,1')
+    ->middleware(['wayfinding.client', 'throttle:wayfinding-public-page'])
     ->name('destination-links.open');
 
 Route::get('/guest', [UserController::class, 'GuestDashboard'])
-    ->middleware('throttle:60,1')
+    ->middleware(['wayfinding.client', 'throttle:wayfinding-public-page'])
     ->name('guest.dashboard');
 
 require __DIR__.'/auth.php';
@@ -167,7 +167,9 @@ Route::middleware(['auth', 'roles:admin,authorized_user', 'invalidate.wayfinding
 });
 
 Route::middleware(['auth', 'roles:user'])->group(function () {
-    Route::get('/user/dashboard', [UserController::class, 'UserDashboard'])->name('user.dashboard');
+    Route::get('/user/dashboard', [UserController::class, 'UserDashboard'])
+        ->middleware('wayfinding.client')
+        ->name('user.dashboard');
 
     Route::post('/user/logout', [UserController::class, 'Userlogout'])->name('user.logout');
 });

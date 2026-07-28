@@ -458,10 +458,6 @@
         samples = saved.samples;
     }
 
-    toggleButton.addEventListener('click', () => {
-        if (panel.hidden) openPanel();
-        else closePanel();
-    });
     closeButton?.addEventListener('click', closePanel);
     startButton?.addEventListener('click', startRecording);
     stopButton?.addEventListener('click', stopRecording);

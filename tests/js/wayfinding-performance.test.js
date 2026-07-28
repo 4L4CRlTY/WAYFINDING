@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 test('dashboard uses the two production wayfinding entries', () => {
@@ -16,7 +18,7 @@ test('dashboard uses the two production wayfinding entries', () => {
     assert.doesNotMatch(dashboard, /fonts\.googleapis\.com/);
 });
 
-test('wayfinding entry preserves the legacy runtime order in one bundle', () => {
+test('wayfinding core preserves routing order and account features are lazy chunks', () => {
     const viteConfig = readFileSync(
         new URL('../../vite.config.js', import.meta.url),
         'utf8',
@@ -31,12 +33,9 @@ test('wayfinding entry preserves the legacy runtime order in one bundle', () => 
         'public/js/wayfinding/06-search-voice.js',
         'public/js/wayfinding/07-campus-events-data.js',
         'public/js/wayfinding/08-navigation-accessibility.js',
-        'public/js/wayfinding/08-assistant-ui.js',
         'public/js/wayfinding/09-building-indoor-ui.js',
         'public/js/wayfinding/10-responsive-performance.js',
         'public/js/wayfinding/11-map-performance.js',
-        'public/js/wayfinding/12-gps-tracking.js',
-        'public/js/wayfinding/13-gps-diagnostics.js',
         'public/js/wayfinding/14-pwa-offline.js',
     ];
 
@@ -49,6 +48,35 @@ test('wayfinding entry preserves the legacy runtime order in one bundle', () => 
 
     assert.match(viteConfig, /import Leaflet from 'leaflet'/);
     assert.match(viteConfig, /window\.L = Leaflet/);
+    assert.match(viteConfig, /'virtual:wayfinding-assistant'/);
+    assert.match(viteConfig, /'virtual:wayfinding-gps'/);
+    assert.match(viteConfig, /'virtual:wayfinding-gps-diagnostics'/);
+
+    const entry = readFileSync(
+        new URL('../../resources/js/wayfinding-entry.js', import.meta.url),
+        'utf8',
+    );
+    assert.match(entry, /if \(!guestMode\)/);
+    assert.match(entry, /import\('\.\/wayfinding-assistant-entry\.js'\)/);
+    assert.match(entry, /import\('\.\/wayfinding-gps-entry\.js'\)/);
+    assert.match(entry, /import\('\.\/wayfinding-gps-diagnostics-entry\.js'\)/);
+    assert.match(entry, /window\.selectGpsMode = lazyGpsMode/);
+    assert.match(entry, /\['openInlineTextSearch', 'openInlineVoiceSearch'\]/);
+    assert.doesNotMatch(
+        entry,
+        /const assistantFunctions[\s\S]*searchTextDestination/,
+    );
+
+    const coreData = readFileSync(
+        new URL('../../public/js/wayfinding/07-campus-events-data.js', import.meta.url),
+        'utf8',
+    );
+    const assistant = readFileSync(
+        new URL('../../public/js/wayfinding/08-assistant-ui.js', import.meta.url),
+        'utf8',
+    );
+    assert.match(coreData, /loadAllData\(\)\.catch/);
+    assert.doesNotMatch(assistant, /loadAllData\(\)\.catch/);
 });
 
 test('mobile dragging uses one lightweight map interaction controller', () => {
@@ -124,4 +152,67 @@ test('low-powered phones avoid path hit-testing and GPS redraws during manual dr
     assert.match(performanceCss, /\.path-interactive,[\s\S]*?filter:\s*none !important;[\s\S]*?pointer-events:\s*none !important;/);
     assert.match(performanceCss, /body\.map-dragging \.leaflet-buildings-pane/);
     assert.doesNotMatch(performanceCss, /\.leaflet-buildingsPane-pane svg/);
+});
+
+test('full capacity tester covers public and authenticated journeys safely', () => {
+    const scriptUrl = new URL(
+        '../../scripts/load-test-wayfinding.mjs',
+        import.meta.url,
+    );
+    const script = readFileSync(scriptUrl, 'utf8');
+    const result = spawnSync(
+        process.execPath,
+        [fileURLToPath(scriptUrl)],
+        {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                WAYFINDING_LOAD_BASE_URL: 'http://wayfinding.test',
+                WAYFINDING_LOAD_USERS: '25',
+                WAYFINDING_LOAD_CONCURRENCY: '10',
+                WAYFINDING_LOAD_DRY_RUN: '1',
+                WAYFINDING_LOAD_CONFIRM: '',
+            },
+        },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const config = JSON.parse(result.stdout);
+    assert.equal(config.virtual_users, 25);
+    assert.equal(config.concurrency, 10);
+    assert.deepEqual(config.public_scenarios, [
+        'guest_dashboard',
+        'campus_snapshot',
+        'campus_events',
+        'destination_search',
+    ]);
+    assert.equal(config.authenticated_dashboard, false);
+    assert.match(script, /authenticated_dashboard/);
+    assert.match(script, /WAYFINDING_LOAD_USERS_FILE/);
+    assert.match(script, /I_HAVE_PERMISSION/);
+    assert.match(script, /p95/);
+    assert.match(script, /HTTP 429|response\.status/);
+});
+
+test('full capacity tester refuses an unconfirmed remote target', () => {
+    const scriptUrl = new URL(
+        '../../scripts/load-test-wayfinding.mjs',
+        import.meta.url,
+    );
+    const result = spawnSync(
+        process.execPath,
+        [fileURLToPath(scriptUrl)],
+        {
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                WAYFINDING_LOAD_BASE_URL: 'https://example.com',
+                WAYFINDING_LOAD_DRY_RUN: '1',
+                WAYFINDING_LOAD_CONFIRM: '',
+            },
+        },
+    );
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Remote load testing is blocked/);
 });

@@ -3,6 +3,7 @@
 use App\Http\Middleware\CacheWayfindingResponse;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureAuthorizedFeatureAccess;
+use App\Http\Middleware\EnsureWayfindingClientId;
 use App\Http\Middleware\InvalidateWayfindingCache;
 use App\Http\Middleware\Role;
 use Illuminate\Foundation\Application;
@@ -21,9 +22,14 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureAccountIsActive::class,
         ]);
 
+        $middleware->encryptCookies(except: [
+            EnsureWayfindingClientId::COOKIE_NAME,
+        ]);
+
         $middleware->alias([
             'cache.wayfinding' => CacheWayfindingResponse::class,
             'invalidate.wayfinding' => InvalidateWayfindingCache::class,
+            'wayfinding.client' => EnsureWayfindingClientId::class,
             'roles' => Role::class,
             'authorized.feature' => EnsureAuthorizedFeatureAccess::class,
         ]);

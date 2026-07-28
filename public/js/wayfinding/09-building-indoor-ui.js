@@ -34,7 +34,8 @@
     }
 
     function hasIndoorForBuildingFinal(buildingId) {
-        return getIndoorBuildingMaps(buildingId).length > 0;
+        return getIndoorBuildingMaps(buildingId)
+            .some(mapItem => Boolean(String(mapItem?.floorplan_image || '').trim()));
     }
 
     function positionRouteBuildingPopupFinal(latlng) {
@@ -158,6 +159,11 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         if (!center) return;
 
         const safeName = escapePopupHtmlFinal(routePopupBuildingName);
+        const hasIndoorMap = hasIndoorForBuildingFinal(routePopupBuildingId);
+        const availabilityClass = hasIndoorMap ? 'is-available' : 'is-unavailable';
+        const availabilityLabel = hasIndoorMap
+            ? 'Indoor available'
+            : 'Indoor not available';
         const isMobileIndoorPopup = window.matchMedia('(max-width: 768px)').matches;
         const isCompactMobilePopup = window.matchMedia('(max-width: 480px)').matches;
         const oldFloatingPopup = document.getElementById('route-building-popup');
@@ -169,7 +175,7 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         }
 
         const html = `
-            <div class="route-building-map-popup-inner">
+            <div class="route-building-map-popup-inner ${availabilityClass}">
                 <button type="button"
                     class="route-building-map-popup-custom-close"
                     aria-label="Close indoor popup"
@@ -178,39 +184,32 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
                 </button>
                 <div class="route-building-map-popup-kicker">
                     <span class="route-building-map-popup-pulse-dot"></span>
-                    Indoor available
+                    ${availabilityLabel}
                 </div>
 
-                <div class="route-building-map-popup-head">
-                    <span class="route-building-map-popup-icon">🏢</span>
-
-                    <span class="route-building-map-popup-title-wrap">
+                ${hasIndoorMap ? `
+                    <div class="route-building-map-popup-building">
+                        <span class="route-building-map-popup-icon" aria-hidden="true">🏢</span>
                         <span class="route-building-map-popup-title">${safeName}</span>
-                        <span class="route-building-map-popup-subtitle">Tap below to view rooms</span>
-                    </span>
-                </div>
-
-                <div class="route-building-map-popup-divider"></div>
-
-                <button type="button"
-                    class="route-building-map-popup-btn"
-                    aria-label="Open indoor rooms for ${safeName}"
-                    onclick="openIndoorFromRoutePopup()">
-
-                    <span class="route-building-map-popup-btn-main">
-                        <span class="route-building-map-popup-btn-icon">🚪</span>
-
-                        <span class="route-building-map-popup-btn-text">
-                            <strong>OPEN INDOOR ROOMS</strong>
-                            <small>View rooms and indoor route</small>
+                    </div>
+                    <button type="button"
+                        class="route-building-map-popup-btn"
+                        aria-label="Open indoor rooms for ${safeName}"
+                        onclick="openIndoorFromRoutePopup()">
+                        <span class="route-building-map-popup-btn-main">
+                            <span class="route-building-map-popup-btn-icon" aria-hidden="true">🚪</span>
+                            <span class="route-building-map-popup-btn-text">
+                                <strong>OPEN INDOOR ROOMS</strong>
+                                <small>View rooms and indoor route</small>
+                            </span>
                         </span>
-                    </span>
-                </button>
-
-                <div class="route-building-map-popup-hint">
-                    <span class="route-building-map-popup-hint-icon">👆</span>
-                    Tap to open the indoor map.
-                </div>
+                    </button>
+                ` : `
+                    <div class="route-building-map-popup-building">
+                        <span class="route-building-map-popup-icon" aria-hidden="true">🏢</span>
+                        <span class="route-building-map-popup-title">${safeName}</span>
+                    </div>
+                `}
             </div>
         `;
 
@@ -232,8 +231,8 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
             | Base size ra ni. Ang visual size niya i-scale nato
             | depende sa current zoom para dili niya matabunan ang route.
             */
-            maxWidth: isCompactMobilePopup ? 242 : (isMobileIndoorPopup ? 286 : 292),
-            minWidth: isCompactMobilePopup ? 242 : (isMobileIndoorPopup ? 286 : 292),
+            maxWidth: isCompactMobilePopup ? 220 : (isMobileIndoorPopup ? 236 : 250),
+            minWidth: isCompactMobilePopup ? 190 : (isMobileIndoorPopup ? 210 : 220),
 
             autoPanPaddingTopLeft: isMobileIndoorPopup ? L.point(12, 72) : L.point(20, 20),
             autoPanPaddingBottomRight: isMobileIndoorPopup ? L.point(12, 92) : L.point(20, 20)

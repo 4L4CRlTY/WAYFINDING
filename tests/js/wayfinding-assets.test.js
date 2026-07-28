@@ -72,7 +72,10 @@ test('campus data uses the static snapshot first and preserves API fallback', ()
     assert.match(search, /const snapshotData = await readWayfindingSnapshotDataset\(url\)/);
     assert.match(search, /if \(snapshotData !== null\)/);
     assert.match(search, /const res = await fetch\(url,/);
-    assert.match(search, /exactMatches\.length !== 1/);
+    assert.match(search, /async function findSnapshotKeywordMatch\(message\)/);
+    assert.match(search, /function snapshotKeywordScore\(/);
+    assert.match(search, /pathname === '\/api\/campus-events'/);
+    assert.match(search, /normalizeSnapshotCampusEvents\(dataset\)/);
     assert.match(search, /snapshotResponse \|\| await fetchJson/);
     assert.match(serviceWorker, /'\/data\/campus-snapshot\.json'/);
     assert.match(serviceWorker, /'\/data\/destination-keywords\.json'/);
@@ -492,8 +495,13 @@ test('simple user mode keeps route cards readable and technical GPS tools option
     assert.match(indoor, /route-building-map-popup-custom-close, \.leaflet-popup-close-button/);
     assert.match(indoor, /function keepRouteBuildingPopupOnScreen\(\)/);
     assert.match(indoor, /popupRect\.left < safeLeft/);
-    assert.match(indoor, /isCompactMobilePopup \? 242/);
+    assert.match(indoor, /isCompactMobilePopup \? 220/);
+    assert.match(indoor, /Indoor not available/);
+    assert.match(indoor, /hasIndoorMap \? `[\s\S]*OPEN INDOOR ROOMS/);
+    assert.match(indoor, /floorplan_image/);
     assert.match(styles, /@media \(max-width:\s*480px\)[\s\S]*width:\s*min\(242px/);
+    assert.match(styles, /route-building-map-popup-inner\.is-unavailable/);
+    assert.match(styles, /building-map-summary\.is-unavailable/);
     assert.match(styles, /route-building-map-popup-hint[\s\S]*display:\s*none\s*!important/);
     assert.match(styles, /\.navigation-sheet-body[\s\S]*overflow-y:\s*auto/);
     assert.match(styles, /--route-popup-scale:\s*1\s*!important/);

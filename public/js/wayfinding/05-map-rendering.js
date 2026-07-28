@@ -300,10 +300,32 @@
                 onEachFeature: function(feature, layer) {
                     const bId = feature.properties.id;
 
-                    layer.bindPopup(`
-                        <h3 class="custom-popup-title">🏢 ${buildingName}</h3>
-                        <p class="custom-popup-subtitle">Click to open indoor rooms</p>
-                    `);
+                    layer.bindPopup(() => {
+                        const hasIndoorMap = hasIndoorMapForBuilding(bId);
+                        const indoorStatus = hasIndoorMap
+                            ? 'INDOOR AVAILABLE'
+                            : 'INDOOR NOT AVAILABLE';
+                        const indoorStatusClass = hasIndoorMap
+                            ? 'is-available'
+                            : 'is-unavailable';
+
+                        return `
+                            <div class="building-map-summary ${indoorStatusClass}">
+                                <span class="building-map-summary-status">
+                                    <span class="building-map-summary-dot" aria-hidden="true"></span>
+                                    ${indoorStatus}
+                                </span>
+                                <h3 class="building-map-summary-name">
+                                    <span aria-hidden="true">🏢</span>
+                                    <span>${buildingName}</span>
+                                </h3>
+                            </div>
+                        `;
+                    }, {
+                        className: 'building-summary-leaflet-popup',
+                        maxWidth: 250,
+                        minWidth: 190
+                    });
 
                     layer.on('click', () => {
                         setSelectedBuildingVisual(bId);

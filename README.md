@@ -161,6 +161,12 @@ npm run test:performance
 # Simulate 200 snapshot requests with 100 concurrent clients
 npm run test:capacity
 
+# Simulate complete guest/authenticated wayfinding journeys
+npm run test:capacity:full
+
+# Beginner-friendly local test: double-click this file in Explorer
+run-local-capacity-test.cmd
+
 # Run JavaScript, build, bundle-budget, and browser checks
 npm run test:all
 
@@ -187,19 +193,25 @@ E2E_USER_PASSWORD=your-local-password
 ```
 
 The user dashboard ships its component-based map sources as one minified,
-versioned CSS entry and one minified, versioned JavaScript entry. Leaflet is
-included locally in those production assets, so core map initialization does
-not depend on a third-party CDN. Optional indoor and campus-event data loads
-after the essential outdoor graph. `npm run test:performance` enforces the
-current two-entry size budget.
+versioned CSS entry and a small initial JavaScript core. Leaflet is included
+locally in those production assets, so core map initialization does not depend
+on a third-party CDN. Search/voice assistance, live GPS, and GPS diagnostics
+are separate chunks fetched only when a signed-in user first opens the matching
+feature. Guest sessions never request those account-only chunks. CR assistance
+is also loaded on first use, while the route graph remains in the core so
+ordinary outdoor and indoor routing behavior is unchanged.
+`npm run test:performance` enforces separate size budgets for the initial core
+and every lazy feature chunk.
 
 The shared campus geometry is also published as
 `public/data/campus-snapshot.json`. A dashboard first tries this single static
-file instead of opening twelve concurrent Laravel/database requests. If the
+file instead of opening thirteen Laravel/database requests. Campus events are
+included and filtered in the browser as their start/end times change. If the
 file is missing, invalid, or unavailable, the unchanged `/api/*` endpoints are
-used automatically. Exact, unambiguous destination keywords can be resolved
-from the lazily loaded `public/data/destination-keywords.json`; ambiguous and
-conversational searches retain the existing server-side search rules.
+used automatically. Exact, conversational, and fuzzy destination keyword
+matches are resolved from the lazily loaded
+`public/data/destination-keywords.json` using the same priority and
+building/room context rules as the API.
 
 ## GPS field testing and calibration
 
@@ -524,10 +536,11 @@ Public map endpoints are under `/api`, including buildings, paths, entry
 points, land uses, indoor datasets, entrance links, search, hazards, and
 campus events.
 
-- Map data is limited to `120` requests per minute per IP and cached for
-  `600` seconds.
+- Map data is limited to `120` requests per minute per device/account, with a
+  `12,000` request per-network safety ceiling, and cached for `600` seconds.
 - Campus events are cached for `30` seconds.
-- Destination search is limited to `30` requests per minute per IP.
+- Destination search is limited to `30` requests per minute per
+  device/account, with a `3,000` request per-network safety ceiling.
 - Successful admin data changes invalidate the current map-response cache and
   atomically regenerate the public campus snapshot. A regeneration failure is
   logged and users safely fall back to the existing APIs.
@@ -575,16 +588,20 @@ Important production rules:
   change queued code.
 - Monitor `GET /up`, `storage/logs/laravel.log`, and the queue-worker log.
 
-After deployment, run `npm run test:capacity` from another computer with
-`WAYFINDING_LOAD_BASE_URL=https://your-domain.example`. It sends 200 requests
-with 100 concurrent clients by default. Require zero failures and compare the
-p95 response time between releases. This is a capacity smoke test, not a
-guarantee against a hosting provider's changing bandwidth or fair-use limits.
+After deployment, run the static `npm run test:capacity` smoke test and the
+mixed-journey `npm run test:capacity:full` test from another computer. Remote
+tests require explicit ownership confirmation and should progress through
+small stages before 500 or 1,000 virtual users. Require zero unexpected
+failures and compare p95 response time between releases. These are capacity
+tests, not guarantees against a hosting provider's changing bandwidth or
+fair-use limits.
 
 The repository includes:
 
 - [`docs/production-deployment.md`](docs/production-deployment.md) for the full
   deployment checklist
+- [`docs/capacity-testing.md`](docs/capacity-testing.md) for safe local,
+  authenticated, and staged remote load testing
 - [`.env.production.example`](.env.production.example) for environment values
 - [`deploy/wayfinding-worker.conf`](deploy/wayfinding-worker.conf) for a
   Supervisor-managed queue worker

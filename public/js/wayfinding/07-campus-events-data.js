@@ -787,3 +787,20 @@
             }
         });
     }
+
+    /*
+     * Campus geometry is part of the initial navigation core. Keep its startup
+     * independent from the optional search/voice assistant chunk.
+     */
+    loadAllData().catch(error => {
+        console.error(error);
+        window.WayfindingDataStatus?.partial(
+            ['Campus navigation data'],
+            { critical: true, usingCache: false }
+        );
+        window.showWayfindingToast?.(
+            'Campus map data could not be loaded. Check your connection, then use Retry.',
+            { kind: 'error' }
+        );
+        revealOutdoorMap();
+    });

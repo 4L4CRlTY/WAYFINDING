@@ -418,6 +418,7 @@
                     <button type="button"
                             class="navigation-metric navigation-metric-action"
                             id="gps-diagnostics-toggle"
+                            onclick="openGpsDiagnosticsLazy()"
                             aria-expanded="false"
                             aria-controls="gps-diagnostics-panel">
                         <span class="navigation-metric-label">Location</span>
@@ -888,37 +889,6 @@
     </div>
 
 
-    <!-- ROUTE / BUILDING INDOOR POPUP -->
-    <div id="route-building-popup"
-         class="route-building-popup"
-         role="dialog"
-         aria-label="Indoor navigation available"
-         style="display:none;">
-        <button type="button"
-                class="route-building-popup-close"
-                onclick="closeRouteBuildingPopup()"
-                aria-label="Close indoor navigation prompt">×</button>
-
-        <div class="route-building-popup-head">
-            <div class="route-building-popup-icon">🏢</div>
-            <div class="route-building-popup-title" id="route-building-popup-title">Building</div>
-        </div>
-
-        <div class="route-building-popup-divider"></div>
-
-        <button type="button" class="route-building-popup-btn" id="route-building-popup-btn"
-            onclick="openIndoorFromRoutePopup()">
-            CLICK TO OPEN INDOOR ROOMS
-        </button>
-
-        <div class="route-building-popup-hint" id="route-building-popup-hint">
-            You can also click the building on the map.
-        </div>
-    </div>
-
-
-
-
     <!-- MOBILE TAP-ONLY PICK PATH HELPER -->
     <div id="pick-path-helper" class="pick-path-helper tap-only" style="display:none;">
         <div class="pick-helper-glow"></div>
@@ -1002,6 +972,7 @@
     <script>
         window.WAYFINDING_GUEST_MODE = @json($guestMode);
         window.WAYFINDING_SHARED_DESTINATION = @json($sharedDestination);
+        window.WAYFINDING_GPS_DIAGNOSTICS_ENABLED = @json($gpsDiagnosticsEnabled);
     </script>
 
     @if($guestMode && !$sharedDestination)

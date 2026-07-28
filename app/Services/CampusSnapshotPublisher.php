@@ -37,6 +37,7 @@ class CampusSnapshotPublisher
         '/api/indoor-entrances' => 'indoorEntrances',
         '/api/building-entrance-links' => 'buildingEntranceLinks',
         '/api/indoor-stairs-links' => 'indoorStairsLinks',
+        '/api/campus-events' => 'campusEvents',
     ];
 
     public function __construct(
@@ -184,6 +185,8 @@ class CampusSnapshotPublisher
                     'keyword' => $keyword->keyword,
                     'destination_type' => $keyword->destination_type,
                     'destination_id' => (int) $keyword->destination_id,
+                    'priority' => (int) $keyword->priority,
+                    'result' => $result,
                 ];
             })
             ->filter(fn ($entry) => $entry !== null && $this->normalizeKeyword($entry['keyword']) !== '')

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Building;
+use App\Models\CampusEvent;
 use App\Models\DestinationKeyword;
 use App\Models\IndoorMap;
 use App\Services\CampusSnapshotPublisher;
@@ -30,7 +31,7 @@ class CampusSnapshotTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_publishes_public_map_datasets_and_exact_keyword_index(): void
+    public function test_it_publishes_public_map_events_and_fuzzy_keyword_index(): void
     {
         $building = Building::create([
             'name' => 'Information Technology Building',
@@ -61,6 +62,15 @@ class CampusSnapshotTest extends TestCase
             'geometry' => null,
             'is_active' => true,
         ]);
+        CampusEvent::create([
+            'event_target_type' => 'building',
+            'building_id' => $building->id,
+            'title' => 'IT Orientation',
+            'starts_at' => now()->addHour(),
+            'ends_at' => now()->addHours(2),
+            'is_active' => true,
+            'priority' => 5,
+        ]);
 
         $this->snapshotPath = storage_path('framework/testing/campus-snapshot.json');
         $this->searchIndexPath = storage_path('framework/testing/destination-keywords.json');
@@ -69,10 +79,11 @@ class CampusSnapshotTest extends TestCase
         $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame(1, $snapshot['schema_version']);
-        $this->assertSame(12, $result['datasets']);
+        $this->assertSame(13, $result['datasets']);
         $this->assertArrayHasKey('/api/buildings', $snapshot['datasets']);
         $this->assertArrayHasKey('/api/indoor-stairs-links', $snapshot['datasets']);
-        $this->assertArrayNotHasKey('/api/campus-events', $snapshot['datasets']);
+        $this->assertArrayHasKey('/api/campus-events', $snapshot['datasets']);
+        $this->assertSame('IT Orientation', $snapshot['datasets']['/api/campus-events'][0]['title']);
         $this->assertSame('Information Technology Building', $snapshot['datasets']['/api/buildings'][0]['name']);
         $this->assertSame(
             '/floorplan_image/it%20floor%201.png',
@@ -87,6 +98,8 @@ class CampusSnapshotTest extends TestCase
         $this->assertSame('IT', $searchIndex['search_index'][0]['keyword']);
         $this->assertSame('building', $searchIndex['search_index'][0]['destination_type']);
         $this->assertSame($building->id, $searchIndex['search_index'][0]['destination_id']);
+        $this->assertSame(10, $searchIndex['search_index'][0]['priority']);
+        $this->assertSame('Information Technology Building', $searchIndex['search_index'][0]['result']['label']);
         $this->assertArrayNotHasKey('normalized_keyword', $searchIndex['search_index'][0]);
         $this->assertArrayNotHasKey('response', $searchIndex['search_index'][0]);
         $this->assertArrayNotHasKey('users', $snapshot);
@@ -114,6 +127,57 @@ class CampusSnapshotTest extends TestCase
         app(CampusSnapshotPublisher::class)->publish($this->snapshotPath);
         $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
 
+        $this->assertSame([], $searchIndex['search_index']);
+    }
+
+    public function test_republishing_reflects_keyword_edits_deletes_and_event_deactivation(): void
+    {
+        $building = Building::create([
+            'name' => 'Administration Building',
+            'geometry' => [
+                'type' => 'Polygon',
+                'coordinates' => [[[124.0, 10.0], [124.1, 10.0], [124.1, 10.1], [124.0, 10.0]]],
+            ],
+            'properties' => ['code' => 'ADMIN'],
+            'color' => '#18375d',
+        ]);
+        $keyword = DestinationKeyword::create([
+            'keyword' => 'Admin',
+            'destination_type' => 'building',
+            'destination_id' => $building->id,
+            'priority' => 5,
+            'is_active' => true,
+        ]);
+        $event = CampusEvent::create([
+            'event_target_type' => 'building',
+            'building_id' => $building->id,
+            'title' => 'Enrollment',
+            'starts_at' => now()->addHour(),
+            'ends_at' => now()->addHours(2),
+            'is_active' => true,
+            'priority' => 1,
+        ]);
+
+        $this->snapshotPath = storage_path('framework/testing/campus-snapshot-refresh.json');
+        $this->searchIndexPath = storage_path('framework/testing/destination-keywords.json');
+        $publisher = app(CampusSnapshotPublisher::class);
+        $publisher->publish($this->snapshotPath);
+
+        $keyword->update(['keyword' => 'Registrar']);
+        $event->update(['is_active' => false]);
+        $publisher->publish($this->snapshotPath);
+
+        $snapshot = json_decode(File::get($this->snapshotPath), true, flags: JSON_THROW_ON_ERROR);
+        $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame('Registrar', $searchIndex['search_index'][0]['keyword']);
+        $this->assertSame([], $snapshot['datasets']['/api/campus-events']);
+
+        $keyword->delete();
+        $event->delete();
+        $publisher->publish($this->snapshotPath);
+
+        $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame([], $searchIndex['search_index']);
     }
 }

@@ -334,12 +334,14 @@
 
 
     function hasIndoorMapForBuilding(buildingId) {
-        return getIndoorBuildingMaps(buildingId).length > 0;
+        return getIndoorBuildingMaps(buildingId)
+            .some(mapItem => Boolean(String(mapItem?.floorplan_image || '').trim()));
     }
 
 function openIndoorPanelForBuilding(buildingId) {
         const normalizedBuildingId = Number(buildingId);
-        const buildingMaps = getIndoorBuildingMaps(normalizedBuildingId);
+        const buildingMaps = getIndoorBuildingMaps(normalizedBuildingId)
+            .filter(mapItem => Boolean(String(mapItem?.floorplan_image || '').trim()));
 
         /*
         |--------------------------------------------------------------------------

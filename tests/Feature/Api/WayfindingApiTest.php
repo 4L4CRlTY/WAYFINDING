@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\WayfindingCache;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class WayfindingApiTest extends TestCase
@@ -136,13 +137,39 @@ class WayfindingApiTest extends TestCase
 
     public function test_destination_search_is_rate_limited(): void
     {
+        $clientId = (string) Str::uuid();
+        $this->withCredentials();
+
         for ($attempt = 1; $attempt <= 30; $attempt++) {
-            $this->getJson('/api/search-destination')
+            $this->withUnencryptedCookie('wayfinding_client_id', $clientId)
+                ->getJson('/api/search-destination')
                 ->assertStatus(422);
         }
 
-        $this->getJson('/api/search-destination')
+        $this->withUnencryptedCookie('wayfinding_client_id', $clientId)
+            ->getJson('/api/search-destination')
             ->assertTooManyRequests();
+    }
+
+    public function test_destination_search_limits_devices_separately_on_one_network(): void
+    {
+        $firstClient = (string) Str::uuid();
+        $secondClient = (string) Str::uuid();
+        $this->withCredentials();
+
+        for ($attempt = 1; $attempt <= 30; $attempt++) {
+            $this->withUnencryptedCookie('wayfinding_client_id', $firstClient)
+                ->getJson('/api/search-destination')
+                ->assertStatus(422);
+        }
+
+        $this->withUnencryptedCookie('wayfinding_client_id', $firstClient)
+            ->getJson('/api/search-destination')
+            ->assertTooManyRequests();
+
+        $this->withUnencryptedCookie('wayfinding_client_id', $secondClient)
+            ->getJson('/api/search-destination')
+            ->assertStatus(422);
     }
 
     public function test_paths_endpoint_exposes_geojson_and_routing_metadata(): void

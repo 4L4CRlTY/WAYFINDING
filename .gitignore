@@ -20,6 +20,7 @@
 /storage/pail
 /playwright-report
 /test-results
+/load-test-users.json
 /vendor
 _ide_helper.php
 Homestead.json

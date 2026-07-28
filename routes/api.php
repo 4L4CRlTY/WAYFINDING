@@ -3,7 +3,7 @@
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['throttle:wayfinding-map', 'cache.wayfinding:600'])->group(function () {
+Route::middleware(['wayfinding.client', 'throttle:wayfinding-map', 'cache.wayfinding:600'])->group(function () {
     Route::get('/buildings', [ApiController::class, 'buildings']);
     Route::get('/paths', [ApiController::class, 'paths']);
     Route::get('/entry-points', [ApiController::class, 'entryPoints']);
@@ -20,7 +20,7 @@ Route::middleware(['throttle:wayfinding-map', 'cache.wayfinding:600'])->group(fu
 });
 
 Route::get('/search-destination', [ApiController::class, 'searchDestination'])
-    ->middleware('throttle:wayfinding-search');
+    ->middleware(['wayfinding.client', 'throttle:wayfinding-search']);
 
 Route::get('/campus-events', [ApiController::class, 'campusEvents'])
-    ->middleware(['throttle:wayfinding-map', 'cache.wayfinding:30']);
+    ->middleware(['wayfinding.client', 'throttle:wayfinding-map', 'cache.wayfinding:30']);

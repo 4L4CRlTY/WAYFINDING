@@ -276,21 +276,6 @@
     window.selectGpsMode = selectGpsMode;
     window.selectDefaultMode = selectDefaultMode;
 
-    loadAllData().catch(err => {
-        console.error(err);
-        window.WayfindingDataStatus?.partial(
-            ['Campus navigation data'],
-            { critical: true, usingCache: false }
-        );
-        window.showWayfindingToast?.(
-            'Campus map data could not be loaded. Check your connection, then use Retry.',
-            { kind: 'error' }
-        );
-        const mapElement = document.getElementById('map');
-        if (mapElement) mapElement.style.opacity = '1';
-        setIndoorLoading(false);
-    });
-
     window.selectLanduseDestination = function(landuseId) {
         const landuse = (landuseRecords || []).find(item => Number(item.id) === Number(landuseId));
 

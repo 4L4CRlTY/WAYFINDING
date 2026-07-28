@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\WayfindingRequestIdentity;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -26,11 +27,30 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
 
         RateLimiter::for('wayfinding-map', function (Request $request) {
-            return Limit::perMinute(120)->by($request->ip());
+            return [
+                Limit::perMinute(120)
+                    ->by(WayfindingRequestIdentity::clientKey($request)),
+                Limit::perMinute(12_000)
+                    ->by(WayfindingRequestIdentity::networkKey($request)),
+            ];
         });
 
         RateLimiter::for('wayfinding-search', function (Request $request) {
-            return Limit::perMinute(30)->by($request->ip());
+            return [
+                Limit::perMinute(30)
+                    ->by(WayfindingRequestIdentity::clientKey($request)),
+                Limit::perMinute(3_000)
+                    ->by(WayfindingRequestIdentity::networkKey($request)),
+            ];
+        });
+
+        RateLimiter::for('wayfinding-public-page', function (Request $request) {
+            return [
+                Limit::perMinute(60)
+                    ->by(WayfindingRequestIdentity::clientKey($request)),
+                Limit::perMinute(3_000)
+                    ->by(WayfindingRequestIdentity::networkKey($request)),
+            ];
         });
     }
 }
