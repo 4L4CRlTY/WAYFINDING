@@ -655,26 +655,26 @@
                     icon: createHazardIcon(hazard),
                     keyboard: false
                 }).bindPopup(`
-                    <div style="font-family:'Plus Jakarta Sans',sans-serif;min-width:190px;text-align:left;">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                            <div style="width:12px;height:12px;border-radius:999px;background:${severityColor};border:1.5px solid #cbd5e1;"></div>
-                            <div style="font-weight:800;color:#0f172a;">${hazard.title || 'Hazard'}</div>
+                    <div class="hazard-popup-content">
+                        <div class="hazard-popup-title">
+                            <span class="hazard-popup-dot" style="--hazard-dot:${severityColor}"></span>
+                            <span>${escapeHazardHtml(hazard.title || 'Hazard')}</span>
                         </div>
 
-                        <div style="font-size:12px; color:#475569; margin-bottom:8px;">
-                            ${hazard.description || 'No description provided.'}
-                        </div>
-
-                        <div style="font-size:12px; line-height:1.7; color:#334155;">
-                            <strong>Type:</strong> ${hazard.warning_type || 'Unknown'}<br>
-                            <strong>Severity:</strong> ${severity}
+                        <div class="hazard-popup-type">
+                            <span class="hazard-popup-label">Type</span>
+                            <strong>${escapeHazardHtml(hazard.warning_type || 'Unknown')}</strong>
                         </div>
 
                         <div class="hazard-popup-badge ${severityClass}">
                             Hazard Level ${severity}
                         </div>
                     </div>
-                `).addTo(hazardLayer);
+                `, {
+                    className: 'hazard-map-popup',
+                    minWidth: 210,
+                    maxWidth: 260
+                }).addTo(hazardLayer);
             });
     }
 

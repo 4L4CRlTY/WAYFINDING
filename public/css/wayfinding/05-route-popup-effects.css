@@ -973,7 +973,7 @@
 
     /* =========================================================
        HAZARD ICON - SAME SCREEN SIZE / NO SCALE
-       - Severity 1 = White
+       - Severity 1 = Yellow caution
        - Severity 2 = Yellow
        - Severity 3 = Red
        - Same pixel size in zoom in and zoom out.
@@ -1028,13 +1028,13 @@
     }
 
     .hazard-pin.severity-1 {
-        --hazard-bg: #ffffff;
-        --hazard-fg: #0f172a;
-        border-color: #e2e8f0;
+        --hazard-bg: #facc15;
+        --hazard-fg: #422006;
+        border-color: #ffffff;
     }
 
     .hazard-pin.severity-1::after {
-        border-color: #e2e8f0;
+        border-color: #ffffff;
     }
 
     .hazard-pin.severity-2 {
@@ -1067,9 +1067,9 @@
     }
 
     .hazard-popup-badge.severity-1 {
-        background: #f8fafc;
-        color: #0f172a;
-        border: 1px solid #e2e8f0;
+        background: #fef08a;
+        color: #713f12;
+        border: 1px solid #facc15;
     }
 
     .hazard-popup-badge.severity-2 {
@@ -1082,6 +1082,69 @@
         background: #fee2e2;
         color: #991b1b;
         border: 1px solid #fca5a5;
+    }
+
+    .hazard-popup-content {
+        min-width: 190px;
+        padding: 2px 1px 3px;
+        color: #f8fafc;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        text-align: left;
+    }
+
+    .hazard-popup-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 850;
+        line-height: 1.35;
+    }
+
+    .hazard-popup-dot {
+        width: 11px;
+        height: 11px;
+        flex: 0 0 11px;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        border-radius: 999px;
+        background: var(--hazard-dot, #facc15);
+        box-shadow: 0 0 0 3px rgba(104, 167, 238, 0.12);
+    }
+
+    .hazard-popup-type {
+        display: flex;
+        align-items: baseline;
+        gap: 7px;
+        margin-top: 10px;
+        color: #e2e8f0;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .hazard-popup-type strong {
+        color: #ffffff;
+        font-weight: 750;
+        text-transform: capitalize;
+    }
+
+    .hazard-popup-label {
+        color: #93c5fd;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .hazard-map-popup .leaflet-popup-content {
+        margin: 15px 18px 14px;
+    }
+
+    .hazard-map-popup .leaflet-popup-close-button {
+        display: grid !important;
+        place-items: center;
+        color: #cbd5e1 !important;
+        font-size: 18px !important;
     }
 
 /* =========================================================

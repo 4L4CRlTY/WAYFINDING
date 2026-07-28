@@ -618,7 +618,7 @@
         if (severity >= 3) return '#dc2626';
         if (severity === 2) return '#facc15';
 
-        return '#ffffff';
+        return '#facc15';
     }
 
     function getHazardSymbolByType(warningType) {
@@ -652,6 +652,15 @@
             iconAnchor: [17, 38],
             popupAnchor: [0, -32]
         });
+    }
+
+    function escapeHazardHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
     }
 
 function formatCoordKey(lng, lat) {

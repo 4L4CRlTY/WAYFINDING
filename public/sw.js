@@ -3,7 +3,7 @@
  * Authenticated HTML and external map tiles are deliberately never cached.
  * Only public campus datasets and same-origin application assets are saved.
  */
-const PWA_CACHE_VERSION = '2026-07-26.3';
+const PWA_CACHE_VERSION = '2026-07-28.1';
 const CACHE_PREFIX = 'wayfinding-pwa-';
 const STATIC_CACHE = `${CACHE_PREFIX}static-${PWA_CACHE_VERSION}`;
 const DATA_CACHE = `${CACHE_PREFIX}data-${PWA_CACHE_VERSION}`;
@@ -21,6 +21,8 @@ const PRECACHE_URLS = [
 ];
 
 const CACHEABLE_DATA_PATHS = new Set([
+    '/data/campus-snapshot.json',
+    '/data/destination-keywords.json',
     '/api/buildings',
     '/api/paths',
     '/api/entry-points',

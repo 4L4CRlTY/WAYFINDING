@@ -158,6 +158,9 @@ npm run build
 # Enforce the production wayfinding bundle budgets
 npm run test:performance
 
+# Simulate 200 snapshot requests with 100 concurrent clients
+npm run test:capacity
+
 # Run JavaScript, build, bundle-budget, and browser checks
 npm run test:all
 
@@ -189,6 +192,14 @@ included locally in those production assets, so core map initialization does
 not depend on a third-party CDN. Optional indoor and campus-event data loads
 after the essential outdoor graph. `npm run test:performance` enforces the
 current two-entry size budget.
+
+The shared campus geometry is also published as
+`public/data/campus-snapshot.json`. A dashboard first tries this single static
+file instead of opening twelve concurrent Laravel/database requests. If the
+file is missing, invalid, or unavailable, the unchanged `/api/*` endpoints are
+used automatically. Exact, unambiguous destination keywords can be resolved
+from the lazily loaded `public/data/destination-keywords.json`; ambiguous and
+conversational searches retain the existing server-side search rules.
 
 ## GPS field testing and calibration
 
@@ -517,7 +528,9 @@ campus events.
   `600` seconds.
 - Campus events are cached for `30` seconds.
 - Destination search is limited to `30` requests per minute per IP.
-- Successful admin data changes invalidate the current map-response cache.
+- Successful admin data changes invalidate the current map-response cache and
+  atomically regenerate the public campus snapshot. A regeneration failure is
+  logged and users safely fall back to the existing APIs.
 
 ## Production deployment
 
@@ -539,6 +552,7 @@ npm ci
 npm run build
 php artisan migrate --force
 php artisan storage:link
+php artisan wayfinding:snapshot
 php artisan optimize
 ```
 
@@ -551,10 +565,21 @@ Important production rules:
 - Serve `/sw.js` without a long-lived immutable cache. The registration uses
   update checks so users can receive new navigation releases safely.
 - Allow the web-server user to write to `storage/` and `bootstrap/cache/`.
+- Ensure `public/data/` is writable by PHP so authorized map changes can
+  refresh the snapshot. If shared hosting does not permit that, run
+  `php artisan wayfinding:snapshot` before uploading and include the generated
+  `public/data/campus-snapshot.json` and
+  `public/data/destination-keywords.json` files.
 - Do not run the development user seeder in production.
 - Restart workers with `php artisan queue:restart` after deployments that
   change queued code.
 - Monitor `GET /up`, `storage/logs/laravel.log`, and the queue-worker log.
+
+After deployment, run `npm run test:capacity` from another computer with
+`WAYFINDING_LOAD_BASE_URL=https://your-domain.example`. It sends 200 requests
+with 100 concurrent clients by default. Require zero failures and compare the
+p95 response time between releases. This is a capacity smoke test, not a
+guarantee against a hosting provider's changing bandwidth or fair-use limits.
 
 The repository includes:
 

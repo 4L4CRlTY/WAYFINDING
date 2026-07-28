@@ -156,8 +156,108 @@
     const WAYFINDING_RESPONSE_CACHE_PREFIX = 'wayfinding:last-known:v1:';
     const WAYFINDING_CACHEABLE_ENDPOINT = /^\/api\/(?:buildings|paths|entry-points|building-entrances|hazard-points|landuses|indoor-maps|indoor-rooms|indoor-paths|indoor-entrances|building-entrance-links|indoor-stairs-links|campus-events)(?:\?|$)/;
     const WAYFINDING_MAX_CACHED_RESPONSE_CHARS = 750000;
+    const WAYFINDING_SNAPSHOT_URL = '/data/campus-snapshot.json';
+    const WAYFINDING_SNAPSHOT_ENDPOINTS = new Set([
+        '/api/buildings',
+        '/api/paths',
+        '/api/entry-points',
+        '/api/building-entrances',
+        '/api/hazard-points',
+        '/api/landuses',
+        '/api/indoor-maps',
+        '/api/indoor-rooms',
+        '/api/indoor-paths',
+        '/api/indoor-entrances',
+        '/api/building-entrance-links',
+        '/api/indoor-stairs-links',
+    ]);
+    let wayfindingSnapshotPromise = null;
+    let wayfindingSearchIndexPromise = null;
 
     window.__wayfindingStaleDataUrls = window.__wayfindingStaleDataUrls || new Set();
+
+    function getWayfindingUrlPath(url) {
+        try {
+            return new URL(url, window.location.origin).pathname;
+        } catch (error) {
+            return String(url || '').split('?')[0];
+        }
+    }
+
+    async function loadWayfindingSnapshot() {
+        if (wayfindingSnapshotPromise) return wayfindingSnapshotPromise;
+
+        wayfindingSnapshotPromise = fetch(WAYFINDING_SNAPSHOT_URL, {
+            cache: 'no-cache',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(async response => {
+                if (!response.ok) {
+                    throw new Error(`Campus snapshot returned ${response.status}`);
+                }
+
+                const snapshot = await response.json();
+                if (
+                    Number(snapshot?.schema_version) !== 1 ||
+                    !snapshot?.datasets ||
+                    typeof snapshot.datasets !== 'object'
+                ) {
+                    throw new Error('Campus snapshot format is invalid');
+                }
+
+                return snapshot;
+            })
+            .catch(() => null);
+
+        return wayfindingSnapshotPromise;
+    }
+
+    async function loadWayfindingSearchIndex() {
+        if (wayfindingSearchIndexPromise) return wayfindingSearchIndexPromise;
+
+        wayfindingSearchIndexPromise = loadWayfindingSnapshot()
+            .then(async snapshot => {
+                if (!snapshot) return null;
+
+                const response = await fetch(
+                    snapshot.search_index_url || '/data/destination-keywords.json',
+                    {
+                        cache: 'no-cache',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    }
+                );
+                if (!response.ok) return null;
+
+                const document = await response.json();
+                if (
+                    Number(document?.schema_version) !== 1 ||
+                    !Array.isArray(document?.search_index)
+                ) {
+                    return null;
+                }
+
+                return document.search_index;
+            })
+            .catch(() => null);
+
+        return wayfindingSearchIndexPromise;
+    }
+
+    async function readWayfindingSnapshotDataset(url) {
+        const pathname = getWayfindingUrlPath(url);
+        if (!WAYFINDING_SNAPSHOT_ENDPOINTS.has(pathname)) return null;
+
+        const snapshot = await loadWayfindingSnapshot();
+        if (!snapshot || !Object.prototype.hasOwnProperty.call(snapshot.datasets, pathname)) {
+            return null;
+        }
+
+        return snapshot.datasets[pathname];
+    }
 
     function readLastKnownWayfindingResponse(url) {
         if (!WAYFINDING_CACHEABLE_ENDPOINT.test(url)) return null;
@@ -200,6 +300,12 @@
     }
 
     async function fetchJson(url) {
+        const snapshotData = await readWayfindingSnapshotDataset(url);
+        if (snapshotData !== null) {
+            saveLastKnownWayfindingResponse(url, snapshotData);
+            return snapshotData;
+        }
+
         try {
             const res = await fetch(url, {
                 headers: {
@@ -221,6 +327,86 @@
 
             throw error;
         }
+    }
+
+    async function findUniqueExactSnapshotKeyword(message) {
+        const normalized = normalizeDestinationSearchTextFinal(message);
+        if (!normalized) return null;
+
+        const snapshot = await loadWayfindingSnapshot();
+        const searchIndex = await loadWayfindingSearchIndex();
+        if (!snapshot || !Array.isArray(searchIndex)) return null;
+
+        const exactMatches = searchIndex.filter(entry =>
+            normalizeDestinationSearchTextFinal(entry?.keyword) === normalized &&
+            entry?.destination_type &&
+            Number(entry?.destination_id) > 0
+        );
+
+        // Duplicate aliases and conversational/fuzzy searches retain the
+        // server's full building-context scoring rules.
+        if (exactMatches.length !== 1) return null;
+
+        const entry = exactMatches[0];
+        const datasets = snapshot.datasets || {};
+        let result = null;
+
+        if (entry.destination_type === 'building') {
+            const building = (datasets['/api/buildings'] || []).find(
+                item => Number(item?.id) === Number(entry.destination_id)
+            );
+
+            if (building) {
+                result = {
+                    destination_type: 'building',
+                    destination_id: Number(building.id),
+                    label: building.name || 'Building',
+                };
+            }
+        } else if (entry.destination_type === 'room') {
+            const room = (datasets['/api/indoor-rooms']?.features || []).find(
+                item => Number(item?.properties?.id) === Number(entry.destination_id)
+            );
+            const properties = room?.properties;
+
+            if (properties) {
+                result = {
+                    destination_type: 'room',
+                    destination_id: Number(properties.id),
+                    label: properties.name || properties.room_code || 'Room / Office',
+                    room_code: properties.room_code || null,
+                    building_id: properties.building_id || null,
+                    building_name: properties.building_name || null,
+                    floor_number: properties.floor_number ?? null,
+                    floor_label: properties.floor_label || null,
+                };
+            }
+        } else if (entry.destination_type === 'landuse') {
+            const landuse = (datasets['/api/landuses'] || []).find(
+                item => Number(item?.id) === Number(entry.destination_id)
+            );
+
+            if (landuse) {
+                result = {
+                    destination_type: 'landuse',
+                    destination_id: Number(landuse.id),
+                    label: landuse.name || 'Landuse Area',
+                };
+            }
+        }
+
+        if (!result) return null;
+
+        return {
+            success: true,
+            is_keyword_match: true,
+            source: 'destination_keywords_snapshot',
+            match_type: entry.destination_type,
+            matched_keyword: entry.keyword,
+            matched_keywords: [entry.keyword],
+            matched_keyword_ids: [Number(entry.id)],
+            result,
+        };
     }
 
 
@@ -520,7 +706,10 @@
         try {
             setRouteResultLabel('Checking destination keyword database...');
 
-            const apiResponse = await fetchJson(`/api/search-destination?q=${encodeURIComponent(message)}`);
+            const snapshotResponse = await findUniqueExactSnapshotKeyword(message);
+            const apiResponse = snapshotResponse || await fetchJson(
+                `/api/search-destination?q=${encodeURIComponent(message)}`
+            );
 
             if (!apiResponse || !apiResponse.success || !apiResponse.result) {
                 const errorMessage = apiResponse?.message || 'No destination keyword matched your text.';
@@ -546,7 +735,8 @@
             */
             const isStrictKeywordMatch =
                 apiResponse.is_keyword_match === true ||
-                apiResponse.source === 'destination_keywords';
+                apiResponse.source === 'destination_keywords' ||
+                apiResponse.source === 'destination_keywords_snapshot';
 
             if (!isStrictKeywordMatch) {
                 const errorMessage = 'No active destination keyword matched your text. Please ask admin to add this keyword first.';

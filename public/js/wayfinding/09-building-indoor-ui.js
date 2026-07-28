@@ -159,6 +159,7 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
 
         const safeName = escapePopupHtmlFinal(routePopupBuildingName);
         const isMobileIndoorPopup = window.matchMedia('(max-width: 768px)').matches;
+        const isCompactMobilePopup = window.matchMedia('(max-width: 480px)').matches;
         const oldFloatingPopup = document.getElementById('route-building-popup');
 
         // Dili na gamiton ang bottom sheet. Ang popup dapat pirmi mo-display sa babaw sa building.
@@ -231,8 +232,8 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
             | Base size ra ni. Ang visual size niya i-scale nato
             | depende sa current zoom para dili niya matabunan ang route.
             */
-            maxWidth: isMobileIndoorPopup ? 286 : 292,
-            minWidth: isMobileIndoorPopup ? 286 : 292,
+            maxWidth: isCompactMobilePopup ? 242 : (isMobileIndoorPopup ? 286 : 292),
+            minWidth: isCompactMobilePopup ? 242 : (isMobileIndoorPopup ? 286 : 292),
 
             autoPanPaddingTopLeft: isMobileIndoorPopup ? L.point(12, 72) : L.point(20, 20),
             autoPanPaddingBottomRight: isMobileIndoorPopup ? L.point(12, 92) : L.point(20, 20)

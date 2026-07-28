@@ -1,0 +1,119 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Building;
+use App\Models\DestinationKeyword;
+use App\Models\IndoorMap;
+use App\Services\CampusSnapshotPublisher;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
+use Tests\TestCase;
+
+class CampusSnapshotTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private ?string $snapshotPath = null;
+
+    private ?string $searchIndexPath = null;
+
+    protected function tearDown(): void
+    {
+        if ($this->snapshotPath) {
+            File::delete($this->snapshotPath);
+        }
+        if ($this->searchIndexPath) {
+            File::delete($this->searchIndexPath);
+        }
+
+        parent::tearDown();
+    }
+
+    public function test_it_publishes_public_map_datasets_and_exact_keyword_index(): void
+    {
+        $building = Building::create([
+            'name' => 'Information Technology Building',
+            'geometry' => [
+                'type' => 'Polygon',
+                'coordinates' => [[[124.0, 10.0], [124.1, 10.0], [124.1, 10.1], [124.0, 10.0]]],
+            ],
+            'properties' => ['code' => 'IT'],
+            'color' => '#18375d',
+        ]);
+
+        DestinationKeyword::create([
+            'keyword' => 'IT',
+            'destination_type' => 'building',
+            'destination_id' => $building->id,
+            'priority' => 10,
+            'is_active' => true,
+        ]);
+        IndoorMap::create([
+            'building_id' => $building->id,
+            'name' => 'IT First Floor',
+            'floor_number' => 1,
+            'floor_label' => '1F',
+            'floorplan_image' => 'it floor 1.png',
+            'backup_floorplan_image' => 'it backup.png',
+            'width' => 1200,
+            'height' => 800,
+            'geometry' => null,
+            'is_active' => true,
+        ]);
+
+        $this->snapshotPath = storage_path('framework/testing/campus-snapshot.json');
+        $this->searchIndexPath = storage_path('framework/testing/destination-keywords.json');
+        $result = app(CampusSnapshotPublisher::class)->publish($this->snapshotPath);
+        $snapshot = json_decode(File::get($this->snapshotPath), true, flags: JSON_THROW_ON_ERROR);
+        $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame(1, $snapshot['schema_version']);
+        $this->assertSame(12, $result['datasets']);
+        $this->assertArrayHasKey('/api/buildings', $snapshot['datasets']);
+        $this->assertArrayHasKey('/api/indoor-stairs-links', $snapshot['datasets']);
+        $this->assertArrayNotHasKey('/api/campus-events', $snapshot['datasets']);
+        $this->assertSame('Information Technology Building', $snapshot['datasets']['/api/buildings'][0]['name']);
+        $this->assertSame(
+            '/floorplan_image/it%20floor%201.png',
+            $snapshot['datasets']['/api/indoor-maps'][0]['floorplan_image']
+        );
+        $this->assertSame(
+            '/floorplan_image/it%20backup.png',
+            $snapshot['datasets']['/api/indoor-maps'][0]['backup_floorplan_image']
+        );
+        $this->assertSame('/data/destination-keywords.json', $snapshot['search_index_url']);
+        $this->assertArrayNotHasKey('search_index', $snapshot);
+        $this->assertSame('IT', $searchIndex['search_index'][0]['keyword']);
+        $this->assertSame('building', $searchIndex['search_index'][0]['destination_type']);
+        $this->assertSame($building->id, $searchIndex['search_index'][0]['destination_id']);
+        $this->assertArrayNotHasKey('normalized_keyword', $searchIndex['search_index'][0]);
+        $this->assertArrayNotHasKey('response', $searchIndex['search_index'][0]);
+        $this->assertArrayNotHasKey('users', $snapshot);
+    }
+
+    public function test_inactive_and_missing_destination_keywords_are_excluded(): void
+    {
+        DestinationKeyword::create([
+            'keyword' => 'Inactive',
+            'destination_type' => 'building',
+            'destination_id' => 999,
+            'priority' => 0,
+            'is_active' => false,
+        ]);
+        DestinationKeyword::create([
+            'keyword' => 'Missing',
+            'destination_type' => 'building',
+            'destination_id' => 999,
+            'priority' => 0,
+            'is_active' => true,
+        ]);
+
+        $this->snapshotPath = storage_path('framework/testing/campus-snapshot-filtered.json');
+        $this->searchIndexPath = storage_path('framework/testing/destination-keywords.json');
+        app(CampusSnapshotPublisher::class)->publish($this->snapshotPath);
+        $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame([], $searchIndex['search_index']);
+    }
+}

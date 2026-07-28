@@ -3,21 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Building;
-use App\Models\Path;
-use App\Models\EntryPoint;
 use App\Models\BuildingEntrance;
-use App\Models\HazardPoint;
-use App\Models\LandUse;
-use App\Models\IndoorMap;
-use App\Models\IndoorRoom;
-use App\Models\IndoorPath;
-use App\Models\IndoorEntrance;
 use App\Models\BuildingEntranceLink;
-use App\Models\IndoorStairLink;
 use App\Models\CampusEvent;
+use App\Models\DestinationKeyword;
+use App\Models\EntryPoint;
+use App\Models\HazardPoint;
+use App\Models\IndoorEntrance;
+use App\Models\IndoorMap;
+use App\Models\IndoorPath;
+use App\Models\IndoorRoom;
+use App\Models\IndoorStairLink;
+use App\Models\LandUse;
+use App\Models\Path;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Models\DestinationKeyword;
 
 class ApiController extends Controller
 {
@@ -132,7 +132,7 @@ class ApiController extends Controller
     public function landuses()
     {
         return response()->json(
-            \App\Models\Landuse::orderBy('id')->get()->map(function ($landuse) {
+            LandUse::orderBy('id')->get()->map(function ($landuse) {
                 return [
                     'id' => $landuse->id,
                     'name' => $landuse->name,
@@ -183,6 +183,7 @@ class ApiController extends Controller
             })->values()
         );
     }
+
     public function indoorMaps()
     {
         return response()->json(
@@ -198,12 +199,12 @@ class ApiController extends Controller
                         'building_name' => $map->building->name ?? null,
                         'name' => $map->name,
                         'floor_number' => (int) $map->floor_number,
-                        'floor_label' => $map->floor_label ?: (((int) $map->floor_number === 0) ? '0F / Basement' : ((int) $map->floor_number . 'F')),
+                        'floor_label' => $map->floor_label ?: (((int) $map->floor_number === 0) ? '0F / Basement' : ((int) $map->floor_number.'F')),
                         'floorplan_image' => $map->floorplan_image
-                            ? asset('floorplan_image/' . $map->floorplan_image)
+                            ? '/floorplan_image/'.rawurlencode($map->floorplan_image)
                             : null,
                         'backup_floorplan_image' => $map->backup_floorplan_image
-                            ? asset('floorplan_image/' . $map->backup_floorplan_image)
+                            ? '/floorplan_image/'.rawurlencode($map->backup_floorplan_image)
                             : null,
                         'width' => $map->width ? (int) $map->width : null,
                         'height' => $map->height ? (int) $map->height : null,
@@ -235,7 +236,7 @@ class ApiController extends Controller
                             'building_id' => $room->indoorMap->building_id ?? null,
                             'building_name' => $room->indoorMap->building->name ?? null,
                             'floor_number' => $room->indoorMap->floor_number ?? null,
-                            'floor_label' => $room->indoorMap ? ($room->indoorMap->floor_label ?: (((int) $room->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $room->indoorMap->floor_number . 'F'))) : null,
+                            'floor_label' => $room->indoorMap ? ($room->indoorMap->floor_label ?: (((int) $room->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $room->indoorMap->floor_number.'F'))) : null,
                             'name' => $room->name,
                             'room_code' => $room->room_code,
                             'type' => $room->type,
@@ -267,7 +268,7 @@ class ApiController extends Controller
                             'building_id' => $path->indoorMap->building_id ?? null,
                             'building_name' => $path->indoorMap->building->name ?? null,
                             'floor_number' => $path->indoorMap->floor_number ?? null,
-                            'floor_label' => $path->indoorMap ? ($path->indoorMap->floor_label ?: (((int) $path->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $path->indoorMap->floor_number . 'F'))) : null,
+                            'floor_label' => $path->indoorMap ? ($path->indoorMap->floor_label ?: (((int) $path->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $path->indoorMap->floor_number.'F'))) : null,
                             'name' => $path->name,
                             'path_type' => $path->path_type,
                             'is_blocked' => (bool) $path->is_blocked,
@@ -299,7 +300,7 @@ class ApiController extends Controller
                             'building_id' => $entrance->indoorMap->building_id ?? null,
                             'building_name' => $entrance->indoorMap->building->name ?? null,
                             'floor_number' => $entrance->indoorMap->floor_number ?? null,
-                            'floor_label' => $entrance->indoorMap ? ($entrance->indoorMap->floor_label ?: (((int) $entrance->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $entrance->indoorMap->floor_number . 'F'))) : null,
+                            'floor_label' => $entrance->indoorMap ? ($entrance->indoorMap->floor_label ?: (((int) $entrance->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $entrance->indoorMap->floor_number.'F'))) : null,
                             'name' => $entrance->name,
                             'ent_type' => $entrance->ent_type,
                             'room_code' => $entrance->room_code,
@@ -349,14 +350,13 @@ class ApiController extends Controller
                             'ent_type' => $link->indoorEntrance?->ent_type,
                             'room_code' => $link->indoorEntrance?->room_code,
                             'floor_number' => $link->indoorEntrance?->indoorMap?->floor_number,
-                            'floor_label' => $link->indoorEntrance?->indoorMap ? ($link->indoorEntrance->indoorMap->floor_label ?: (((int) $link->indoorEntrance->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $link->indoorEntrance->indoorMap->floor_number . 'F'))) : null,
+                            'floor_label' => $link->indoorEntrance?->indoorMap ? ($link->indoorEntrance->indoorMap->floor_label ?: (((int) $link->indoorEntrance->indoorMap->floor_number === 0) ? '0F / Basement' : ((int) $link->indoorEntrance->indoorMap->floor_number.'F'))) : null,
                             'geometry' => $indoorGeometry,
                         ],
                     ];
                 })->values()
         );
     }
-
 
     public function searchDestination(Request $request)
     {
@@ -367,7 +367,7 @@ class ApiController extends Controller
                 'success' => false,
                 'is_keyword_match' => false,
                 'source' => 'destination_keywords',
-                'message' => 'Search text is required.'
+                'message' => 'Search text is required.',
             ], 422);
         }
 
@@ -421,7 +421,7 @@ class ApiController extends Controller
                 'success' => false,
                 'is_keyword_match' => false,
                 'source' => 'destination_keywords',
-                'message' => 'No searchable keyword found in the text.'
+                'message' => 'No searchable keyword found in the text.',
             ], 422);
         }
 
@@ -445,7 +445,7 @@ class ApiController extends Controller
                 'success' => false,
                 'is_keyword_match' => false,
                 'source' => 'destination_keywords',
-                'message' => 'No active destination keywords found. Please add keywords in admin first.'
+                'message' => 'No active destination keywords found. Please add keywords in admin first.',
             ], 404);
         }
 
@@ -460,7 +460,7 @@ class ApiController extends Controller
 
             if ($normalized === $dbKeyword) {
                 $score = 2000 + mb_strlen($dbKeyword);
-            } elseif (preg_match('/(^|\s)' . preg_quote($dbKeyword, '/') . '(\s|$)/u', $normalized)) {
+            } elseif (preg_match('/(^|\s)'.preg_quote($dbKeyword, '/').'(\s|$)/u', $normalized)) {
                 $score = 1700 + mb_strlen($dbKeyword);
             } elseif (str_contains($normalized, $dbKeyword)) {
                 $score = 1500 + mb_strlen($dbKeyword);
@@ -468,7 +468,7 @@ class ApiController extends Controller
                 $keywordWords = array_values(array_filter(explode(' ', $dbKeyword)));
                 $common = array_intersect($queryWords, $keywordWords);
 
-                if (!empty($common)) {
+                if (! empty($common)) {
                     $score = (count($common) * 120) + mb_strlen($dbKeyword);
                 }
             }
@@ -507,7 +507,7 @@ class ApiController extends Controller
                 'success' => false,
                 'is_keyword_match' => false,
                 'source' => 'destination_keywords',
-                'message' => 'No active destination keyword matched your text. Please ask admin to add this keyword first.'
+                'message' => 'No active destination keyword matched your text. Please ask admin to add this keyword first.',
             ], 404);
         }
 
@@ -533,7 +533,7 @@ class ApiController extends Controller
         $detectedBuilding = null;
         $detectedBuildingKeyword = null;
 
-        if (!empty($buildingMatches)) {
+        if (! empty($buildingMatches)) {
             $detectedBuilding = Building::find($buildingMatches[0]['destination_id']);
             $detectedBuildingKeyword = $buildingMatches[0];
         }
@@ -563,7 +563,7 @@ class ApiController extends Controller
         }
 
         /*
-        |-------------------------------------------------------------------------- 
+        |--------------------------------------------------------------------------
         | Room keyword has highest priority, but building context filters it.
         |--------------------------------------------------------------------------
         */
@@ -571,14 +571,14 @@ class ApiController extends Controller
             return $match['type'] === 'room';
         }));
 
-        if (!empty($roomMatches)) {
+        if (! empty($roomMatches)) {
             $bestRoom = null;
             $bestRoomMatch = null;
 
             foreach ($roomMatches as $roomMatch) {
                 $room = IndoorRoom::with('indoorMap.building')->find($roomMatch['destination_id']);
 
-                if (!$room || !$room->indoorMap) {
+                if (! $room || ! $room->indoorMap) {
                     continue;
                 }
 
@@ -591,12 +591,12 @@ class ApiController extends Controller
                 break;
             }
 
-            if (!$bestRoom && $detectedBuilding) {
+            if (! $bestRoom && $detectedBuilding) {
                 return response()->json([
                     'success' => false,
                     'is_keyword_match' => false,
                     'source' => 'destination_keywords',
-                    'message' => 'A room keyword matched, but it is not under the detected building keyword.'
+                    'message' => 'A room keyword matched, but it is not under the detected building keyword.',
                 ], 404);
             }
 
@@ -627,7 +627,7 @@ class ApiController extends Controller
                         'building_name' => $bestRoom->indoorMap->building->name ?? null,
                         'floor_number' => $bestRoom->indoorMap->floor_number ?? null,
                         'floor_label' => $bestRoom->indoorMap->floor_label ?? null,
-                    ]
+                    ],
                 ]);
             }
         }
@@ -650,7 +650,7 @@ class ApiController extends Controller
                     'destination_type' => 'building',
                     'destination_id' => $detectedBuilding->id,
                     'label' => $detectedBuilding->name ?: 'Building',
-                ]
+                ],
             ]);
         }
 
@@ -663,8 +663,8 @@ class ApiController extends Controller
             return $match['type'] === 'landuse';
         }));
 
-        if (!empty($landuseMatches)) {
-            $landuse = \App\Models\Landuse::find($landuseMatches[0]['destination_id']);
+        if (! empty($landuseMatches)) {
+            $landuse = LandUse::find($landuseMatches[0]['destination_id']);
 
             if ($landuse) {
                 return response()->json([
@@ -679,7 +679,7 @@ class ApiController extends Controller
                         'destination_type' => 'landuse',
                         'destination_id' => $landuse->id,
                         'label' => $landuse->name ?: 'Landuse Area',
-                    ]
+                    ],
                 ]);
             }
         }
@@ -688,9 +688,10 @@ class ApiController extends Controller
             'success' => false,
             'is_keyword_match' => false,
             'source' => 'destination_keywords',
-            'message' => 'Matched keyword points to a missing destination record.'
+            'message' => 'Matched keyword points to a missing destination record.',
         ], 404);
     }
+
     public function indoorStairsLinks()
     {
         return response()->json(
@@ -824,7 +825,7 @@ class ApiController extends Controller
                 $status = 'upcoming';
 
                 if ($event->starts_at && $event->starts_at->lte($now)) {
-                    if (!$event->ends_at || $event->ends_at->gte($now)) {
+                    if (! $event->ends_at || $event->ends_at->gte($now)) {
                         $status = 'happening_now';
                     }
                 }

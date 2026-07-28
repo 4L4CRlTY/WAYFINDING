@@ -9,18 +9,25 @@ class WayfindingCache
 {
     private const VERSION_KEY = 'wayfinding.api.cache-version';
 
+    public function version(): int
+    {
+        return (int) Cache::get(self::VERSION_KEY, 1);
+    }
+
     public function responseKey(Request $request): string
     {
-        $version = (int) Cache::get(self::VERSION_KEY, 1);
+        $version = $this->version();
         $requestKey = hash('sha256', $request->method().'|'.$request->fullUrl());
 
         return "wayfinding.api.v{$version}.response.{$requestKey}";
     }
 
-    public function invalidate(): void
+    public function invalidate(): int
     {
-        $current = (int) Cache::get(self::VERSION_KEY, 1);
+        $version = $this->version() + 1;
 
-        Cache::forever(self::VERSION_KEY, $current + 1);
+        Cache::forever(self::VERSION_KEY, $version);
+
+        return $version;
     }
 }

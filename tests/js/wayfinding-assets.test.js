@@ -56,6 +56,55 @@ test('all wayfinding JavaScript modules have valid syntax', () => {
     });
 });
 
+test('campus data uses the static snapshot first and preserves API fallback', () => {
+    const searchPath = new URL(
+        '../../public/js/wayfinding/06-search-voice.js',
+        import.meta.url,
+    );
+    const serviceWorkerPath = new URL('../../public/sw.js', import.meta.url);
+    const search = readFileSync(searchPath, 'utf8');
+    const serviceWorker = readFileSync(serviceWorkerPath, 'utf8');
+
+    assert.match(search, /WAYFINDING_SNAPSHOT_URL = '\/data\/campus-snapshot\.json'/);
+    assert.match(search, /async function readWayfindingSnapshotDataset\(url\)/);
+    assert.match(search, /async function loadWayfindingSearchIndex\(\)/);
+    assert.match(search, /\/data\/destination-keywords\.json/);
+    assert.match(search, /const snapshotData = await readWayfindingSnapshotDataset\(url\)/);
+    assert.match(search, /if \(snapshotData !== null\)/);
+    assert.match(search, /const res = await fetch\(url,/);
+    assert.match(search, /exactMatches\.length !== 1/);
+    assert.match(search, /snapshotResponse \|\| await fetchJson/);
+    assert.match(serviceWorker, /'\/data\/campus-snapshot\.json'/);
+    assert.match(serviceWorker, /'\/data\/destination-keywords\.json'/);
+});
+
+test('hazard popups show only clear essentials and level one uses yellow caution', () => {
+    const routingPath = new URL(
+        '../../public/js/wayfinding/03-outdoor-routing.js',
+        import.meta.url,
+    );
+    const dataUiPath = new URL(
+        '../../public/js/wayfinding/02-map-data-ui.js',
+        import.meta.url,
+    );
+    const stylesPath = new URL(
+        '../../public/css/wayfinding/05-route-popup-effects.css',
+        import.meta.url,
+    );
+    const routing = readFileSync(routingPath, 'utf8');
+    const dataUi = readFileSync(dataUiPath, 'utf8');
+    const styles = readFileSync(stylesPath, 'utf8');
+
+    assert.match(routing, /hazard-popup-title/);
+    assert.match(routing, /hazard-popup-type/);
+    assert.match(routing, /Hazard Level \$\{severity\}/);
+    assert.doesNotMatch(routing, /No description provided/);
+    assert.doesNotMatch(routing, /<strong>Severity:<\/strong>/);
+    assert.match(dataUi, /return '#facc15';/);
+    assert.match(styles, /\.hazard-pin\.severity-1[\s\S]*--hazard-bg:\s*#facc15/);
+    assert.match(styles, /\.hazard-popup-title[\s\S]*color:\s*#ffffff/);
+});
+
 test('all wayfinding CSS components parse successfully', () => {
     cssComponents.forEach((filename) => {
         const path = new URL(`../../public/css/wayfinding/${filename}`, import.meta.url);
@@ -443,7 +492,9 @@ test('simple user mode keeps route cards readable and technical GPS tools option
     assert.match(indoor, /route-building-map-popup-custom-close, \.leaflet-popup-close-button/);
     assert.match(indoor, /function keepRouteBuildingPopupOnScreen\(\)/);
     assert.match(indoor, /popupRect\.left < safeLeft/);
-    assert.match(indoor, /maxWidth:\s*isMobileIndoorPopup \? 286 : 292/);
+    assert.match(indoor, /isCompactMobilePopup \? 242/);
+    assert.match(styles, /@media \(max-width:\s*480px\)[\s\S]*width:\s*min\(242px/);
+    assert.match(styles, /route-building-map-popup-hint[\s\S]*display:\s*none\s*!important/);
     assert.match(styles, /\.navigation-sheet-body[\s\S]*overflow-y:\s*auto/);
     assert.match(styles, /--route-popup-scale:\s*1\s*!important/);
     assert.match(styles, /route-building-map-popup-custom-close[\s\S]*width:\s*36px\s*!important/);

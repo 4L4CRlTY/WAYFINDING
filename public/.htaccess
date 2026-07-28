@@ -23,3 +23,13 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "^(campus-snapshot|destination-keywords)\.json$">
+        Header set Cache-Control "public, no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>

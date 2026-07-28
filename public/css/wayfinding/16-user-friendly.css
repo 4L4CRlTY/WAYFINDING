@@ -438,6 +438,95 @@
     }
 }
 
+/* Compact phone card: preserve more of the computed route around the popup. */
+@media (max-width: 480px) {
+    .leaflet-popup-pane .route-building-map-popup .leaflet-popup-content-wrapper {
+        border-radius: 16px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner {
+        width: min(242px, calc(100vw - 30px)) !important;
+        max-width: calc(100vw - 30px) !important;
+        padding: 11px 10px 9px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-custom-close {
+        top: 6px !important;
+        right: 6px !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        font-size: 19px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-kicker {
+        min-height: 22px !important;
+        margin: 0 34px 7px 0 !important;
+        padding: 4px 8px !important;
+        font-size: 8.5px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-head {
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-icon {
+        width: 32px !important;
+        height: 32px !important;
+        flex-basis: 32px !important;
+        border-radius: 10px !important;
+        font-size: 16px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-title {
+        font-size: 13px !important;
+        line-height: 1.24 !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-subtitle {
+        margin-top: 2px !important;
+        font-size: 9px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-divider {
+        margin: 0 -10px 7px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn {
+        min-height: 43px !important;
+        padding: 7px 9px !important;
+        border-radius: 11px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn-main {
+        gap: 8px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn-icon {
+        width: 28px !important;
+        height: 28px !important;
+        flex-basis: 28px !important;
+        font-size: 15px !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn-text strong {
+        font-size: 10px !important;
+        line-height: 1.15 !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-btn-text small {
+        margin-top: 2px !important;
+        font-size: 8.5px !important;
+        line-height: 1.2 !important;
+    }
+
+    .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-hint {
+        display: none !important;
+    }
+}
+
 @media (max-width: 370px) {
     .navigation-sheet.is-started .navigation-actions {
         grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -24,11 +24,41 @@ npm ci
 npm run build
 php artisan migrate --force
 php artisan storage:link
+php artisan wayfinding:snapshot
 php artisan optimize
 ```
 
 The web-server user must be able to write to `storage` and
-`bootstrap/cache`.
+`bootstrap/cache`. PHP should also be able to write to `public/data` so a
+successful admin map change can atomically refresh the shared campus snapshot.
+
+On Hostinger/shared hosting without SSH, run the following locally against a
+current copy of the production campus database before creating the deployment
+archive:
+
+```bash
+php artisan wayfinding:snapshot
+npm run build
+```
+
+Upload both `public/build` and
+`public/data/campus-snapshot.json` plus
+`public/data/destination-keywords.json`. If either snapshot file is ever
+missing or stale, the browser automatically uses the existing public APIs, so
+navigation remains available while the deployment is corrected.
+
+From a separate machine, smoke-test the deployed static data path:
+
+```bash
+WAYFINDING_LOAD_BASE_URL=https://your-domain.example \
+WAYFINDING_LOAD_REQUESTS=200 \
+WAYFINDING_LOAD_CONCURRENCY=100 \
+npm run test:capacity
+```
+
+Require zero failed responses and compare p95 response time across releases.
+Shared-host capacity still depends on the provider's live bandwidth, CPU, and
+fair-use limits, so retain normal monitoring during the real event.
 
 After changing `.env`, configuration, or routes:
 
@@ -60,6 +90,8 @@ php artisan queue:restart
 - Serve the application over HTTPS.
 - Keep `/sw.js` revalidating (`Cache-Control: no-cache`) instead of applying
   the immutable cache rule used for hashed `/build/assets/*` files.
+- Allow `/data/campus-snapshot.json` and `/data/destination-keywords.json` to
+  be cached but revalidated. Do not mark these stable filenames as immutable.
 - Monitor `GET /up` for application health.
 - Monitor `storage/logs/laravel.log` and `storage/logs/worker.log`.
 - Schedule Laravel's scheduler once per minute if scheduled tasks are added:
