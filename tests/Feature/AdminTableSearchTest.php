@@ -179,13 +179,23 @@ class AdminTableSearchTest extends TestCase
             ->assertSee('data-bs-theme="light"', false)
             ->assertSee('data-topbar-color="light"', false)
             ->assertSee(asset('admin/assets/css/futuristic-admin.css'), false)
-            ->assertSee(asset('admin/assets/js/admin-table-tools.js'), false);
+            ->assertSee(asset('admin/assets/js/admin-table-tools.js'), false)
+            ->assertSee('id="wfDialogBackdrop"', false)
+            ->assertSee('window.FuturisticDialog', false);
 
         $palette = file_get_contents(public_path('admin/assets/css/futuristic-admin.css'));
 
         $this->assertStringContainsString('--admin-primary: #18375d;', $palette);
         $this->assertStringContainsString('--admin-primary-bright: #68a7ee;', $palette);
         $this->assertStringContainsString('--ct-body-bg: #ffffff;', $palette);
+        $this->assertMatchesRegularExpression(
+            '/\.authorized-permission-copy strong\s*\{[^}]*color:\s*#18375d\s*!important;/s',
+            $palette,
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.admin-future \.content-page \.table tbody td,[^{]+\{[^}]*color:\s*#18375d\s*!important;/s',
+            $palette,
+        );
 
         $regularUser = User::factory()->create([
             'role' => 'user',

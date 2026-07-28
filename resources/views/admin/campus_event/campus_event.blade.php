@@ -2,6 +2,8 @@
 
 @section('admin')
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
 <style>
     .campus-event-wrapper {
         padding: 24px;
@@ -224,10 +226,219 @@
         color: #b91c1c;
     }
 
+    .share-link-btn {
+        background: #eaf4ff;
+        color: #18375d;
+    }
+
     .empty-event-box {
         padding: 36px;
         text-align: center;
         color: #64748b;
+    }
+
+    .event-target-selector {
+        margin-bottom: 22px;
+        border: 1px solid #cfe0f3;
+        border-radius: 20px;
+        overflow: hidden;
+        background: #f7fbff;
+    }
+
+    .event-target-selector-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 18px;
+        border-bottom: 1px solid #d8e7f7;
+        background: linear-gradient(135deg, rgba(24, 55, 93, .06), rgba(104, 167, 238, .12));
+    }
+
+    .event-target-selector-head h5 {
+        margin: 0;
+        color: #18375d;
+        font-weight: 800;
+    }
+
+    .event-target-selector-head p {
+        margin: 3px 0 0;
+        color: #58728f;
+        font-size: 13px;
+    }
+
+    .event-target-methods {
+        display: inline-flex;
+        padding: 4px;
+        border: 1px solid #bfd6ee;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .event-target-method {
+        border: 0;
+        border-radius: 9px;
+        padding: 8px 13px;
+        color: #58728f;
+        background: transparent;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .event-target-method.active {
+        color: #fff;
+        background: #18375d;
+        box-shadow: 0 6px 14px rgba(24, 55, 93, .2);
+    }
+
+    .event-map-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(280px, .75fr);
+        min-height: 440px;
+    }
+
+    #campusEventTargetMap {
+        width: 100%;
+        min-height: 440px;
+        background: #eaf3fc;
+    }
+
+    .event-map-picker {
+        padding: 18px;
+        border-left: 1px solid #d8e7f7;
+        background: #fff;
+        overflow-y: auto;
+        max-height: 440px;
+    }
+
+    .event-map-empty {
+        min-height: 260px;
+        display: grid;
+        place-items: center;
+        padding: 22px;
+        text-align: center;
+        color: #58728f;
+    }
+
+    .event-map-empty i {
+        display: block;
+        margin-bottom: 10px;
+        color: #68a7ee;
+        font-size: 34px;
+    }
+
+    .event-map-selection-kicker {
+        color: #5080b5;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .event-map-selection-title {
+        margin: 4px 0 2px;
+        color: #18375d;
+        font-size: 19px;
+        font-weight: 800;
+    }
+
+    .event-map-selection-meta {
+        color: #6a8098;
+        font-size: 12px;
+    }
+
+    .event-map-select-building {
+        width: 100%;
+        margin-top: 14px;
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 13px;
+        color: #fff;
+        background: linear-gradient(135deg, #18375d, #4f8fd5);
+        font-weight: 800;
+    }
+
+    .event-room-heading {
+        margin: 18px 0 9px;
+        color: #18375d;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .event-room-filter {
+        width: 100%;
+        margin-bottom: 10px;
+        border: 1px solid #c9ddf2;
+        border-radius: 11px;
+        padding: 9px 11px;
+        color: #18375d;
+        background: #f8fbff;
+    }
+
+    .event-room-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .event-room-choice {
+        width: 100%;
+        border: 1px solid #d7e5f4;
+        border-radius: 12px;
+        padding: 10px 11px;
+        text-align: left;
+        color: #284866;
+        background: #f9fcff;
+    }
+
+    .event-room-choice:hover,
+    .event-room-choice.active {
+        border-color: #68a7ee;
+        color: #18375d;
+        background: #eaf4ff;
+        box-shadow: 0 6px 16px rgba(24, 55, 93, .09);
+    }
+
+    .event-room-choice strong,
+    .event-room-choice small {
+        display: block;
+    }
+
+    .event-room-choice small {
+        margin-top: 2px;
+        color: #6a8098;
+    }
+
+    .event-selected-summary {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 14px 18px 18px;
+        padding: 11px 13px;
+        border: 1px solid #bcd8f4;
+        border-radius: 13px;
+        color: #18375d;
+        background: #eaf4ff;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .event-selected-summary i {
+        color: #1e78c8;
+        font-size: 20px;
+    }
+
+    .event-selected-summary.empty {
+        color: #6a8098;
+        background: #f7faff;
+    }
+
+    .event-map-building {
+        transition: fill-opacity .15s ease, stroke-width .15s ease;
+    }
+
+    .event-dropdown-picker[hidden],
+    .event-map-picker-wrap[hidden] {
+        display: none !important;
     }
 
     @media (max-width: 768px) {
@@ -243,6 +454,30 @@
 
         .event-table {
             min-width: 980px;
+        }
+
+        .event-target-selector-head {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .event-target-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .event-map-layout {
+            grid-template-columns: 1fr;
+        }
+
+        #campusEventTargetMap {
+            min-height: 330px;
+        }
+
+        .event-map-picker {
+            border-top: 1px solid #d8e7f7;
+            border-left: 0;
+            max-height: 360px;
         }
     }
 </style>
@@ -286,6 +521,46 @@
                 @csrf
 
                 <div class="row g-3">
+                    <div class="col-12">
+                        <section class="event-target-selector" aria-labelledby="event-target-selector-title">
+                            <header class="event-target-selector-head">
+                                <div>
+                                    <h5 id="event-target-selector-title">Choose Event Destination</h5>
+                                    <p>Click a building or open area on the map, or switch to the dropdown selector.</p>
+                                </div>
+                                <div class="event-target-methods" role="group" aria-label="Destination selection method">
+                                    <button type="button" class="event-target-method active" data-event-target-method="map">
+                                        <i class="ri-map-pin-line me-1"></i> Select on Map
+                                    </button>
+                                    <button type="button" class="event-target-method" data-event-target-method="dropdown">
+                                        <i class="ri-list-check-2 me-1"></i> Use Dropdown
+                                    </button>
+                                </div>
+                            </header>
+
+                            <div class="event-map-picker-wrap" id="eventMapPickerWrap">
+                                <div class="event-map-layout">
+                                    <div id="campusEventTargetMap" aria-label="Campus event destination map"></div>
+                                    <aside class="event-map-picker" id="eventMapPicker">
+                                        <div class="event-map-empty" id="eventMapEmpty">
+                                            <div>
+                                                <i class="ri-building-2-line"></i>
+                                                <strong>Tap a destination on the map</strong>
+                                                <div>Buildings and land-use areas are selectable. Campus paths are shown as a guide.</div>
+                                            </div>
+                                        </div>
+                                        <div id="eventMapSelection" hidden></div>
+                                    </aside>
+                                </div>
+
+                                <div class="event-selected-summary empty" id="eventSelectedSummary" role="status">
+                                    <i class="ri-map-pin-line"></i>
+                                    <span>No event destination selected yet.</span>
+                                </div>
+                            </div>
+
+                            <div class="event-dropdown-picker" id="eventDropdownPicker" hidden>
+                                <div class="row g-3 p-3">
 
                     <div class="col-lg-4">
                         <label class="event-form-label">Event Target Type</label>
@@ -349,6 +624,11 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
+
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
                     <div class="col-lg-6">
@@ -569,6 +849,18 @@
 
                                 <td>
                                     <div class="d-flex gap-2 flex-wrap">
+                                        @if(auth()->user()?->role === 'admin' && in_array($event->event_target_type, ['building', 'room', 'landuse'], true))
+                                            @if($event->destinationLink)
+                                                <button
+                                                    type="button"
+                                                    class="event-action-btn share-link-btn"
+                                                    data-copy-event-link="{{ route('destination-links.open', $event->destinationLink) }}"
+                                                >
+                                                    Copy Route Link
+                                                </button>
+                                            @endif
+                                        @endif
+
                                         <form action="{{ route('admin.campus-event.toggle-status', $event->id) }}" method="POST">
                                             @csrf
                                             <button type="submit" class="event-action-btn toggle-btn">
@@ -609,8 +901,28 @@
 
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-copy-event-link]').forEach(function (button) {
+            button.addEventListener('click', async function () {
+                try {
+                    await navigator.clipboard.writeText(button.dataset.copyEventLink);
+                    const label = button.textContent;
+                    button.textContent = 'Copied!';
+                    setTimeout(function () {
+                        button.textContent = label;
+                    }, 1400);
+                } catch (error) {
+                    window.FuturisticDialog.copy(
+                        'Copy this event route link and share it with campus visitors.',
+                        button.dataset.copyEventLink
+                    );
+                }
+            });
+        });
+
         const targetType = document.getElementById('eventTargetType');
 
         const buildingBox = document.getElementById('buildingTargetBox');
@@ -620,6 +932,17 @@
         const buildingSelect = document.querySelector('[name="building_id"]');
         const roomSelect = document.querySelector('[name="indoor_room_id"]');
         const landuseSelect = document.querySelector('[name="landuse_id"]');
+        const eventMapData = @json($eventMapData);
+        const mapPickerWrap = document.getElementById('eventMapPickerWrap');
+        const dropdownPicker = document.getElementById('eventDropdownPicker');
+        const mapSelection = document.getElementById('eventMapSelection');
+        const mapEmpty = document.getElementById('eventMapEmpty');
+        const selectedSummary = document.getElementById('eventSelectedSummary');
+        const methodButtons = document.querySelectorAll('[data-event-target-method]');
+        const buildingLayers = new Map();
+        const landuseLayers = new Map();
+        let campusEventMap = null;
+        let previewedBuildingId = null;
 
         function resetRequiredFields() {
             buildingSelect.required = false;
@@ -655,9 +978,296 @@
             }
         }
 
-        targetType.addEventListener('change', toggleTargetBox);
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function buildingStyle(feature, selected = false) {
+            return {
+                color: selected ? '#ffffff' : '#18375d',
+                weight: selected ? 4 : 2,
+                fillColor: feature?.properties?.color || '#4f94d4',
+                fillOpacity: selected ? 0.94 : 0.72,
+                className: 'event-map-building',
+            };
+        }
+
+        function landuseStyle(selected = false) {
+            return {
+                color: selected ? '#ffffff' : '#25805a',
+                weight: selected ? 4 : 2,
+                fillColor: '#74c995',
+                fillOpacity: selected ? 0.82 : 0.42,
+                dashArray: selected ? null : '6,4',
+            };
+        }
+
+        function pathStyle(feature) {
+            const type = feature?.properties?.type || 'walkway';
+
+            if (type === 'stairs') {
+                return { color: '#e49a17', weight: 4, dashArray: '4,5', opacity: .86 };
+            }
+
+            if (type === 'covered_stairs') {
+                return { color: '#263c58', weight: 6, opacity: .9 };
+            }
+
+            if (type === 'road' || type === 'main_road') {
+                return { color: '#60758e', weight: 5, opacity: .75 };
+            }
+
+            return { color: '#4aa9dd', weight: 3, opacity: .7 };
+        }
+
+        function highlightMapTarget(type, id) {
+            buildingLayers.forEach((layer, buildingId) => {
+                layer.setStyle(candidate => buildingStyle(candidate, type === 'building' && Number(buildingId) === Number(id)));
+            });
+
+            landuseLayers.forEach((layer, landuseId) => {
+                layer.setStyle(landuseStyle(type === 'landuse' && Number(landuseId) === Number(id)));
+            });
+        }
+
+        function roomLabel(room) {
+            const primary = room.room_code || room.name || `Room ${room.id}`;
+            return room.room_code && room.name ? `${primary} — ${room.name}` : primary;
+        }
+
+        function updateSelectionSummary() {
+            const type = targetType.value;
+            let label = '';
+            let icon = 'ri-map-pin-line';
+
+            if (type === 'building' && buildingSelect.value) {
+                label = buildingSelect.selectedOptions[0]?.textContent?.trim() || 'Selected building';
+                icon = 'ri-building-2-line';
+            }
+
+            if (type === 'room' && roomSelect.value) {
+                label = roomSelect.selectedOptions[0]?.textContent?.replace(/\s+/g, ' ')?.trim() || 'Selected room';
+                icon = 'ri-door-open-line';
+            }
+
+            if (type === 'landuse' && landuseSelect.value) {
+                label = landuseSelect.selectedOptions[0]?.textContent?.trim() || 'Selected open area';
+                icon = 'ri-landscape-line';
+            }
+
+            selectedSummary.classList.toggle('empty', !label);
+            selectedSummary.innerHTML = label
+                ? `<i class="${icon}"></i><span><strong>${escapeHtml(type === 'room' ? 'Indoor Room' : type === 'landuse' ? 'Land-use Area' : 'Building')}:</strong> ${escapeHtml(label)}</span>`
+                : '<i class="ri-map-pin-line"></i><span>No event destination selected yet.</span>';
+
+            let mapType = type;
+            let mapId = type === 'building' ? buildingSelect.value : landuseSelect.value;
+
+            if (type === 'room' && roomSelect.value) {
+                const room = eventMapData.rooms.find(item => Number(item.id) === Number(roomSelect.value));
+                mapType = 'building';
+                mapId = room?.building_id;
+            }
+
+            highlightMapTarget(mapType, mapId);
+        }
+
+        function chooseDestination(type, id) {
+            targetType.value = type;
+            buildingSelect.value = type === 'building' ? String(id) : '';
+            roomSelect.value = type === 'room' ? String(id) : '';
+            landuseSelect.value = type === 'landuse' ? String(id) : '';
+            toggleTargetBox();
+            updateSelectionSummary();
+        }
+
+        function renderBuildingPicker(building) {
+            previewedBuildingId = Number(building.id);
+            const rooms = eventMapData.rooms.filter(room => Number(room.building_id) === Number(building.id));
+
+            mapEmpty.hidden = true;
+            mapSelection.hidden = false;
+            mapSelection.innerHTML = `
+                <div class="event-map-selection-kicker">Selected Building</div>
+                <div class="event-map-selection-title">${escapeHtml(building.name || 'Building')}</div>
+                <div class="event-map-selection-meta">${rooms.length} room${rooms.length === 1 ? '' : 's'} available</div>
+                <button type="button" class="event-map-select-building" data-select-map-building="${Number(building.id)}">
+                    <i class="ri-building-2-line me-1"></i> Use Entire Building
+                </button>
+                <div class="event-room-heading">Or choose a room inside</div>
+                ${rooms.length ? '<input type="search" class="event-room-filter" id="eventRoomFilter" placeholder="Filter room name or code">' : ''}
+                <div class="event-room-list" id="eventRoomList"></div>
+            `;
+
+            const renderRooms = search => {
+                const normalized = String(search || '').trim().toLowerCase();
+                const filtered = rooms.filter(room => {
+                    const text = [room.room_code, room.name, room.floor_label, room.type].filter(Boolean).join(' ').toLowerCase();
+                    return !normalized || text.includes(normalized);
+                });
+                const list = document.getElementById('eventRoomList');
+
+                list.innerHTML = filtered.length
+                    ? filtered.map(room => `
+                        <button type="button"
+                                class="event-room-choice ${targetType.value === 'room' && Number(roomSelect.value) === Number(room.id) ? 'active' : ''}"
+                                data-select-map-room="${Number(room.id)}">
+                            <strong>${escapeHtml(roomLabel(room))}</strong>
+                            <small>${escapeHtml(room.floor_label || 'Floor not specified')}${room.type ? ` · ${escapeHtml(room.type)}` : ''}</small>
+                        </button>
+                    `).join('')
+                    : '<div class="text-muted small py-2">No matching rooms found.</div>';
+            };
+
+            renderRooms('');
+            document.getElementById('eventRoomFilter')?.addEventListener('input', event => renderRooms(event.target.value));
+            highlightMapTarget('building', building.id);
+        }
+
+        function renderLandusePicker(landuse) {
+            previewedBuildingId = null;
+            mapEmpty.hidden = true;
+            mapSelection.hidden = false;
+            mapSelection.innerHTML = `
+                <div class="event-map-selection-kicker">Selected Open Area</div>
+                <div class="event-map-selection-title">${escapeHtml(landuse.name || 'Land-use Area')}</div>
+                <div class="event-map-selection-meta">Land-use / outdoor event destination</div>
+                <button type="button" class="event-map-select-building" data-select-map-landuse="${Number(landuse.id)}">
+                    <i class="ri-landscape-line me-1"></i> Use This Area
+                </button>
+            `;
+            highlightMapTarget('landuse', landuse.id);
+        }
+
+        function initializeEventMap() {
+            if (campusEventMap || typeof L === 'undefined') return;
+
+            campusEventMap = L.map('campusEventTargetMap', {
+                zoomControl: true,
+                preferCanvas: true,
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 21,
+            }).addTo(campusEventMap);
+
+            const visibleLayers = [];
+
+            eventMapData.paths.forEach(path => {
+                if (!path.geometry) return;
+                const layer = L.geoJSON({
+                    type: 'Feature',
+                    geometry: path.geometry,
+                    properties: path,
+                }, {
+                    style: pathStyle,
+                    interactive: false,
+                }).addTo(campusEventMap);
+                visibleLayers.push(layer);
+            });
+
+            eventMapData.landuses.forEach(landuse => {
+                if (!landuse.geometry) return;
+                const layer = L.geoJSON({
+                    type: 'Feature',
+                    geometry: landuse.geometry,
+                    properties: landuse,
+                }, {
+                    style: () => landuseStyle(false),
+                }).addTo(campusEventMap);
+                layer.bindTooltip(landuse.name || 'Land-use Area', { sticky: true });
+                layer.on('click', event => {
+                    L.DomEvent.stopPropagation(event);
+                    renderLandusePicker(landuse);
+                });
+                landuseLayers.set(Number(landuse.id), layer);
+                visibleLayers.push(layer);
+            });
+
+            eventMapData.buildings.forEach(building => {
+                if (!building.geometry) return;
+                const layer = L.geoJSON({
+                    type: 'Feature',
+                    geometry: building.geometry,
+                    properties: building,
+                }, {
+                    style: candidate => buildingStyle(candidate),
+                }).addTo(campusEventMap);
+                layer.bindTooltip(building.name || 'Building', { sticky: true });
+                layer.on('click', event => {
+                    L.DomEvent.stopPropagation(event);
+                    renderBuildingPicker(building);
+                });
+                buildingLayers.set(Number(building.id), layer);
+                visibleLayers.push(layer);
+            });
+
+            if (visibleLayers.length) {
+                campusEventMap.fitBounds(L.featureGroup(visibleLayers).getBounds(), { padding: [24, 24] });
+            } else {
+                campusEventMap.setView([10.2925, 124.9985], 18);
+            }
+        }
+
+        function setSelectionMethod(method) {
+            const mapMode = method === 'map';
+            mapPickerWrap.hidden = !mapMode;
+            dropdownPicker.hidden = mapMode;
+
+            methodButtons.forEach(button => {
+                button.classList.toggle('active', button.dataset.eventTargetMethod === method);
+            });
+
+            if (mapMode) {
+                initializeEventMap();
+                setTimeout(() => campusEventMap?.invalidateSize(), 0);
+            }
+        }
+
+        methodButtons.forEach(button => {
+            button.addEventListener('click', () => setSelectionMethod(button.dataset.eventTargetMethod));
+        });
+
+        mapSelection.addEventListener('click', function (event) {
+            const buildingButton = event.target.closest('[data-select-map-building]');
+            const roomButton = event.target.closest('[data-select-map-room]');
+            const landuseButton = event.target.closest('[data-select-map-landuse]');
+
+            if (buildingButton) {
+                chooseDestination('building', buildingButton.dataset.selectMapBuilding);
+                renderBuildingPicker(eventMapData.buildings.find(item => Number(item.id) === Number(buildingButton.dataset.selectMapBuilding)));
+            }
+
+            if (roomButton) {
+                chooseDestination('room', roomButton.dataset.selectMapRoom);
+                const building = eventMapData.buildings.find(item => Number(item.id) === Number(previewedBuildingId));
+                if (building) renderBuildingPicker(building);
+            }
+
+            if (landuseButton) {
+                chooseDestination('landuse', landuseButton.dataset.selectMapLanduse);
+                const landuse = eventMapData.landuses.find(item => Number(item.id) === Number(landuseButton.dataset.selectMapLanduse));
+                if (landuse) renderLandusePicker(landuse);
+            }
+        });
+
+        targetType.addEventListener('change', function () {
+            toggleTargetBox();
+            updateSelectionSummary();
+        });
+        buildingSelect.addEventListener('change', updateSelectionSummary);
+        roomSelect.addEventListener('change', updateSelectionSummary);
+        landuseSelect.addEventListener('change', updateSelectionSummary);
 
         toggleTargetBox();
+        initializeEventMap();
+        updateSelectionSummary();
     });
 </script>
 

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class CampusEvent extends Model
 {
@@ -66,6 +66,11 @@ class CampusEvent extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function destinationLink()
+    {
+        return $this->hasOne(DestinationLink::class);
+    }
+
     /**
      * Active events only.
      */
@@ -114,7 +119,7 @@ class CampusEvent extends Model
                                 ->orWhere('ends_at', '>=', $now);
                         });
                 })
-                ->orWhere('starts_at', '>', $now);
+                    ->orWhere('starts_at', '>', $now);
             });
     }
 
@@ -126,7 +131,7 @@ class CampusEvent extends Model
         $now = Carbon::now();
 
         if ($this->starts_at && $this->starts_at->lte($now)) {
-            if (!$this->ends_at || $this->ends_at->gte($now)) {
+            if (! $this->ends_at || $this->ends_at->gte($now)) {
                 return 'happening_now';
             }
         }
@@ -151,7 +156,7 @@ class CampusEvent extends Model
             $room = $this->indoorRoom;
 
             if ($room) {
-                return trim(($room->room_code ? $room->room_code . ' - ' : '') . ($room->name ?? 'Room Event'));
+                return trim(($room->room_code ? $room->room_code.' - ' : '').($room->name ?? 'Room Event'));
             }
 
             return 'Room Event';

@@ -303,6 +303,7 @@
     <script src="assets/js/app.min.js"></script>
     <script src="{{ asset('admin/assets/js/admin-table-tools.js') }}?v={{ filemtime(public_path('admin/assets/js/admin-table-tools.js')) }}"></script>
 
+    @include('components.futuristic-dialogs')
 </body>
 
 </html>

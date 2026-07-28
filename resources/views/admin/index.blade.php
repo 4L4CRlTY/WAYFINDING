@@ -35,6 +35,11 @@
                         <i class="ri-megaphone-line"></i>
                         Campus Events
                     </a>
+
+                    <a href="{{ route('admin.destination-links.index') }}" class="admin-home-btn secondary">
+                        <i class="ri-links-line"></i>
+                        Manage Event Links
+                    </a>
                 </div>
             </div>
 
@@ -107,6 +112,15 @@
                 <span class="admin-module-copy">
                     <h3>Campus Events</h3>
                     <p>Publish active and upcoming events that users can view and navigate toward.</p>
+                </span>
+                <i class="ri-arrow-right-up-line admin-module-arrow"></i>
+            </a>
+
+            <a href="{{ route('admin.destination-links.index') }}" class="admin-module-card">
+                <span class="admin-module-icon"><i class="ri-links-line"></i></span>
+                <span class="admin-module-copy">
+                    <h3>Campus Event Links</h3>
+                    <p>Copy and manage the guest-ready route links generated automatically for campus events.</p>
                 </span>
                 <i class="ri-arrow-right-up-line admin-module-arrow"></i>
             </a>

@@ -367,8 +367,16 @@
             <form action="{{ route('admin.indoor-stairs-link.store') }}" method="POST">
                 @csrf
 
+                @include('admin.partials.building_map_selector', [
+                    'selectorKey' => 'stairs_link_add',
+                    'selectId' => 'add_building_id',
+                    'dropdownFieldId' => 'stairs_link_add_building_field',
+                    'buildingMapData' => $buildingMapData,
+                    'selectedBuildingId' => old('building_id'),
+                ])
+
                 <div class="row g-3">
-                    <div class="col-lg-4">
+                    <div class="col-lg-4" id="stairs_link_add_building_field">
                         <label class="stairs-link-form-label">Building</label>
                         <select name="building_id" id="add_building_id" class="form-select stairs-link-form-select js-building-select" data-target-from="add_from_entrance_id" data-target-to="add_to_entrance_id" required>
                             <option value="">Select Building</option>

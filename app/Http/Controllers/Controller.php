@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 
 abstract class Controller
@@ -20,5 +21,14 @@ abstract class Controller
     protected function tableSearchPattern(string $search): string
     {
         return "%{$search}%";
+    }
+
+    protected function dashboardRouteName(?User $user): string
+    {
+        return match ($user?->role) {
+            'admin' => 'admin.dashboard',
+            'authorized_user' => 'authorized.dashboard',
+            default => 'user.dashboard',
+        };
     }
 }

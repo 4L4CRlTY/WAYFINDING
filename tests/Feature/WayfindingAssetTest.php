@@ -88,6 +88,8 @@ class WayfindingAssetTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('id="wfDialogBackdrop"', escape: false)
+            ->assertSee('window.FuturisticDialog', escape: false)
             ->assertDontSee(asset('js/wayfinding/01-map-core.js'), escape: false)
             ->assertDontSee(asset('css/wayfinding/01-foundation-map.css'), escape: false)
             ->assertDontSee('FINAL FAKE 3D LAG REDUCER PATCH');
@@ -251,7 +253,7 @@ class WayfindingAssetTest extends TestCase
         $this->assertStringContainsString('/css/wayfinding/17-cr-navigation.css', $serviceWorker);
         $this->assertStringContainsString("'/api/buildings'", $serviceWorker);
         $this->assertStringContainsString("'/api/indoor-paths'", $serviceWorker);
-        $this->assertStringContainsString("if (url.origin !== self.location.origin) return;", $serviceWorker);
+        $this->assertStringContainsString('if (url.origin !== self.location.origin) return;', $serviceWorker);
         $this->assertStringNotContainsString("'/user/dashboard'", $serviceWorker);
         $this->assertStringNotContainsString('tile.openstreetmap.org', $serviceWorker);
     }

@@ -157,6 +157,13 @@ body.public-welcome .btn-ghost {
     box-shadow: inset 0 1px 0 #ffffff;
 }
 
+body.public-welcome .btn-guest {
+    color: var(--future-primary);
+    background: linear-gradient(135deg, rgba(104, 167, 238, 0.18), rgba(255, 255, 255, 0.96));
+    border-color: rgba(104, 167, 238, 0.48);
+    box-shadow: 0 10px 26px rgba(24, 55, 93, 0.1), inset 0 1px 0 #ffffff;
+}
+
 body.public-welcome .btn:hover {
     border-color: var(--future-accent, #68a7ee);
     box-shadow: 0 14px 30px rgba(24, 55, 93, 0.18), 0 0 0 4px rgba(104, 167, 238, 0.12);
@@ -1117,9 +1124,12 @@ body.system-future {
 
     body.public-welcome .nav-actions {
         gap: 0.4rem;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     body.public-welcome .nav-actions .btn {
+        width: 100%;
         min-height: 40px;
         padding-inline: 0.8rem;
         font-size: 0.78rem;
@@ -1177,11 +1187,9 @@ body.system-future {
     }
 
     body.public-welcome .nav-actions .btn {
-        padding-inline: 0.65rem;
-    }
-
-    body.public-welcome .nav-actions .btn-outline {
-        display: none;
+        min-height: 38px;
+        padding-inline: 0.35rem;
+        font-size: 0.69rem;
     }
 
     body.public-auth .mini-feature {

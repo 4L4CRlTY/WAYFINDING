@@ -155,6 +155,8 @@
     }
 
     function ensureCampusEventPanel() {
+        if (window.WAYFINDING_GUEST_MODE === true) return null;
+
         let wrap = document.getElementById('campus-event-notification-wrap');
 
         if (wrap) return wrap;
@@ -247,6 +249,8 @@
         if (campusEventLayer) {
             campusEventLayer.clearLayers();
         }
+
+        if (window.WAYFINDING_GUEST_MODE === true) return;
 
         const activeEvents = (campusEvents || []).filter(event => {
             return event && event.id && event.route_type && event.route_id;
@@ -377,6 +381,7 @@
     }
     let wayfindingDataInteractionsBound = false;
     let wayfindingDataLoadSequence = 0;
+    let sharedDestinationRouteApplied = false;
 
     const EMPTY_WAYFINDING_FEATURE_COLLECTION = {
         type: 'FeatureCollection',
@@ -497,6 +502,59 @@
             updateDestinationUi();
             updateRouteLabels();
         });
+    }
+
+    async function applySharedDestinationRoute() {
+        if (sharedDestinationRouteApplied) return;
+
+        const destination = window.WAYFINDING_SHARED_DESTINATION;
+        const destinationId = Number(destination?.id || 0);
+
+        if (!destinationId || !['building', 'room', 'landuse'].includes(destination?.type)) return;
+
+        sharedDestinationRouteApplied = true;
+        selectDefaultMode();
+
+        if (destination.type === 'building') {
+            setBrowseDestinationType('building');
+            destinationBuildingSelect.value = String(destinationId);
+            selectedDestinationBuildingId = destinationId;
+            selectedDestinationLanduseId = null;
+            selectedIndoorRoomFeature = null;
+        } else if (destination.type === 'room') {
+            const room = (allIndoorRooms.features || []).find(
+                feature => Number(feature.properties?.id) === destinationId
+            );
+
+            if (!room) {
+                sharedDestinationRouteApplied = false;
+                window.showWayfindingToast?.(
+                    'The shared room is currently unavailable.',
+                    { kind: 'error' }
+                );
+                return;
+            }
+
+            setBrowseDestinationType('room');
+            destinationRoomSelect.value = String(destinationId);
+            selectedIndoorRoomFeature = room;
+            selectedDestinationBuildingId = Number(room.properties?.building_id || 0);
+            selectedDestinationLanduseId = null;
+        } else {
+            setBrowseDestinationType('landuse');
+            destinationLanduseSelect.value = String(destinationId);
+            selectedDestinationLanduseId = destinationId;
+            selectedDestinationBuildingId = null;
+            selectedIndoorRoomFeature = null;
+        }
+
+        updateDestinationUi();
+        updateRouteLabels();
+        await findRouteByDestination();
+        window.showWayfindingToast?.(
+            `Route created for ${destination.label || 'the shared destination'}.`,
+            { kind: 'success' }
+        );
     }
 
     function revealOutdoorMap() {
@@ -650,6 +708,8 @@
         updateDestinationUi();
         updateRouteLabels();
         if (indoorMap) indoorMap.invalidateSize();
+
+        await applySharedDestinationRoute();
 
         const failedOptional = failedDataLabels(optionalDefinitions, optionalResults);
         const staleOptional = staleDataLabels(optionalDefinitions);

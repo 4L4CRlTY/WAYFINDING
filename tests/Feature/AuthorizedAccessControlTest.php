@@ -101,6 +101,36 @@ class AuthorizedAccessControlTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_authorized_user_can_manage_event_route_links_only_when_assigned(): void
+    {
+        $authorizedUser = User::factory()->create([
+            'role' => 'authorized_user',
+            'status' => '1',
+            'position' => 'Campus Information Officer',
+            'authorized_permissions' => ['destination_links'],
+        ]);
+
+        $this
+            ->actingAs($authorizedUser)
+            ->get(route('admin.destination-links.index'))
+            ->assertOk()
+            ->assertSeeText('Event Route Links');
+
+        $this
+            ->actingAs($authorizedUser)
+            ->get(route('authorized.dashboard'))
+            ->assertOk()
+            ->assertSeeText('Event Route Links')
+            ->assertDontSeeText('Campus Events');
+
+        $authorizedUser->update(['authorized_permissions' => ['campus_events']]);
+
+        $this
+            ->actingAs($authorizedUser->fresh())
+            ->get(route('admin.destination-links.index'))
+            ->assertForbidden();
+    }
+
     public function test_authorized_dashboard_lists_assigned_features_and_hides_unassigned_features(): void
     {
         $authorizedUser = User::factory()->create([

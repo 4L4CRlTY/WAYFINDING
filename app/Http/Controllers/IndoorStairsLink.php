@@ -14,7 +14,20 @@ class IndoorStairsLink extends Controller
         $search = $this->tableSearch($request);
         $pattern = $this->tableSearchPattern($search);
 
-        $buildings = Building::orderBy('name')->get();
+        $buildings = Building::query()
+            ->select('id', 'name', 'geometry', 'color')
+            ->orderBy('name')
+            ->get();
+
+        $buildingMapData = $buildings
+            ->filter(fn (Building $building): bool => is_array($building->geometry))
+            ->map(fn (Building $building): array => [
+                'id' => $building->id,
+                'name' => $building->name,
+                'geometry' => $building->geometry,
+                'color' => $building->color ?: '#68a7ee',
+            ])
+            ->values();
 
         $stairsEntrances = IndoorEntrance::with('indoorMap.building')
             ->where('ent_type', 'stairs')
@@ -84,6 +97,7 @@ class IndoorStairsLink extends Controller
 
         return view('admin.indoor_stairs_link.indoor_stairs_link', compact(
             'buildings',
+            'buildingMapData',
             'stairsEntrances',
             'links',
             'search'

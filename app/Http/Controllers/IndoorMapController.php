@@ -109,8 +109,16 @@ class IndoorMapController extends Controller
                 $imageHeight
             ) {
                 if ($existingMap && $existingMap->floorplan_image) {
-                    $existingMap->backup_floorplan_image = $existingMap->floorplan_image;
-                    $existingMap->save();
+                    $backupFileName = $this->copyCurrentFloorplanToBackup(
+                        $existingMap,
+                        $building,
+                        $floorNumber,
+                    );
+
+                    if ($backupFileName) {
+                        $existingMap->backup_floorplan_image = $backupFileName;
+                        $existingMap->save();
+                    }
                 }
 
                 $request->file('floorplan_image')->move($folderPath, $fileName);
@@ -141,6 +149,12 @@ class IndoorMapController extends Controller
                     ]);
                 }
             });
+
+            $this->storeExactGeometryUpload(
+                $request->file('geometry_file'),
+                $building,
+                $floorLabel,
+            );
 
             return back()->with('success', 'Indoor map uploaded successfully.');
         } catch (\Exception $e) {
@@ -212,6 +226,11 @@ class IndoorMapController extends Controller
                 }
 
                 $map->geometry = $geometry;
+                $this->storeExactGeometryUpload(
+                    $request->file('geometry_file'),
+                    $building,
+                    $map->floor_label,
+                );
             }
 
             if ($request->hasFile('floorplan_image')) {
@@ -222,7 +241,15 @@ class IndoorMapController extends Controller
                 }
 
                 if ($map->floorplan_image) {
-                    $map->backup_floorplan_image = $map->floorplan_image;
+                    $backupFileName = $this->copyCurrentFloorplanToBackup(
+                        $map,
+                        $building,
+                        $floorNumber,
+                    );
+
+                    if ($backupFileName) {
+                        $map->backup_floorplan_image = $backupFileName;
+                    }
                 }
 
                 $buildingSlug = Str::slug($building->name, '_');
@@ -290,5 +317,60 @@ class IndoorMapController extends Controller
         }
 
         return null;
+    }
+
+    private function storeExactGeometryUpload(
+        \Illuminate\Http\UploadedFile $file,
+        Building $building,
+        string $floorLabel,
+    ): void {
+        $buildingSlug = Str::slug($building->name, '_');
+        $normalizedFloor = strtolower(Str::slug($floorLabel, ''));
+        $folderPath = public_path("indoor_maps/{$buildingSlug}/{$normalizedFloor}");
+        $currentFile = $folderPath.DIRECTORY_SEPARATOR.'indoor_map.geojson';
+        $backupFile = $folderPath.DIRECTORY_SEPARATOR.'indoor_map_backup.geojson';
+
+        if (! File::isDirectory($folderPath)) {
+            File::makeDirectory($folderPath, 0755, true);
+        }
+
+        if (File::isFile($currentFile)) {
+            File::copy($currentFile, $backupFile);
+        }
+
+        File::put($currentFile, File::get($file->getRealPath()));
+    }
+
+    private function copyCurrentFloorplanToBackup(
+        IndoorMap $map,
+        Building $building,
+        int $floorNumber,
+    ): ?string {
+        if (! $map->floorplan_image) {
+            return null;
+        }
+
+        $sourcePath = public_path('floorplan_image/'.$map->floorplan_image);
+
+        if (! File::isFile($sourcePath)) {
+            return null;
+        }
+
+        $extension = pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'png';
+        $buildingSlug = Str::slug($building->name, '_');
+        $backupFileName = sprintf(
+            '%s_floor_%d_backup_%s.%s',
+            $buildingSlug,
+            $floorNumber,
+            now()->format('Ymd_Hisu'),
+            strtolower($extension),
+        );
+        $backupPath = public_path('floorplan_image/'.$backupFileName);
+
+        if (! File::copy($sourcePath, $backupPath)) {
+            throw new \RuntimeException('Unable to preserve the previous floorplan image.');
+        }
+
+        return $backupFileName;
     }
 }

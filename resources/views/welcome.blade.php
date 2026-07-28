@@ -600,6 +600,8 @@
                         @if (Route::has('register'))
                             <a href="{{ route('register') }}" class="btn btn-primary">Register</a>
                         @endif
+
+                        <a href="{{ route('guest.dashboard') }}" class="btn btn-guest">Guest</a>
                     @endauth
                 </nav>
             @endif
@@ -636,10 +638,14 @@
                             @endif
 
                             @if (Route::has('login'))
-                                <a href="{{ route('login') }}" class="btn btn-outline">Try Navigation</a>
+                                <a href="{{ route('login') }}" class="btn btn-outline">Log In</a>
                             @else
                                 <a href="#features" class="btn btn-outline">Explore Features</a>
                             @endif
+
+                            <a href="{{ route('guest.dashboard') }}" class="btn btn-guest">
+                                Continue as Guest
+                            </a>
                         @endauth
                     </div>
 
@@ -771,5 +777,6 @@
             </div>
         </div>
     </footer>
+    @include('components.futuristic-dialogs')
 </body>
 </html>

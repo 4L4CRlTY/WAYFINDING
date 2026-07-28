@@ -4,11 +4,28 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class SecurityTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_unused_generic_dashboard_and_profile_routes_are_removed(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'user',
+            'status' => '1',
+        ]);
+
+        $this->assertFalse(Route::has('dashboard'));
+        $this->assertFalse(Route::has('profile.edit'));
+        $this->assertFalse(Route::has('profile.update'));
+        $this->assertFalse(Route::has('profile.destroy'));
+
+        $this->actingAs($user)->get('/dashboard')->assertNotFound();
+        $this->actingAs($user)->get('/profile')->assertNotFound();
+    }
 
     public function test_inactive_user_cannot_log_in(): void
     {
@@ -35,7 +52,7 @@ class SecurityTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->get('/profile');
+            ->get(route('user.dashboard'));
 
         $this->assertGuest();
         $response

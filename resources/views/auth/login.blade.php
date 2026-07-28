@@ -322,6 +322,31 @@
             box-shadow: 0 18px 38px rgba(12, 122, 67, 0.30);
         }
 
+        .btn-guest {
+            width: 100%;
+            min-height: 49px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 11px;
+            border: 1px solid rgba(104, 167, 238, .48);
+            border-radius: 999px;
+            color: #18375d;
+            background: linear-gradient(135deg, #ffffff, #eaf4ff);
+            box-shadow: 0 10px 24px rgba(24, 55, 93, .10);
+            font-size: 14px;
+            font-weight: 850;
+            text-decoration: none;
+            transition: .2s ease;
+        }
+
+        .btn-guest:hover {
+            transform: translateY(-2px);
+            border-color: #68a7ee;
+            color: #18375d;
+            box-shadow: 0 15px 30px rgba(24, 55, 93, .15);
+        }
+
         .register {
             margin-top: 18px;
             text-align: center;
@@ -509,6 +534,10 @@
                         Log in
                     </button>
 
+                    <a href="{{ route('guest.dashboard') }}" class="btn-guest">
+                        Continue as Guest
+                    </a>
+
                     @if (Route::has('register'))
                         <p class="register">
                             Don’t have an account?
@@ -523,5 +552,6 @@
             </div>
         </section>
     </main>
+    @include('components.futuristic-dialogs')
 </body>
 </html>

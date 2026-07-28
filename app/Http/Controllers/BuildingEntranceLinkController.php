@@ -15,7 +15,20 @@ class BuildingEntranceLinkController extends Controller
         $search = $this->tableSearch($request);
         $pattern = $this->tableSearchPattern($search);
 
-        $buildings = Building::orderBy('name')->get();
+        $buildings = Building::query()
+            ->select('id', 'name', 'geometry', 'color')
+            ->orderBy('name')
+            ->get();
+
+        $buildingMapData = $buildings
+            ->filter(fn (Building $building): bool => is_array($building->geometry))
+            ->map(fn (Building $building): array => [
+                'id' => $building->id,
+                'name' => $building->name,
+                'geometry' => $building->geometry,
+                'color' => $building->color ?: '#68a7ee',
+            ])
+            ->values();
 
         $buildingEntrances = BuildingEntrance::with('building')
             ->orderBy('building_id')
@@ -80,6 +93,7 @@ class BuildingEntranceLinkController extends Controller
 
         return view('admin.building_entrance_link.building_entrance_link', compact(
             'buildings',
+            'buildingMapData',
             'buildingEntrances',
             'indoorEntrances',
             'links',

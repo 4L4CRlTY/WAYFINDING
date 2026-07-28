@@ -97,6 +97,14 @@
     }
 
     function startVoiceCommand() {
+        if (window.WAYFINDING_GUEST_MODE === true) {
+            window.showWayfindingToast?.(
+                'Voice Search is available after signing in. Please use Browse Options.',
+                { kind: 'info' }
+            );
+            return;
+        }
+
         if (!voiceSupported || !speechRecognition) {
             alert('Voice recognition is not supported in this browser.');
             return;
@@ -694,6 +702,14 @@
 
 
     async function searchTextDestination() {
+        if (window.WAYFINDING_GUEST_MODE === true) {
+            window.showWayfindingToast?.(
+                'Text Search is available after signing in. Please use Browse Options.',
+                { kind: 'info' }
+            );
+            return;
+        }
+
         const message = String(destinationSearchInput?.value || '').trim();
 
         if (!message) {

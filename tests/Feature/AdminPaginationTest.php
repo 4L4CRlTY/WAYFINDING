@@ -174,6 +174,7 @@ class AdminPaginationTest extends TestCase
             'admin/building_entrance_link/building_entrance_link.blade.php',
             'admin/campus_event/campus_event.blade.php',
             'admin/Destination/Destination_keyword.blade.php',
+            'admin/destination_links/index.blade.php',
             'admin/Entry_point/Entry_point.blade.php',
             'admin/hazard_point/hazard_point.blade.php',
             'admin/indoor_entrances/indoor_entrance.blade.php',

@@ -91,6 +91,19 @@
                     @endforeach
                 @endif
             @endforeach
+
+            @if ($isAdministrator)
+                <li class="side-nav-title">Data Safety</li>
+                <li class="side-nav-item">
+                    <a
+                        href="{{ route('admin.geojson-backups.index') }}"
+                        class="side-nav-link {{ request()->routeIs('admin.geojson-backups*') ? 'active' : '' }}"
+                    >
+                        <i class="ri-shield-check-line"></i>
+                        <span>Map Backups</span>
+                    </a>
+                </li>
+            @endif
         </ul>
 
         <div class="clearfix"></div>

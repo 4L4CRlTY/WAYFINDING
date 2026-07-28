@@ -989,6 +989,14 @@
     }
 
     function selectGpsMode() {
+        if (window.WAYFINDING_GUEST_MODE === true) {
+            window.showWayfindingToast?.(
+                'GPS is available after signing in. Guest Mode can use Default Route or Pick Path.',
+                { kind: 'info' }
+            );
+            return;
+        }
+
         placingStartMode = false;
         hidePickPathHelper();
         selectedStartMode = 'gps';

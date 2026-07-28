@@ -363,8 +363,16 @@
             <form action="{{ route('admin.building-entrance-link.store') }}" method="POST">
                 @csrf
 
+                @include('admin.partials.building_map_selector', [
+                    'selectorKey' => 'entrance_link_add',
+                    'selectId' => 'add_building_id',
+                    'dropdownFieldId' => 'entrance_link_add_building_field',
+                    'buildingMapData' => $buildingMapData,
+                    'selectedBuildingId' => old('building_id'),
+                ])
+
                 <div class="row g-3">
-                    <div class="col-lg-4">
+                    <div class="col-lg-4" id="entrance_link_add_building_field">
                         <label class="entrance-link-form-label">Building</label>
                         <select name="building_id" id="add_building_id" class="form-select entrance-link-form-select" required>
                             <option value="">Select Building</option>

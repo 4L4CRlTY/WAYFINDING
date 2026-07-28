@@ -1,8 +1,12 @@
 @php
+    $guestMode = $guestMode ?? false;
+    $sharedDestination = $sharedDestination ?? null;
     $gpsSimulatorEnabled = app()->environment('local')
         && config('app.debug')
+        && ! $guestMode
         && request()->boolean('gps_simulator');
-    $gpsDiagnosticsEnabled = config('app.debug')
+    $gpsDiagnosticsEnabled = ! $guestMode
+        && config('app.debug')
         && ($gpsSimulatorEnabled || request()->boolean('gps_diagnostics'));
 @endphp
 
@@ -31,7 +35,7 @@
     @endif
 </head>
 
-<body>
+<body class="{{ $guestMode ? 'guest-mode' : '' }}">
 
     <!-- SLSU SMART CAMPUS BRAND (TOP LEFT) -->
     <div class="campus-brand-wrap" aria-label="Smart Campus Navigation System">
@@ -80,10 +84,10 @@
 
                 <div class="user-profile-text">
                     <div class="user-profile-name">
-                        {{ auth()->check() ? (auth()->user()->username ?? 'User') : 'User' }}
+                        {{ $guestMode ? 'Guest Mode' : (auth()->user()->username ?? 'User') }}
                     </div>
                     <div class="user-profile-email">
-                        {{ auth()->check() ? auth()->user()->email : '' }}
+                        {{ $guestMode ? 'Browse-only campus access' : auth()->user()->email }}
                     </div>
                 </div>
             </div>
@@ -105,6 +109,16 @@
                 </button>
             </section>
 
+            @if($guestMode)
+                <div class="guest-profile-upgrade">
+                    <strong>Unlock the complete navigator</strong>
+                    <small>Get live GPS, text search, and voice guidance.</small>
+                </div>
+                <a href="{{ route('login') }}" class="user-logout-btn guest-profile-login">
+                    <span aria-hidden="true">↪</span>
+                    Log In
+                </a>
+            @else
             <form method="POST" action="{{ route('user.logout') }}" class="user-logout-form">
                 @csrf
                 <button type="submit" class="user-logout-btn">
@@ -112,8 +126,34 @@
                     Logout
                 </button>
             </form>
+            @endif
         </div>
     </div>
+
+    @if($guestMode && !$sharedDestination)
+        <aside class="guest-upgrade-card"
+               id="guest-upgrade-card"
+               aria-labelledby="guest-upgrade-title">
+            <button type="button"
+                    class="guest-upgrade-close"
+                    id="guest-upgrade-close"
+                    aria-label="Dismiss account invitation">×</button>
+            <div class="guest-upgrade-kicker">
+                <span aria-hidden="true"></span>
+                Guest Preview
+            </div>
+            <h2 id="guest-upgrade-title">Unlock smarter campus navigation.</h2>
+            <p>Create a free account or log in to use every navigation feature.</p>
+            <div class="guest-upgrade-features" aria-label="Account features">
+                <span>Live GPS</span>
+                <span>Text Search</span>
+                <span>Voice Search</span>
+            </div>
+            <div class="guest-upgrade-actions">
+                <a href="{{ route('login') }}" class="guest-upgrade-login">Log In</a>
+            </div>
+        </aside>
+    @endif
 
     <!-- FLOATING MAIN CONTROLS -->
     <div id="floating-route-ui" class="ai-floating-dock">
@@ -130,15 +170,33 @@
                     <div class="floating-action-title">Choose how you want to search your destination</div>
                 </div>
 
-                <button type="button" class="floating-action-btn" onclick="openInlineTextSearch()">
-                    <span class="action-icon">⌨️</span>
-                    Search Text
-                </button>
+                @if($guestMode)
+                    <button type="button"
+                            class="floating-action-btn guest-feature-locked"
+                            id="guest-text-search-command-btn"
+                            onclick="requestGuestFeatureAccess('Text Search')">
+                        <span class="action-icon">🔒</span>
+                        Search Text
+                    </button>
 
-                <button type="button" class="floating-action-btn dark" id="voice-command-btn" onclick="openInlineVoiceSearch()">
-                    <span class="action-icon">🎙️</span>
-                    Voice Search
-                </button>
+                    <button type="button"
+                            class="floating-action-btn dark guest-feature-locked"
+                            id="guest-voice-command-btn"
+                            onclick="requestGuestFeatureAccess('Voice Search')">
+                        <span class="action-icon">🔒</span>
+                        Voice Search
+                    </button>
+                @else
+                    <button type="button" class="floating-action-btn" id="text-search-command-btn" onclick="openInlineTextSearch()">
+                        <span class="action-icon">⌨️</span>
+                        Search Text
+                    </button>
+
+                    <button type="button" class="floating-action-btn dark" id="voice-command-btn" onclick="openInlineVoiceSearch()">
+                        <span class="action-icon">🎙️</span>
+                        Voice Search
+                    </button>
+                @endif
 
                 <button type="button" class="floating-action-btn blue" onclick="openBrowseOptionsModal()">
                     <span class="action-icon">🧭</span>
@@ -256,12 +314,22 @@
                 📍 PICK PATH
             </button>
 
-            <button type="button"
-                    class="floating-mode-btn gps"
-                    onclick="selectGpsMode()"
-                    aria-pressed="false">
-                🧭 USE GPS
-            </button>
+            @if($guestMode)
+                <button type="button"
+                        class="floating-mode-btn gps guest-feature-locked"
+                        onclick="requestGuestFeatureAccess('Live GPS navigation')"
+                        aria-label="Log in to use GPS navigation"
+                        aria-pressed="false">
+                    🔒 USE GPS
+                </button>
+            @else
+                <button type="button"
+                        class="floating-mode-btn gps"
+                        onclick="selectGpsMode()"
+                        aria-pressed="false">
+                    🧭 USE GPS
+                </button>
+            @endif
 
             <button type="button"
                     class="floating-mode-btn default active"
@@ -360,7 +428,7 @@
                     <div class="navigation-metric navigation-location-card">
                         <span class="navigation-metric-label">Location</span>
                         <strong id="navigation-gps-quality">Not active</strong>
-                        <small>Tap Use GPS when ready</small>
+                        <small>{{ $guestMode ? 'Use Default Route or Pick Path' : 'Tap Use GPS when ready' }}</small>
                     </div>
                 @endif
                 <div class="navigation-metric">
@@ -419,13 +487,15 @@
             </header>
 
             <div class="cr-navigation-modes" id="cr-navigation-modes">
-                <button type="button" class="cr-navigation-mode" data-cr-mode="gps">
-                    <span class="cr-navigation-mode-icon" aria-hidden="true">⌖</span>
-                    <span>
-                        <strong>Use GPS</strong>
-                        <small>Use your current location</small>
-                    </span>
-                </button>
+                @unless($guestMode)
+                    <button type="button" class="cr-navigation-mode" data-cr-mode="gps">
+                        <span class="cr-navigation-mode-icon" aria-hidden="true">⌖</span>
+                        <span>
+                            <strong>Use GPS</strong>
+                            <small>Use your current location</small>
+                        </span>
+                    </button>
+                @endunless
                 <button type="button" class="cr-navigation-mode" data-cr-mode="path">
                     <span class="cr-navigation-mode-icon" aria-hidden="true">⌁</span>
                     <span>
@@ -929,6 +999,59 @@
         <script>window.WAYFINDING_GPS_SIMULATOR_ENABLED = true;</script>
     @endif
 
+    <script>
+        window.WAYFINDING_GUEST_MODE = @json($guestMode);
+        window.WAYFINDING_SHARED_DESTINATION = @json($sharedDestination);
+    </script>
+
+    @if($guestMode && !$sharedDestination)
+        <script>
+            (() => {
+                const card = document.getElementById('guest-upgrade-card');
+                const closeButton = document.getElementById('guest-upgrade-close');
+                const dismissalKey = 'wayfinding_guest_upgrade_dismissed';
+
+                try {
+                    card.hidden = sessionStorage.getItem(dismissalKey) === '1';
+                } catch {
+                    card.hidden = false;
+                }
+
+                closeButton?.addEventListener('click', () => {
+                    card.hidden = true;
+                    try {
+                        sessionStorage.setItem(dismissalKey, '1');
+                    } catch {
+                        // The card still closes when browser storage is unavailable.
+                    }
+                });
+            })();
+        </script>
+    @endif
+
+    @if($guestMode)
+        <script>
+            window.requestGuestFeatureAccess = async featureName => {
+                const shouldLogIn = await window.FuturisticDialog.confirm(
+                    `${featureName} is available with a full account.\n\nLog in to unlock GPS tracking, text search, voice search, and complete navigation tools. New users can create an account from the login page.`,
+                    {
+                        icon: '🔒',
+                        kicker: 'Full Account Feature',
+                        title: 'Log In to Continue',
+                        confirmText: 'Log In',
+                        cancelText: 'Not Now',
+                        danger: false,
+                    }
+                );
+
+                if (shouldLogIn) {
+                    window.location.assign(@json(route('login')));
+                }
+            };
+        </script>
+    @endif
+
+    @include('components.futuristic-dialogs')
     @vite('resources/js/wayfinding-entry.js')
 
     <script>

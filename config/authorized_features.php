@@ -11,6 +11,14 @@ return [
         'route_pattern' => 'admin.campus-event*',
         'group' => 'Command',
     ],
+    'destination_links' => [
+        'label' => 'Event Route Links',
+        'description' => 'Copy, monitor, activate, and remove automatically generated campus event links.',
+        'icon' => 'ri-links-line',
+        'route' => 'admin.destination-links.index',
+        'route_pattern' => 'admin.destination-links*',
+        'group' => 'Command',
+    ],
     'buildings' => [
         'label' => 'Buildings',
         'description' => 'Maintain campus buildings, names, colors, and map geometry.',

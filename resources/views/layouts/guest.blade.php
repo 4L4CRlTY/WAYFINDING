@@ -44,5 +44,6 @@
                 </div>
             </div>
         </div>
+        @include('components.futuristic-dialogs')
     </body>
 </html>

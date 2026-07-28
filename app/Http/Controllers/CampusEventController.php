@@ -6,8 +6,11 @@ use App\Models\Building;
 use App\Models\CampusEvent;
 use App\Models\IndoorRoom;
 use App\Models\Landuse;
+use App\Models\Path;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CampusEventController extends Controller
 {
@@ -24,13 +27,47 @@ class CampusEventController extends Controller
             ->orderBy('name')
             ->get();
 
-        $landuses = Landuse::orderBy('name')->get();
+        $landuses = Landuse::orderBy('name')
+            ->get()
+            ->reject(fn (Landuse $landuse) => $this->isDesignLanduse($landuse))
+            ->values();
+        $paths = Path::orderBy('id')->get();
+        $eventMapData = [
+            'buildings' => $buildings->map(fn (Building $building) => [
+                'id' => $building->id,
+                'name' => $building->name,
+                'geometry' => $building->geometry,
+                'color' => $building->color,
+            ])->values(),
+            'landuses' => $landuses->map(fn (Landuse $landuse) => [
+                'id' => $landuse->id,
+                'name' => $landuse->name,
+                'geometry' => $landuse->geometry,
+                'type' => data_get($landuse->properties, 'type'),
+            ])->values(),
+            'paths' => $paths->map(fn (Path $path) => [
+                'id' => $path->id,
+                'name' => $path->name,
+                'type' => $path->type,
+                'geometry' => $path->geometry,
+            ])->values(),
+            'rooms' => $indoorRooms->map(fn (IndoorRoom $room) => [
+                'id' => $room->id,
+                'building_id' => $room->indoorMap?->building_id,
+                'building_name' => $room->indoorMap?->building?->name,
+                'floor_label' => $room->indoorMap?->floor_label,
+                'room_code' => $room->room_code,
+                'name' => $room->name,
+                'type' => $room->type,
+            ])->values(),
+        ];
 
         $campusEvents = CampusEvent::with([
             'building',
             'indoorRoom.indoorMap.building',
             'landuse',
             'creator',
+            'destinationLink',
         ])
             ->when($search !== '', function ($query) use ($search, $pattern, $normalizedSearch) {
                 $query->where(function ($searchQuery) use ($search, $pattern, $normalizedSearch) {
@@ -93,6 +130,8 @@ class CampusEventController extends Controller
             'buildings',
             'indoorRooms',
             'landuses',
+            'paths',
+            'eventMapData',
             'campusEvents',
             'search'
         ));
@@ -146,40 +185,86 @@ class CampusEventController extends Controller
                     ->with('error', 'Please select a landuse area for this event.');
             }
 
+            $landuse = Landuse::find($request->landuse_id);
+
+            if (! $landuse || $this->isDesignLanduse($landuse)) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Design-only landuse areas cannot be used as event destinations.');
+            }
+
             $landuseId = $request->landuse_id;
         }
 
-        CampusEvent::create([
-            'event_target_type' => $targetType,
-            'building_id' => $buildingId,
-            'indoor_room_id' => $indoorRoomId,
-            'landuse_id' => $landuseId,
-            'created_by' => Auth::id(),
-            'title' => $request->title,
-            'description' => $request->description,
-            'starts_at' => $request->starts_at,
-            'ends_at' => $request->ends_at,
-            'location_label' => $request->location_label,
-            'is_active' => $request->has('is_active'),
-            'priority' => $request->priority ?? 0,
-        ]);
+        DB::transaction(function () use ($request, $targetType, $buildingId, $indoorRoomId, $landuseId) {
+            $event = CampusEvent::create([
+                'event_target_type' => $targetType,
+                'building_id' => $buildingId,
+                'indoor_room_id' => $indoorRoomId,
+                'landuse_id' => $landuseId,
+                'created_by' => Auth::id(),
+                'title' => $request->title,
+                'description' => $request->description,
+                'starts_at' => $request->starts_at,
+                'ends_at' => $request->ends_at,
+                'location_label' => $request->location_label,
+                'is_active' => $request->has('is_active'),
+                'priority' => $request->priority ?? 0,
+            ]);
 
-        return back()->with('success', 'Campus event created successfully.');
+            $destinationId = match ($targetType) {
+                'room' => $indoorRoomId,
+                'landuse' => $landuseId,
+                default => $buildingId,
+            };
+
+            $event->destinationLink()->create([
+                'token' => Str::random(40),
+                'title' => $event->title,
+                'destination_type' => $targetType,
+                'destination_id' => $destinationId,
+                'created_by' => Auth::id(),
+                'is_active' => $event->is_active
+                    && (! $event->ends_at || $event->ends_at->isFuture()),
+            ]);
+        });
+
+        return back()->with('success', 'Campus event and route link created successfully.');
     }
 
     public function toggleStatus(CampusEvent $campusEvent)
     {
-        $campusEvent->update([
-            'is_active' => ! $campusEvent->is_active,
-        ]);
+        $isActive = ! $campusEvent->is_active;
 
-        return back()->with('success', 'Campus event status updated successfully.');
+        DB::transaction(function () use ($campusEvent, $isActive) {
+            $campusEvent->update([
+                'is_active' => $isActive,
+            ]);
+
+            $campusEvent->destinationLink()->update([
+                'is_active' => $isActive,
+            ]);
+        });
+
+        $message = $isActive
+            ? 'Campus event and its route link were activated successfully.'
+            : 'Campus event and its route link were deactivated successfully.';
+
+        return back()->with('success', $message);
     }
 
     public function destroy(CampusEvent $campusEvent)
     {
-        $campusEvent->delete();
+        DB::transaction(function () use ($campusEvent) {
+            $campusEvent->destinationLink()->delete();
+            $campusEvent->delete();
+        });
 
-        return back()->with('success', 'Campus event deleted successfully.');
+        return back()->with('success', 'Campus event and its route link were deleted successfully.');
+    }
+
+    private function isDesignLanduse(Landuse $landuse): bool
+    {
+        return strtolower(trim((string) data_get($landuse->properties, 'type'))) === 'design';
     }
 }

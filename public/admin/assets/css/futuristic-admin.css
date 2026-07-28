@@ -2367,7 +2367,7 @@ body.admin-future::before {
 .authorized-permission-head h3,
 .authorized-member-name-row h3,
 .authorized-empty-state h3 {
-    color: #18375d;
+    color: #18375d !important;
 }
 
 .admin-home-section-head p,
@@ -2377,7 +2377,7 @@ body.admin-future::before {
 .authorized-member-identity p,
 .authorized-member-identity small,
 .authorized-empty-state p {
-    color: rgba(24, 55, 93, 0.66);
+    color: #45698f !important;
 }
 
 .admin-module-card,
@@ -2432,16 +2432,37 @@ body.admin-future::before {
 
 .authorized-field > span,
 .authorized-permission-copy strong {
-    color: #18375d;
+    color: #18375d !important;
 }
 
 .authorized-field > span small,
 .authorized-permission-copy small {
-    color: rgba(24, 55, 93, 0.58);
+    color: #527397 !important;
+}
+
+.authorized-field > span {
+    font-size: 11px;
+}
+
+.authorized-permission-head p {
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.authorized-permission-copy strong {
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.authorized-permission-copy small {
+    margin-top: 2px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.25;
 }
 
 .authorized-permission-tools button {
-    color: #18375d;
+    color: #18375d !important;
     border-color: rgba(104, 167, 238, 0.36);
     background: rgba(104, 167, 238, 0.1);
 }
@@ -2453,7 +2474,7 @@ body.admin-future::before {
 }
 
 .authorized-access-tags span {
-    color: #18375d;
+    color: #18375d !important;
     border-color: rgba(104, 167, 238, 0.3);
     background: rgba(104, 167, 238, 0.12);
 }
@@ -2461,18 +2482,18 @@ body.admin-future::before {
 .authorized-status,
 .authorized-status.is-active,
 .authorized-status.is-inactive {
-    color: #18375d;
+    color: #18375d !important;
     border-color: rgba(104, 167, 238, 0.36);
     background: rgba(104, 167, 238, 0.14);
 }
 
 .authorized-edit-drawer > summary {
-    color: #18375d;
+    color: #18375d !important;
     background: rgba(104, 167, 238, 0.1);
 }
 
 .authorized-edit-drawer[open] > summary {
-    color: #ffffff;
+    color: #ffffff !important;
     background: linear-gradient(135deg, #18375d, #68a7ee);
 }
 

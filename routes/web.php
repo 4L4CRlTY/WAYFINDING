@@ -1,12 +1,16 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuthorizedAccessController;
+use App\Http\Controllers\AuthorizedUserController;
 use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\BuildingEntranceController;
 use App\Http\Controllers\BuildingEntranceLinkController;
 use App\Http\Controllers\CampusEventController;
 use App\Http\Controllers\DestinationKeywordController;
+use App\Http\Controllers\DestinationLinkController;
 use App\Http\Controllers\EntryPointController;
+use App\Http\Controllers\GeoJsonBackupController;
 use App\Http\Controllers\HazardPointController;
 use App\Http\Controllers\IndoorEntranceController;
 use App\Http\Controllers\IndoorMapController;
@@ -15,9 +19,6 @@ use App\Http\Controllers\IndoorRoomController;
 use App\Http\Controllers\IndoorStairsLink;
 use App\Http\Controllers\LandUseController;
 use App\Http\Controllers\PathController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AuthorizedAccessController;
-use App\Http\Controllers\AuthorizedUserController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,15 +26,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/go/{destinationLink}', [DestinationLinkController::class, 'open'])
+    ->middleware('throttle:60,1')
+    ->name('destination-links.open');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+Route::get('/guest', [UserController::class, 'GuestDashboard'])
+    ->middleware('throttle:60,1')
+    ->name('guest.dashboard');
 
 require __DIR__.'/auth.php';
 
@@ -44,6 +43,10 @@ Route::middleware(['auth', 'roles:admin'])->group(function () {
     Route::get('/admin/authorized-access', [AuthorizedAccessController::class, 'index'])->name('admin.authorized.index');
     Route::post('/admin/authorized-access', [AuthorizedAccessController::class, 'store'])->name('admin.authorized.store');
     Route::patch('/admin/authorized-access/{authorizedUser}', [AuthorizedAccessController::class, 'update'])->name('admin.authorized.update');
+
+    Route::get('/admin/geojson-backups', [GeoJsonBackupController::class, 'index'])->name('admin.geojson-backups.index');
+    Route::get('/admin/geojson-backups/download-all', [GeoJsonBackupController::class, 'downloadAll'])->name('admin.geojson-backups.download-all');
+    Route::get('/admin/geojson-backups/{dataset}', [GeoJsonBackupController::class, 'download'])->name('admin.geojson-backups.download');
 });
 
 Route::middleware(['auth', 'roles:authorized_user'])->group(function () {
@@ -52,6 +55,12 @@ Route::middleware(['auth', 'roles:authorized_user'])->group(function () {
 });
 
 Route::middleware(['auth', 'roles:admin,authorized_user', 'invalidate.wayfinding'])->group(function () {
+    Route::middleware('authorized.feature:destination_links')->group(function () {
+        Route::get('/admin/destination-links', [DestinationLinkController::class, 'index'])->name('admin.destination-links.index');
+        Route::patch('/admin/destination-links/{destinationLink}/toggle', [DestinationLinkController::class, 'toggle'])->name('admin.destination-links.toggle');
+        Route::delete('/admin/destination-links/{destinationLink}', [DestinationLinkController::class, 'destroy'])->name('admin.destination-links.destroy');
+    });
+
     Route::middleware('authorized.feature:buildings')->group(function () {
         Route::get('/admin/buildings', [BuildingController::class, 'Buildings'])->name('admin.buildings');
         Route::post('/admin/buildings/upload', [BuildingController::class, 'uploadBuildings'])->name('admin.buildings.upload');
