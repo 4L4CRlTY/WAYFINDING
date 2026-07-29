@@ -9,7 +9,7 @@ use RuntimeException;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Refuse to boot any feature test against a persistent database.
+     * Refuse to boot any feature test outside the dedicated MySQL schema.
      *
      * Laravel's cached configuration can otherwise override phpunit.xml and
      * make RefreshDatabase target the developer's real MySQL schema.
@@ -21,15 +21,20 @@ abstract class TestCase extends BaseTestCase
         $database = (string) $app['config']->get(
             "database.connections.{$connection}.database"
         );
+        $username = (string) $app['config']->get(
+            "database.connections.{$connection}.username"
+        );
 
         if (
             ! $app->environment('testing')
-            || $connection !== 'sqlite'
-            || $database !== ':memory:'
+            || $connection !== 'mysql'
+            || $database !== 'wayfinding_testing'
+            || $username !== 'wayfinding_test'
         ) {
             throw new RuntimeException(
-                'Test safety stop: PHPUnit must use the in-memory SQLite database. '
-                .'Clear cached configuration before running the test suite.'
+                'Test safety stop: PHPUnit must use the restricted '
+                .'wayfinding_test account and wayfinding_testing database. '
+                .'Clear cached configuration and check .env.testing.'
             );
         }
 

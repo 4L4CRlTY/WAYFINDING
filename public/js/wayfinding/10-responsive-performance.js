@@ -469,6 +469,101 @@ window.routeToCampusEvent = routeToCampusEvent;
 })();
 
 /* =========================================================
+   ADAPTIVE LOW-END PHONE RENDERING
+   - Device capability chooses full, balanced, or low mode.
+   - Runtime long-task pressure may safely downgrade mobile to low.
+   - Building geometry, color, labels, markers, and routing never change.
+========================================================= */
+(function adaptiveLowEndPhoneRendering() {
+    if (window.__adaptiveLowEndPhoneRenderingApplied) return;
+    window.__adaptiveLowEndPhoneRenderingApplied = true;
+
+    const body = document.body;
+    if (!body || typeof window.applyWayfindingRenderProfile !== 'function') return;
+
+    let pressureObserver = null;
+    let pressureDuration = 0;
+
+    function applyCurrentDeviceProfile() {
+        if (typeof window.detectWayfindingRenderProfile !== 'function') return;
+
+        const nextProfile = window.detectWayfindingRenderProfile();
+        const currentMode = window.wayfindingRenderProfile?.mode;
+
+        /*
+        | Never automatically upgrade a runtime-downgraded phone during resize.
+        | Orientation changes should not bring expensive layers back mid-session.
+        */
+        if (currentMode === 'low' && nextProfile.mode !== 'low') return;
+
+        window.applyWayfindingRenderProfile(nextProfile, 'device');
+    }
+
+    function startRuntimePressureMonitor() {
+        if (
+            window.wayfindingRenderProfile?.mode !== 'balanced'
+            || typeof PerformanceObserver !== 'function'
+        ) {
+            return;
+        }
+
+        try {
+            pressureObserver = new PerformanceObserver(list => {
+                list.getEntries().forEach(entry => {
+                    if (entry.duration >= 80) {
+                        pressureDuration += entry.duration;
+                    }
+                });
+
+                if (pressureDuration < 480) return;
+
+                window.applyWayfindingRenderProfile({
+                    ...(window.wayfindingRenderProfile || {}),
+                    mode: 'low',
+                    mobile: true
+                }, 'runtime-pressure');
+
+                pressureObserver.disconnect();
+                pressureObserver = null;
+            });
+
+            pressureObserver.observe({
+                entryTypes: ['longtask']
+            });
+
+            setTimeout(() => {
+                if (!pressureObserver) return;
+                pressureObserver.disconnect();
+                pressureObserver = null;
+            }, 10000);
+        } catch (error) {
+            pressureObserver = null;
+        }
+    }
+
+    window.addEventListener('resize', applyCurrentDeviceProfile, {
+        passive: true
+    });
+    window.addEventListener('orientationchange', applyCurrentDeviceProfile, {
+        passive: true
+    });
+
+    if (document.readyState === 'complete') {
+        setTimeout(startRuntimePressureMonitor, 1200);
+    } else {
+        window.addEventListener('load', () => {
+            setTimeout(startRuntimePressureMonitor, 1200);
+        }, {
+            once: true
+        });
+    }
+
+    window.getWayfindingRenderQuality = function getWayfindingRenderQuality() {
+        return window.wayfindingRenderProfile?.mode || 'full';
+    };
+})();
+
+/* =========================================================
    CLEAN MOBILE BUILDING SHADOW RUNTIME PATCH
    Hides any old duplicate shadow panes if cached.
    The shared movement controller above owns the map-moving state.

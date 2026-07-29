@@ -1,7 +1,6 @@
 /* =========================================================
-   SMOOTHNESS / PERFORMANCE CSS PATCH
+   SMOOTHNESS / PERFORMANCE
    Visual optimization only. No building color changes.
-   Paste this at the VERY BOTTOM of user.style.style.
 ========================================================= */
 
 /* Make map rendering/compositing steadier */
@@ -87,6 +86,7 @@ body.map-moving .path-canopy-frames {
 
 /* Pause non-essential pulsing effects while map is moving or tab is hidden */
 body.map-moving .ai-dot,
+body.map-moving .badge-dot,
 body.map-moving .ai-voice-orb,
 body.map-moving .ai-voice-orb span,
 body.map-moving .hazard-pin,
@@ -154,6 +154,45 @@ body.page-hidden .hazard-pin {
     .hazard-pin {
         animation-duration: 3.5s !important;
     }
+}
+
+/*
+| Adaptive low-end rendering keeps the top polygon and solid near-depth layer.
+| Only the far depth layer and nonessential GPU effects are removed, so the
+| building remains dimensional and keeps its exact color, border, and geometry.
+*/
+body.render-quality-low .building-depth-solid-far {
+    display: none !important;
+}
+
+body.render-quality-low .building-depth-solid-near {
+    display: block !important;
+    opacity: 0.88 !important;
+}
+
+body.render-quality-low .fake-3d-building,
+body.render-quality-low .fake-3d-building:hover {
+    filter: none !important;
+    transform: none !important;
+    transition: none !important;
+}
+
+body.render-quality-low .leaflet-buildingDepth-pane svg,
+body.render-quality-low .leaflet-paths-pane svg {
+    shape-rendering: optimizeSpeed !important;
+}
+
+body.render-quality-low .ai-dot,
+body.render-quality-low .badge-dot,
+body.render-quality-low .hazard-pin,
+body.render-quality-low .live-gps-pulse {
+    animation: none !important;
+}
+
+body.render-quality-low.map-moving .building-depth-solid-near,
+body.render-quality-low.map-zooming .building-depth-solid-near {
+    display: block !important;
+    opacity: 0.88 !important;
 }
 
 /* Respect devices/users that prefer fewer animations */
@@ -229,19 +268,13 @@ body.map-zooming .fake-3d-building:hover {
         drop-shadow(3px 3px 1px var(--building-side-3, rgba(15, 23, 42, 0.12))) !important;
 }
 
-/* Pause small animations while map is moving */
-body.map-moving .ai-dot,
-body.map-moving .badge-dot,
-body.map-moving .hazard-pin,
+/* Pause small animations while the map is zooming */
 body.map-zooming .ai-dot,
 body.map-zooming .badge-dot,
 body.map-zooming .hazard-pin {
     animation-play-state: paused !important;
 }
 
-body.map-moving .path-interactive,
-body.map-moving .path-covered-stairs,
-body.map-moving .path-canopy-frames,
 body.map-zooming .path-interactive,
 body.map-zooming .path-covered-stairs,
 body.map-zooming .path-canopy-frames {

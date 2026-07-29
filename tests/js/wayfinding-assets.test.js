@@ -122,6 +122,51 @@ test('all wayfinding CSS components parse successfully', () => {
     });
 });
 
+test('the initial wayfinding stylesheet imports each core component exactly once', () => {
+    const entryPath = new URL('../../resources/css/wayfinding.css', import.meta.url);
+    const source = readFileSync(entryPath, 'utf8');
+    const importedComponents = [
+        ...source.matchAll(
+            /@import\s+["']\.\.\/\.\.\/public\/css\/wayfinding\/([^"']+)["'];/g,
+        ),
+    ].map((match) => match[1]);
+    const expectedComponents = cssComponents.filter(
+        (filename) => ![
+            '11-gps-rotation.css',
+            '13-gps-simulator.css',
+            '14-gps-diagnostics.css',
+            '17-cr-navigation.css',
+        ].includes(filename),
+    );
+
+    assert.deepEqual(importedComponents, expectedComponents);
+    assert.equal(new Set(importedComponents).size, importedComponents.length);
+});
+
+test('GPS-only styles are bundled with their lazy feature entries', () => {
+    const gpsEntry = readFileSync(
+        new URL('../../resources/js/wayfinding-gps-entry.js', import.meta.url),
+        'utf8',
+    );
+    const diagnosticsEntry = readFileSync(
+        new URL('../../resources/js/wayfinding-gps-diagnostics-entry.js', import.meta.url),
+        'utf8',
+    );
+    const gpsStyles = readFileSync(
+        new URL('../../public/css/wayfinding/11-gps-rotation.css', import.meta.url),
+        'utf8',
+    );
+    const coreControls = readFileSync(
+        new URL('../../public/css/wayfinding/02-route-controls.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(gpsEntry, /11-gps-rotation\.css/);
+    assert.match(diagnosticsEntry, /14-gps-diagnostics\.css/);
+    assert.doesNotMatch(gpsStyles, /body\.pick-path-active \.floating-mode-btn\.pick/);
+    assert.match(coreControls, /body\.pick-path-active \.floating-mode-btn\.pick/);
+});
+
 test('public futuristic theme parses successfully', () => {
     const path = new URL('../../public/css/futuristic-public.css', import.meta.url);
     const source = readFileSync(path, 'utf8');

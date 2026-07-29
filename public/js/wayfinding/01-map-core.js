@@ -7,7 +7,85 @@
     | Route / navigation outdoor zoom = 17
     | Lower value = mas zoom out.
     */
-    const IS_MOBILE_OUTDOOR_VIEW = window.matchMedia('(max-width: 768px)').matches;
+    function detectWayfindingRenderProfile() {
+        const mobileView = window.matchMedia('(hover: none), (max-width: 768px)').matches;
+
+        if (!mobileView) {
+            return {
+                mode: 'full',
+                score: 0,
+                mobile: false
+            };
+        }
+
+        const memory = Number(navigator.deviceMemory || 0);
+        const cores = Number(navigator.hardwareConcurrency || 0);
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+        const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let score = 0;
+
+        if (memory > 0 && memory <= 2) {
+            score += 3;
+        } else if (memory > 0 && memory <= 4) {
+            score += 2;
+        }
+
+        if (cores > 0 && cores <= 2) {
+            score += 3;
+        } else if (cores > 0 && cores <= 4) {
+            score += 2;
+        }
+
+        if (connection?.saveData) score += 2;
+        if (['slow-2g', '2g'].includes(effectiveType)) score += 2;
+        if (reducedMotion) score += 1;
+        if (window.innerWidth <= 390) score += 1;
+
+        return {
+            mode: score >= 3 ? 'low' : 'balanced',
+            score,
+            mobile: true
+        };
+    }
+
+    function applyWayfindingRenderProfile(profile, reason = 'device') {
+        const safeProfile = profile && ['full', 'balanced', 'low'].includes(profile.mode)
+            ? profile
+            : detectWayfindingRenderProfile();
+        const body = document.body;
+
+        if (body) {
+            body.classList.remove(
+                'render-quality-full',
+                'render-quality-balanced',
+                'render-quality-low'
+            );
+            body.classList.add(`render-quality-${safeProfile.mode}`);
+            body.dataset.renderQuality = safeProfile.mode;
+            body.dataset.renderQualityReason = reason;
+        }
+
+        window.wayfindingRenderProfile = {
+            ...safeProfile,
+            reason
+        };
+
+        window.dispatchEvent(new CustomEvent('wayfinding:render-profile', {
+            detail: window.wayfindingRenderProfile
+        }));
+
+        return window.wayfindingRenderProfile;
+    }
+
+    const WAYFINDING_RENDER_PROFILE = applyWayfindingRenderProfile(
+        detectWayfindingRenderProfile()
+    );
+    const IS_MOBILE_OUTDOOR_VIEW = WAYFINDING_RENDER_PROFILE.mobile;
+    const SHOULD_RENDER_FAR_BUILDING_DEPTH = WAYFINDING_RENDER_PROFILE.mode !== 'low';
+
+    window.detectWayfindingRenderProfile = detectWayfindingRenderProfile;
+    window.applyWayfindingRenderProfile = applyWayfindingRenderProfile;
     const MOBILE_OUTDOOR_MIN_ZOOM_VALUE = 17;
     const MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE = 18;
     const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 17;

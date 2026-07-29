@@ -251,19 +251,25 @@
             const farDepthColor = darkenColor(baseColor, 0.46);
             const nearDepthColor = darkenColor(baseColor, 0.28);
 
-            L.geoJSON(geojson, {
-                pane: 'buildingDepthPane',
-                renderer: OUTDOOR_BUILDING_DEPTH_RENDERER,
-                interactive: false,
-                className: 'building-depth-solid building-depth-solid-far',
-                style: {
-                    color: farDepthColor,
-                    weight: 1,
-                    fillColor: farDepthColor,
-                    fillOpacity: 0.46,
-                    lineJoin: 'round'
-                }
-            }).addTo(buildingDepthLayerGroup);
+            /*
+            | Low-end phones retain the solid near-depth polygon, so buildings
+            | never become flat. Only the second, farther depth polygon is omitted.
+            */
+            if (SHOULD_RENDER_FAR_BUILDING_DEPTH) {
+                L.geoJSON(geojson, {
+                    pane: 'buildingDepthPane',
+                    renderer: OUTDOOR_BUILDING_DEPTH_RENDERER,
+                    interactive: false,
+                    className: 'building-depth-solid building-depth-solid-far',
+                    style: {
+                        color: farDepthColor,
+                        weight: 1,
+                        fillColor: farDepthColor,
+                        fillOpacity: 0.46,
+                        lineJoin: 'round'
+                    }
+                }).addTo(buildingDepthLayerGroup);
+            }
 
             L.geoJSON(geojson, {
                 pane: 'buildingDepthPane',

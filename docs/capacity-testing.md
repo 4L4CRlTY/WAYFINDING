@@ -9,10 +9,28 @@ For a beginner-friendly local check:
 3. Double-click `run-local-capacity-test.cmd`.
 4. Wait for the summary and look for `"failed": 0`.
 
-The one-click runner safely targets `http://wayfinding.test`, runs 10 virtual
-users with concurrency 5, and pauses so the result can be screenshotted. It
-always uses the seeded local test account `user@gmail.com` / `111` and ignores
-custom credential files. It never targets Hostinger.
+The one-click runner safely targets `http://wayfinding.test`, defaults to 10
+virtual users with concurrency 5, and pauses so the result can be
+screenshotted. It always uses the seeded local test account
+`user@gmail.com` / `111`, ignores custom credential files, and never targets
+Hostinger.
+
+Pass the total users and concurrency as arguments instead of editing the file:
+
+```powershell
+# Safe baseline
+.\run-local-capacity-test.cmd 10 5
+
+# Heavy local checks
+.\run-local-capacity-test.cmd 500 50
+.\run-local-capacity-test.cmd 1000 50
+```
+
+Keep local concurrency at 50 or below. The local `.env` uses the request-local
+`array` cache for stress testing because Windows Apache can deny simultaneous
+locks on Laravel filesystem cache files. The production template remains on
+the persistent `file` cache for Hostinger's Linux environment. Database
+sessions remain enabled in both environments.
 
 The full capacity test simulates an HTTP journey for many virtual users:
 

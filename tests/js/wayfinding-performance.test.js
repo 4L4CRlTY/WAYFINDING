@@ -154,6 +154,44 @@ test('low-powered phones avoid path hit-testing and GPS redraws during manual dr
     assert.doesNotMatch(performanceCss, /\.leaflet-buildingsPane-pane svg/);
 });
 
+test('adaptive low-end rendering keeps one solid building depth layer', () => {
+    const mapCore = readFileSync(
+        new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
+        'utf8',
+    );
+    const mapRendering = readFileSync(
+        new URL('../../public/js/wayfinding/05-map-rendering.js', import.meta.url),
+        'utf8',
+    );
+    const responsivePerformance = readFileSync(
+        new URL('../../public/js/wayfinding/10-responsive-performance.js', import.meta.url),
+        'utf8',
+    );
+    const performanceCss = readFileSync(
+        new URL('../../public/css/wayfinding/09-map-performance.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(mapCore, /function detectWayfindingRenderProfile\(\)/);
+    assert.match(mapCore, /navigator\.deviceMemory/);
+    assert.match(mapCore, /navigator\.hardwareConcurrency/);
+    assert.match(mapCore, /const SHOULD_RENDER_FAR_BUILDING_DEPTH\s*=/);
+    assert.match(mapRendering, /if \(SHOULD_RENDER_FAR_BUILDING_DEPTH\)/);
+    assert.match(mapRendering, /building-depth-solid-near/);
+    assert.match(responsivePerformance, /adaptiveLowEndPhoneRendering/);
+    assert.match(responsivePerformance, /entryTypes:\s*\['longtask'\]/);
+    assert.match(performanceCss, /body\.render-quality-low \.building-depth-solid-far/);
+    assert.match(performanceCss, /body\.render-quality-low \.building-depth-solid-near/);
+    assert.match(
+        performanceCss,
+        /body\.render-quality-low\.map-moving \.building-depth-solid-near/,
+    );
+    assert.doesNotMatch(
+        performanceCss,
+        /body\.render-quality-low \.building-depth-solid-near\s*\{[^}]*display:\s*none/s,
+    );
+});
+
 test('full capacity tester covers public and authenticated journeys safely', () => {
     const scriptUrl = new URL(
         '../../scripts/load-test-wayfinding.mjs',
@@ -192,6 +230,22 @@ test('full capacity tester covers public and authenticated journeys safely', () 
     assert.match(script, /I_HAVE_PERMISSION/);
     assert.match(script, /p95/);
     assert.match(script, /HTTP 429|response\.status/);
+});
+
+test('local capacity runner accepts staged user and concurrency arguments', () => {
+    const runner = readFileSync(
+        new URL('../../run-local-capacity-test.cmd', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(runner, /set "WAYFINDING_LOAD_USERS=%~1"/);
+    assert.match(runner, /set "WAYFINDING_LOAD_CONCURRENCY=%~2"/);
+    assert.match(
+        runner,
+        /Running %WAYFINDING_LOAD_USERS% virtual users with %WAYFINDING_LOAD_CONCURRENCY% users at the same time/,
+    );
+    assert.doesNotMatch(runner, /set "WAYFINDING_LOAD_USERS=500"/);
+    assert.doesNotMatch(runner, /set "WAYFINDING_LOAD_CONCURRENCY=50"/);
 });
 
 test('full capacity tester refuses an unconfirmed remote target', () => {

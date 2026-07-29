@@ -1085,3 +1085,8 @@
             z-index: 10050 !important;
         }
     }
+/* Pick Path remains part of the initial controls; GPS-only styles load lazily. */
+body.pick-path-active .floating-mode-btn.pick {
+    border-color: rgba(34, 197, 94, 0.70) !important;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18), 0 16px 30px rgba(2, 8, 23, 0.20) !important;
+}
