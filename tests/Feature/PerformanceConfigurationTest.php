@@ -10,6 +10,13 @@ class PerformanceConfigurationTest extends TestCase
     {
         $cacheConfig = file_get_contents(config_path('cache.php'));
         $productionEnvironment = file_get_contents(base_path('.env.production.example'));
+        $hostingerEnvironment = file_get_contents(
+            base_path('deploy/hostinger/.env.hostinger.example')
+        );
+        $hostingerRewrite = file_get_contents(base_path('.htaccess'));
+        $deploymentScript = file_get_contents(
+            base_path('deploy/hostinger/deploy-hostinger.sh')
+        );
 
         $this->assertStringContainsString(
             "'default' => env('CACHE_STORE', 'file')",
@@ -17,5 +24,15 @@ class PerformanceConfigurationTest extends TestCase
         );
         $this->assertStringContainsString('CACHE_STORE=file', $productionEnvironment);
         $this->assertStringContainsString('SESSION_DRIVER=database', $productionEnvironment);
+        $this->assertStringContainsString('CACHE_STORE=file', $hostingerEnvironment);
+        $this->assertStringContainsString(
+            'RewriteRule ^((?!public/).*)$ public/$1',
+            $hostingerRewrite,
+        );
+        $this->assertStringNotContainsString('publicc/', $hostingerRewrite);
+        $this->assertStringContainsString(
+            'php artisan wayfinding:snapshot',
+            $deploymentScript,
+        );
     }
 }

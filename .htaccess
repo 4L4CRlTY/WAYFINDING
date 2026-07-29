@@ -1,9 +1,10 @@
 .htaccess
 
 <IfModule mod_rewrite.c>
+    RewriteEngine On
 
-RewriteEngine On
-RewriteRule ^$ public/index.php [L]
-RewriteRule ^((?!publicc/).*)$ public/$1 [L,NC]
-
+    # Forward shared-hosting requests to Laravel's public directory.
+    # Excluding public/ prevents repeated public/public rewrite loops.
+    RewriteRule ^$ public/index.php [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L,NC]
 </IfModule>

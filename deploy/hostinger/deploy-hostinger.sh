@@ -52,6 +52,9 @@ if [ ! -f public/build/manifest.json ]; then
     echo "Run npm run build locally, then upload the public/build folder."
 fi
 
+echo "Publishing the current campus snapshot..."
+php artisan wayfinding:snapshot
+
 echo "Building Laravel production caches..."
 php artisan optimize
 

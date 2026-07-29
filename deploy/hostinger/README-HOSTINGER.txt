@@ -90,13 +90,14 @@ Run these from the folder containing artisan:
 
     composer install --no-dev --prefer-dist --optimize-autoloader
     php artisan optimize:clear
-    php artisan key:generate --force
     php artisan migrate --force
     php artisan storage:link
+    php artisan wayfinding:snapshot
     php artisan optimize
 
-Only run key:generate once for a new production installation. Running it again
-later will invalidate encrypted sessions and existing encrypted values.
+For a brand-new installation only, run `php artisan key:generate --force`
+before the migration. Never run it again during an update deployment because
+changing APP_KEY invalidates encrypted sessions and existing encrypted values.
 
 
 FINAL CHECKS
