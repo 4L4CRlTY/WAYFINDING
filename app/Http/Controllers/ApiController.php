@@ -14,7 +14,7 @@ use App\Models\IndoorMap;
 use App\Models\IndoorPath;
 use App\Models\IndoorRoom;
 use App\Models\IndoorStairLink;
-use App\Models\LandUse;
+use App\Models\Landuse;
 use App\Models\Path;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -132,7 +132,7 @@ class ApiController extends Controller
     public function landuses()
     {
         return response()->json(
-            LandUse::orderBy('id')->get()->map(function ($landuse) {
+            Landuse::orderBy('id')->get()->map(function ($landuse) {
                 return [
                     'id' => $landuse->id,
                     'name' => $landuse->name,
@@ -664,7 +664,7 @@ class ApiController extends Controller
         }));
 
         if (! empty($landuseMatches)) {
-            $landuse = LandUse::find($landuseMatches[0]['destination_id']);
+            $landuse = Landuse::find($landuseMatches[0]['destination_id']);
 
             if ($landuse) {
                 return response()->json([
