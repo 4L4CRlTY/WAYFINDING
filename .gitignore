@@ -23,6 +23,7 @@
 /playwright-report
 /test-results
 /load-test-users.json
+/public/floorplan_image/*_backup_*.png
 /vendor
 _ide_helper.php
 Homestead.json
