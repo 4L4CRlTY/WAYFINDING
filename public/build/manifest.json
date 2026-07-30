@@ -16,7 +16,7 @@
     "src": "node_modules/leaflet/dist/images/marker-icon.png"
   },
   "resources/css/app.css": {
-    "file": "assets/app-AlU0mFaF.css",
+    "file": "assets/app-C1h8ctoM.css",
     "name": "app",
     "names": [
       "app.css"
@@ -54,7 +54,7 @@
     "isDynamicEntry": true
   },
   "resources/js/wayfinding-entry.js": {
-    "file": "assets/wayfinding-entry-DdM795aD.js",
+    "file": "assets/wayfinding-entry-DI9u31lj.js",
     "name": "wayfinding-entry",
     "src": "resources/js/wayfinding-entry.js",
     "isEntry": true,
