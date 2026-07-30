@@ -64,6 +64,34 @@ body {
     transform: translate(1.75px, 1.75px);
 }
 
+/*
+| Narrow screens keep two restrained, fixed-pixel depth layers. Their apparent
+| thickness stays consistent after every zoom while avoiding the bulky desktop
+| offsets. Low-end mode still omits only the farther layer.
+*/
+@media (hover: none), (max-width: 768px) {
+    body:not(.render-quality-low) .building-depth-solid-far {
+        display: block !important;
+        transform: translate(
+            var(--mobile-side-2, 2.5px),
+            var(--mobile-side-2, 2.5px)
+        ) !important;
+        opacity: 0.52 !important;
+    }
+
+    .building-depth-solid-near {
+        transform: translate(
+            var(--mobile-side-1, 1.2px),
+            var(--mobile-side-1, 1.2px)
+        ) !important;
+        opacity: 0.82 !important;
+    }
+
+    body.render-quality-low .building-depth-solid-far {
+        display: none !important;
+    }
+}
+
 /* Shared HUD surfaces */
 .campus-brand-wrap,
 .floating-ai-badge,

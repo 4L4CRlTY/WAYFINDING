@@ -121,6 +121,13 @@ test('mobile route glow and tile churn are disabled only during interaction', ()
     assert.match(mapCore, /updateWhenIdle:\s*IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /updateWhenZooming:\s*!IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /keepBuffer:\s*5/);
+    assert.match(
+        mapCore,
+        /const SHOULD_ANIMATE_MOBILE_ZOOM\s*=\s*IS_MOBILE_OUTDOOR_VIEW[\s\S]*?mode\s*!==\s*'low'/,
+    );
+    assert.match(mapCore, /zoomSnap:\s*SHOULD_ANIMATE_MOBILE_ZOOM\s*\?\s*0\.25/);
+    assert.match(mapCore, /zoomAnimation:\s*SHOULD_ANIMATE_MOBILE_ZOOM/);
+    assert.match(mapCore, /markerZoomAnimation:\s*SHOULD_ANIMATE_MOBILE_ZOOM/);
 });
 
 test('low-powered phones avoid path hit-testing and GPS redraws during manual drag', () => {
@@ -140,7 +147,6 @@ test('low-powered phones avoid path hit-testing and GPS redraws during manual dr
         new URL('../../public/css/wayfinding/09-map-performance.css', import.meta.url),
         'utf8',
     );
-
     assert.match(mapRendering, /interactive:\s*!IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /OUTDOOR_PATHS_RENDERER\s*=\s*IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /L\.canvas\(\{[\s\S]*?pane:\s*'pathsPane'/);
@@ -171,13 +177,29 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
         new URL('../../public/css/wayfinding/09-map-performance.css', import.meta.url),
         'utf8',
     );
+    const themeCss = readFileSync(
+        new URL('../../public/css/wayfinding/12-futuristic-theme.css', import.meta.url),
+        'utf8',
+    );
 
     assert.match(mapCore, /function detectWayfindingRenderProfile\(\)/);
     assert.match(mapCore, /navigator\.deviceMemory/);
     assert.match(mapCore, /navigator\.hardwareConcurrency/);
-    assert.match(mapCore, /const SHOULD_RENDER_FAR_BUILDING_DEPTH\s*=/);
+    assert.match(
+        mapCore,
+        /const SHOULD_RENDER_FAR_BUILDING_DEPTH\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*!==\s*'low'/,
+    );
+    assert.match(mapCore, /const MOBILE_STATIC_PATH_WIDTH_SCALE\s*=/);
+    assert.match(mapCore, /function updateMobileBuildingDepthScale\(\)/);
+    assert.match(mapCore, /const depthScale\s*=\s*0\.62\s*\+\s*\(0\.38\s*\*\s*zoomProgress\)/);
+    assert.match(mapCore, /--mobile-side-1',\s*`\$\{round2\(1\.2\s*\*\s*depthScale\)\}px`/);
+    assert.match(mapCore, /--mobile-side-2',\s*`\$\{round2\(2\.5\s*\*\s*depthScale\)\}px`/);
+    assert.match(mapCore, /map\.on\('zoom',\s*\(\)\s*=>\s*\{/);
+    assert.match(mapCore, /mobileDepthZoomFrame\s*=\s*requestAnimationFrame/);
     assert.match(mapRendering, /if \(SHOULD_RENDER_FAR_BUILDING_DEPTH\)/);
     assert.match(mapRendering, /building-depth-solid-near/);
+    assert.match(mapRendering, /function scaleStaticPathWeight\(/);
+    assert.match(mapRendering, /weight:\s*scaleStaticPathWeight\(config\.casingWeight/);
     assert.match(responsivePerformance, /adaptiveLowEndPhoneRendering/);
     assert.match(responsivePerformance, /entryTypes:\s*\['longtask'\]/);
     assert.match(performanceCss, /body\.render-quality-low \.building-depth-solid-far/);
@@ -189,6 +211,18 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
     assert.doesNotMatch(
         performanceCss,
         /body\.render-quality-low \.building-depth-solid-near\s*\{[^}]*display:\s*none/s,
+    );
+    assert.match(
+        themeCss,
+        /body:not\(\.render-quality-low\) \.building-depth-solid-far\s*\{[\s\S]*?display:\s*block !important;/,
+    );
+    assert.match(
+        themeCss,
+        /\.building-depth-solid-near\s*\{[\s\S]*?var\(--mobile-side-1,\s*1\.2px\)/,
+    );
+    assert.match(
+        themeCss,
+        /body\.render-quality-low \.building-depth-solid-far\s*\{[\s\S]*?display:\s*none !important;/,
     );
 });
 

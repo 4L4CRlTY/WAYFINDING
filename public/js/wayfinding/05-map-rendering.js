@@ -62,13 +62,24 @@
         }
     };
 
+    function scaleStaticPathWeight(weight, minimum = 1.5) {
+        if (!IS_MOBILE_OUTDOOR_VIEW) {
+            return weight;
+        }
+
+        return Math.max(
+            minimum,
+            Math.round(weight * MOBILE_STATIC_PATH_WIDTH_SCALE * 10) / 10
+        );
+    }
+
     function stylePath(feature) {
         const type = getPathType(feature);
         const config = pathConfig[type] || pathConfig.walkway;
 
         return {
             color: config.color,
-            weight: config.weight,
+            weight: scaleStaticPathWeight(config.weight),
             opacity: 1,
             lineCap: 'round',
             lineJoin: 'round',
@@ -278,9 +289,9 @@
                 className: 'building-depth-solid building-depth-solid-near',
                 style: {
                     color: nearDepthColor,
-                    weight: 1,
+                    weight: IS_MOBILE_OUTDOOR_VIEW ? 0.7 : 1,
                     fillColor: nearDepthColor,
-                    fillOpacity: 0.88,
+                    fillOpacity: IS_MOBILE_OUTDOOR_VIEW ? 0.72 : 0.88,
                     lineJoin: 'round'
                 }
             }).addTo(buildingDepthLayerGroup);
@@ -298,9 +309,9 @@
                 className: `fake-3d-building ${className}`,
                 style: {
                     color: darkenColor(baseColor, 0.32),
-                    weight: 1.25,
+                    weight: IS_MOBILE_OUTDOOR_VIEW ? 0.9 : 1.25,
                     fillColor: baseColor,
-                    fillOpacity: 0.98,
+                    fillOpacity: IS_MOBILE_OUTDOOR_VIEW ? 0.96 : 0.98,
                     lineJoin: 'round'
                 },
                 onEachFeature: function(feature, layer) {
@@ -380,7 +391,7 @@
                 const config = pathConfig[getPathType(f)] || pathConfig.walkway;
                 return {
                     color: config.casingColor,
-                    weight: config.casingWeight,
+                    weight: scaleStaticPathWeight(config.casingWeight, 2.5),
                     opacity: 0.96,
                     lineCap: 'round',
                     lineJoin: 'round',
@@ -425,7 +436,7 @@
             filter: (f) => getPathType(f) === 'covered_stairs',
             style: {
                 color: '#f4f7fa',
-                weight: 3.5,
+                weight: scaleStaticPathWeight(3.5, 1.8),
                 opacity: 0.95,
                 dashArray: '2, 7',
                 className: 'path-canopy-frames'

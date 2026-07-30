@@ -82,7 +82,16 @@
         detectWayfindingRenderProfile()
     );
     const IS_MOBILE_OUTDOOR_VIEW = WAYFINDING_RENDER_PROFILE.mobile;
+    /*
+    | Balanced mobile keeps both subtle depth polygons for a consistent 3D
+    | silhouette. Only genuinely low-end devices omit the farther layer.
+    */
     const SHOULD_RENDER_FAR_BUILDING_DEPTH = WAYFINDING_RENDER_PROFILE.mode !== 'low';
+    const SHOULD_ANIMATE_MOBILE_ZOOM = IS_MOBILE_OUTDOOR_VIEW
+        && WAYFINDING_RENDER_PROFILE.mode !== 'low';
+    const MOBILE_STATIC_PATH_WIDTH_SCALE = WAYFINDING_RENDER_PROFILE.mode === 'low'
+        ? 0.62
+        : 0.72;
 
     window.detectWayfindingRenderProfile = detectWayfindingRenderProfile;
     window.applyWayfindingRenderProfile = applyWayfindingRenderProfile;
@@ -142,7 +151,7 @@
         */
         minZoom: IS_MOBILE_OUTDOOR_VIEW ? MOBILE_OUTDOOR_MIN_ZOOM_VALUE : 18.3,
         maxZoom: 19,
-        zoomSnap: IS_MOBILE_OUTDOOR_VIEW ? 0.5 : 1,
+        zoomSnap: SHOULD_ANIMATE_MOBILE_ZOOM ? 0.25 : (IS_MOBILE_OUTDOOR_VIEW ? 0.5 : 1),
         zoomDelta: IS_MOBILE_OUTDOOR_VIEW ? 0.5 : 1,
 
         /*
@@ -158,26 +167,15 @@
 
 
         /*
-        |--------------------------------------------------------------------------
-        | LANDUSE IMAGE LUHAG HARD FIX
-        |--------------------------------------------------------------------------
-        | Disable Leaflet zoom animation so image overlays will not shake/fly
-        | during zoom in/out. The map still zooms normally, but without animated
-        | stretching that causes landuse image overlays to look loose.
+        | Balanced touch devices animate the short settle from the live pinch
+        | scale to the final fractional zoom. This removes the visible size snap
+        | when both fingers leave the screen. The exact land-use overlay now
+        | redraws during zoom/move, while low-end phones retain the cheaper mode.
         */
-        /*
-        | LANDUSE IMAGE STABLE FIX
-        | Keep zoom animation OFF because the custom exact landuse SVG is
-        | recalculated using map.latLngToLayerPoint(). If zoom animation is ON,
-        | Leaflet scales vector layers while this custom SVG waits until zoomend,
-        | so the landuse image looks like it jumps then returns.
-        | Mobile keeps a large tile buffer and waits until interaction settles
-        | before requesting more tiles. This prevents network/image decoding work
-        | from competing with finger dragging.
-        */
-        zoomAnimation: false,
+        zoomAnimation: SHOULD_ANIMATE_MOBILE_ZOOM,
+        zoomAnimationThreshold: 4,
         fadeAnimation: false,
-        markerZoomAnimation: false,
+        markerZoomAnimation: SHOULD_ANIMATE_MOBILE_ZOOM,
         inertia: true
     });
 
@@ -213,6 +211,40 @@
         keepBuffer: 5
     }).addTo(map);
 
+    function updateMobileBuildingDepthScale() {
+        if (!IS_MOBILE_OUTDOOR_VIEW || typeof map === 'undefined' || !map) {
+            return;
+        }
+
+        const zoomRange = Math.max(
+            0.01,
+            MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE - MOBILE_OUTDOOR_MIN_ZOOM_VALUE
+        );
+        const zoomProgress = Math.max(
+            0,
+            Math.min(
+                1,
+                (map.getZoom() - MOBILE_OUTDOOR_MIN_ZOOM_VALUE) / zoomRange
+            )
+        );
+
+        /*
+        | At the farthest campus overview the depth is 62% of its normal mobile
+        | size. It grows gradually to full depth by the default zoom, preventing
+        | small buildings from looking bulky without flattening close-up views.
+        */
+        const depthScale = 0.62 + (0.38 * zoomProgress);
+        const round2 = (value) => Math.round(value * 100) / 100;
+
+        document.documentElement.style.setProperty('--mobile-side-1', `${round2(1.2 * depthScale)}px`);
+        document.documentElement.style.setProperty('--mobile-side-2', `${round2(2.5 * depthScale)}px`);
+        document.documentElement.style.setProperty('--mobile-side-3', `${round2(2.5 * depthScale)}px`);
+        document.documentElement.style.setProperty(
+            '--mobile-edge-width',
+            `${round2(0.9 + (0.2 * zoomProgress))}`
+        );
+    }
+
     function updateShadows() {
         /*
         |--------------------------------------------------------------------------
@@ -242,26 +274,7 @@
             return;
         }
 
-        const zoom = map.getZoom ? map.getZoom() : 18;
-        const baseZoom = (typeof MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE !== 'undefined' && MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE)
-            ? MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE
-            : 18;
-
-        const zoomDiff = zoom - baseZoom;
-        let scale = Math.pow(2, zoomDiff * 0.08);
-        scale = Math.max(0.60, Math.min(0.92, scale));
-
-        const round2 = (n) => Math.round(n * 100) / 100;
-
-        const d1 = Math.max(0.65, round2(1.00 * scale));
-        const d2 = Math.max(1.15, round2(1.85 * scale));
-        const d3 = Math.max(1.65, round2(2.70 * scale));
-        const edgeWidth = Math.max(1.18, Math.min(1.38, round2(1.35 * scale)));
-
-        document.documentElement.style.setProperty('--mobile-side-1', `${d1}px`);
-        document.documentElement.style.setProperty('--mobile-side-2', `${d2}px`);
-        document.documentElement.style.setProperty('--mobile-side-3', `${d3}px`);
-        document.documentElement.style.setProperty('--mobile-edge-width', `${edgeWidth}`);
+        updateMobileBuildingDepthScale();
 
         if (typeof updateBuildingPerformanceMode === 'function') {
             updateBuildingPerformanceMode();
@@ -271,6 +284,21 @@
         updateShadows();
         updateRouteBuildingPopupScale();
     });
+
+    if (IS_MOBILE_OUTDOOR_VIEW) {
+        let mobileDepthZoomFrame = null;
+
+        map.on('zoom', () => {
+            if (mobileDepthZoomFrame) {
+                return;
+            }
+
+            mobileDepthZoomFrame = requestAnimationFrame(() => {
+                mobileDepthZoomFrame = null;
+                updateMobileBuildingDepthScale();
+            });
+        });
+    }
 
     map.on('moveend viewreset resize', () => {
         updateRouteBuildingPopupScale();
