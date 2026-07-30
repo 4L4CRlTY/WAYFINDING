@@ -87,8 +87,7 @@
     | silhouette. Only genuinely low-end devices omit the farther layer.
     */
     const SHOULD_RENDER_FAR_BUILDING_DEPTH = WAYFINDING_RENDER_PROFILE.mode !== 'low';
-    const SHOULD_ANIMATE_MOBILE_ZOOM = IS_MOBILE_OUTDOOR_VIEW
-        && WAYFINDING_RENDER_PROFILE.mode !== 'low';
+    const MOBILE_ZOOM_SNAP = WAYFINDING_RENDER_PROFILE.mode === 'low' ? 0.5 : 0.25;
     const MOBILE_STATIC_PATH_WIDTH_SCALE = WAYFINDING_RENDER_PROFILE.mode === 'low'
         ? 0.62
         : 0.72;
@@ -151,7 +150,7 @@
         */
         minZoom: IS_MOBILE_OUTDOOR_VIEW ? MOBILE_OUTDOOR_MIN_ZOOM_VALUE : 18.3,
         maxZoom: 19,
-        zoomSnap: SHOULD_ANIMATE_MOBILE_ZOOM ? 0.25 : (IS_MOBILE_OUTDOOR_VIEW ? 0.5 : 1),
+        zoomSnap: IS_MOBILE_OUTDOOR_VIEW ? MOBILE_ZOOM_SNAP : 1,
         zoomDelta: IS_MOBILE_OUTDOOR_VIEW ? 0.5 : 1,
 
         /*
@@ -167,15 +166,13 @@
 
 
         /*
-        | Balanced touch devices animate the short settle from the live pinch
-        | scale to the final fractional zoom. This removes the visible size snap
-        | when both fingers leave the screen. The exact land-use overlay now
-        | redraws during zoom/move, while low-end phones retain the cheaper mode.
+        | Pinch geometry and building depth update live. Keep Leaflet's final
+        | settle animation off so releasing both fingers responds immediately;
+        | the small fractional zoom snap already prevents a large visual jump.
         */
-        zoomAnimation: SHOULD_ANIMATE_MOBILE_ZOOM,
-        zoomAnimationThreshold: 4,
+        zoomAnimation: false,
         fadeAnimation: false,
-        markerZoomAnimation: SHOULD_ANIMATE_MOBILE_ZOOM,
+        markerZoomAnimation: false,
         inertia: true
     });
 

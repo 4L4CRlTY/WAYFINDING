@@ -123,11 +123,11 @@ test('mobile route glow and tile churn are disabled only during interaction', ()
     assert.match(mapCore, /keepBuffer:\s*5/);
     assert.match(
         mapCore,
-        /const SHOULD_ANIMATE_MOBILE_ZOOM\s*=\s*IS_MOBILE_OUTDOOR_VIEW[\s\S]*?mode\s*!==\s*'low'/,
+        /const MOBILE_ZOOM_SNAP\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*===\s*'low'\s*\?\s*0\.5\s*:\s*0\.25/,
     );
-    assert.match(mapCore, /zoomSnap:\s*SHOULD_ANIMATE_MOBILE_ZOOM\s*\?\s*0\.25/);
-    assert.match(mapCore, /zoomAnimation:\s*SHOULD_ANIMATE_MOBILE_ZOOM/);
-    assert.match(mapCore, /markerZoomAnimation:\s*SHOULD_ANIMATE_MOBILE_ZOOM/);
+    assert.match(mapCore, /zoomSnap:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*MOBILE_ZOOM_SNAP\s*:\s*1/);
+    assert.match(mapCore, /zoomAnimation:\s*false/);
+    assert.match(mapCore, /markerZoomAnimation:\s*false/);
 });
 
 test('low-powered phones avoid path hit-testing and GPS redraws during manual drag', () => {
