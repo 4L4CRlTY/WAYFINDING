@@ -94,9 +94,9 @@
 
     window.detectWayfindingRenderProfile = detectWayfindingRenderProfile;
     window.applyWayfindingRenderProfile = applyWayfindingRenderProfile;
-    const MOBILE_OUTDOOR_MIN_ZOOM_VALUE = 17;
+    const MOBILE_OUTDOOR_MIN_ZOOM_VALUE = 17.25;
     const MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE = 17.75;
-    const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 17;
+    const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 17.25;
     const MOBILE_OUTDOOR_MAX_ZOOM_VALUE = 19;
     const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW ? 1 : 0.5;
     const MOBILE_PATH_CANVAS_PADDING = 0.35;
