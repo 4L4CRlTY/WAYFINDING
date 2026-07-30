@@ -144,37 +144,36 @@ function unlockMobileOutdoorManualZoomFinal() {
     }
 }
 
-function applyMobileOutdoorDefaultZoomFinal(delay = 160) {
+function applyMobileOutdoorDefaultZoomFinal() {
     if (!isMobileOutdoorViewFinal() || !map) return;
 
-    setTimeout(() => {
-        if (!map) return;
+    map.invalidateSize();
+    unlockMobileOutdoorManualZoomFinal();
 
-        map.invalidateSize();
-        unlockMobileOutdoorManualZoomFinal();
-
+    if (campusBounds && typeof campusBounds.isValid === 'function' && campusBounds.isValid()) {
+        map.fitBounds(campusBounds, {
+            padding: [50, 50],
+            maxZoom: MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE,
+            animate: false
+        });
+    } else {
         map.setZoom(MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE, {
             animate: false
         });
-    }, delay);
+    }
 }
 
-function applyMobileOutdoorRouteZoomFinal(delay = 160) {
+function applyMobileOutdoorRouteZoomFinal() {
     if (!isMobileOutdoorViewFinal() || !map) return;
 
     mobileOutdoorRouteZoomMode = true;
+    map.invalidateSize();
+    unlockMobileOutdoorManualZoomFinal();
 
-    setTimeout(() => {
-        if (!map) return;
-
-        map.invalidateSize();
-        unlockMobileOutdoorManualZoomFinal();
-
-        /* Auto zoom-out after route only. DILI ni mo lock sa manual zoom. */
-        map.setZoom(MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE, {
-            animate: false
-        });
-    }, delay);
+    /* Immediate overview fallback. Normal route drawing frames through fitBounds. */
+    map.setZoom(MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE, {
+        animate: false
+    });
 }
 
 /*
@@ -203,17 +202,7 @@ if (!window.__mobileOutdoorFitBoundsZoomPatchWrapped) {
             finalOptions.animate = false;
         }
 
-        const result = __baseOutdoorFitBounds(bounds, finalOptions);
-
-        if (isMobileOutdoorViewFinal()) {
-            if (mobileOutdoorRouteZoomMode) {
-                applyMobileOutdoorRouteZoomFinal(260);
-            } else {
-                applyMobileOutdoorDefaultZoomFinal(260);
-            }
-        }
-
-        return result;
+        return __baseOutdoorFitBounds(bounds, finalOptions);
     };
 }
 
@@ -226,10 +215,6 @@ if (typeof drawOutdoorRoute === 'function' && !window.__mobileOutdoorDrawRouteZo
     drawOutdoorRoute = function(result, options = {}) {
         mobileOutdoorRouteZoomMode = true;
         const rendered = __baseDrawOutdoorRouteZoomPatch.call(this, result, options);
-
-        if (!options.liveUpdate) {
-            applyMobileOutdoorRouteZoomFinal(260);
-        }
 
         return rendered;
     };
@@ -244,9 +229,7 @@ if (typeof findRouteByDestination === 'function' && !window.__mobileOutdoorFindR
 
     findRouteByDestination = function() {
         mobileOutdoorRouteZoomMode = true;
-        const result = __baseFindRouteByDestinationZoomPatch.apply(this, arguments);
-        applyMobileOutdoorRouteZoomFinal(320);
-        return result;
+        return __baseFindRouteByDestinationZoomPatch.apply(this, arguments);
     };
 
     window.findRouteByDestination = findRouteByDestination;
@@ -259,9 +242,7 @@ if (typeof computeCompleteRouteToRoom === 'function' && !window.__mobileOutdoorR
 
     computeCompleteRouteToRoom = function() {
         mobileOutdoorRouteZoomMode = true;
-        const result = __baseComputeCompleteRouteToRoomZoomPatch.apply(this, arguments);
-        applyMobileOutdoorRouteZoomFinal(360);
-        return result;
+        return __baseComputeCompleteRouteToRoomZoomPatch.apply(this, arguments);
     };
 
     window.computeCompleteRouteToRoom = computeCompleteRouteToRoom;
@@ -274,9 +255,7 @@ if (typeof searchTextDestination === 'function' && !window.__mobileOutdoorTextSe
 
     searchTextDestination = function() {
         mobileOutdoorRouteZoomMode = true;
-        const result = __baseSearchTextDestinationZoomPatch.apply(this, arguments);
-        applyMobileOutdoorRouteZoomFinal(360);
-        return result;
+        return __baseSearchTextDestinationZoomPatch.apply(this, arguments);
     };
 
     window.searchTextDestination = searchTextDestination;
@@ -290,7 +269,7 @@ if (typeof resetRouteSelection === 'function' && !window.__mobileOutdoorResetZoo
     resetRouteSelection = function() {
         mobileOutdoorRouteZoomMode = false;
         const result = __baseResetRouteSelectionZoomPatch.apply(this, arguments);
-        applyMobileOutdoorDefaultZoomFinal(260);
+        applyMobileOutdoorDefaultZoomFinal();
         return result;
     };
 
@@ -305,8 +284,10 @@ window.addEventListener('orientationchange', function() {
     unlockMobileOutdoorManualZoomFinal();
 });
 
-/* First mobile load = default zoom 18 */
-applyMobileOutdoorDefaultZoomFinal(500);
+/*
+| Initial framing is owned by renderBuildings()->fitBounds(). Avoid a delayed
+| forced zoom that can fight the user's first pinch gesture.
+*/
 
 window.applyMobileOutdoorDefaultZoomFinal = applyMobileOutdoorDefaultZoomFinal;
 window.applyMobileOutdoorRouteZoomFinal = applyMobileOutdoorRouteZoomFinal;

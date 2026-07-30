@@ -282,21 +282,6 @@
         updateRouteBuildingPopupScale();
     });
 
-    if (IS_MOBILE_OUTDOOR_VIEW) {
-        let mobileDepthZoomFrame = null;
-
-        map.on('zoom', () => {
-            if (mobileDepthZoomFrame) {
-                return;
-            }
-
-            mobileDepthZoomFrame = requestAnimationFrame(() => {
-                mobileDepthZoomFrame = null;
-                updateMobileBuildingDepthScale();
-            });
-        });
-    }
-
     map.on('moveend viewreset resize', () => {
         updateRouteBuildingPopupScale();
     });
