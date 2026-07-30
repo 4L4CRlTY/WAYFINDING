@@ -581,8 +581,8 @@ window.routeToCampusEvent = routeToCampusEvent;
             .fake-3d-building:hover,
             body.map-moving .fake-3d-building,
             body.map-moving .fake-3d-building:hover,
-            .leaflet-buildingsPane-pane .leaflet-interactive,
-            .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+            .leaflet-buildings-pane .leaflet-interactive,
+            .leaflet-buildings-pane .leaflet-interactive:hover {
                 filter: none !important;
                 transform: none !important;
             }
@@ -593,8 +593,8 @@ window.routeToCampusEvent = routeToCampusEvent;
             .fake-3d-building:hover,
             body.map-moving .fake-3d-building,
             body.map-moving .fake-3d-building:hover,
-            .leaflet-buildingsPane-pane .leaflet-interactive,
-            .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+            .leaflet-buildings-pane .leaflet-interactive,
+            .leaflet-buildings-pane .leaflet-interactive:hover {
                 filter: none !important;
             }
         }

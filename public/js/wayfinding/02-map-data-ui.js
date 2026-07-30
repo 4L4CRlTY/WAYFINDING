@@ -1035,27 +1035,15 @@ function formatCoordKey(lng, lat) {
             mapInstance.on('zoomend moveend viewreset resize', this._queueUpdate);
 
             /*
-            |--------------------------------------------------------------------------
-            | REAL PHONE PINCH-ZOOM LANDUSE PATCH
-            |--------------------------------------------------------------------------
-            | Do NOT convert the landuse image to another overlay type.
-            | Keep the original exact-corner SVG logic, but update it during real
-            | mobile pinch zoom through requestAnimationFrame so it follows the map
-            | instead of waiting only for zoomend.
-            |
-            | This runs only on touch/mobile devices.
+            | Leaflet already transforms this pane while the user drags or pinches.
+            | Rebuilding the clipped SVG on every `move`/`zoom` frame causes visible
+            | phone lag. Recalculate only after the interaction settles.
             */
-            const isRealTouchPhone = window.matchMedia('(pointer: coarse), (hover: none)').matches;
-            if (isRealTouchPhone) {
-                mapInstance.on('zoom move', this._queueUpdate);
-            }
             this._queueUpdate();
         },
 
         onRemove: function(mapInstance) {
             mapInstance.off('zoomend moveend viewreset resize', this._queueUpdate);
-            mapInstance.off('zoom move', this._queueUpdate);
-
             if (this._queuedUpdateFrame) {
                 cancelAnimationFrame(this._queuedUpdateFrame);
                 this._queuedUpdateFrame = null;

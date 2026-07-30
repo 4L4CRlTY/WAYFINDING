@@ -25,7 +25,7 @@
     "isEntry": true
   },
   "resources/css/wayfinding.css": {
-    "file": "assets/wayfinding-DCK9UXqo.css",
+    "file": "assets/wayfinding-7Y2qVjYw.css",
     "name": "wayfinding",
     "names": [
       "wayfinding.css"
@@ -54,7 +54,7 @@
     "isDynamicEntry": true
   },
   "resources/js/wayfinding-entry.js": {
-    "file": "assets/wayfinding-entry-DAbx5Zuw.js",
+    "file": "assets/wayfinding-entry-Bp-q-qtr.js",
     "name": "wayfinding-entry",
     "src": "resources/js/wayfinding-entry.js",
     "isEntry": true,

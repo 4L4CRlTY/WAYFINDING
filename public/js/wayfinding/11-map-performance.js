@@ -15,17 +15,17 @@
     const style = document.createElement('style');
     style.id = 'final-fake3d-lag-reducer-style';
     style.textContent = `
-        /* Make SVG rendering cheaper but keep crisp borders */
-        .leaflet-buildingsPane-pane svg,
+        /* Keep crisp borders while the map is stationary. */
+        .leaflet-buildings-pane svg,
         .leaflet-overlay-pane svg {
             shape-rendering: geometricPrecision;
         }
 
         .fake-3d-building,
-        .leaflet-buildingsPane-pane .leaflet-interactive {
+        .leaflet-buildings-pane .leaflet-interactive {
             will-change: auto !important;
-            backface-visibility: hidden;
-            transform: translateZ(0) !important;
+            backface-visibility: visible !important;
+            transform: none !important;
             transition: fill-opacity 0.10s ease, stroke-width 0.10s ease !important;
             vector-effect: non-scaling-stroke !important;
         }
@@ -33,8 +33,8 @@
         /* Static depth polygons stay visible; top building filters stay disabled. */
         body.map-moving .fake-3d-building,
         body.map-moving .fake-3d-building:hover,
-        body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive,
-        body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+        body.map-moving .leaflet-buildings-pane .leaflet-interactive,
+        body.map-moving .leaflet-buildings-pane .leaflet-interactive:hover {
             filter: none !important;
             transition: none !important;
             stroke-width: 1.25 !important;
@@ -44,8 +44,8 @@
         /* Zoom never activates a CSS filter, preventing a late repaint. */
         body.map-zooming .fake-3d-building,
         body.map-zooming .fake-3d-building:hover,
-        body.map-zooming .leaflet-buildingsPane-pane .leaflet-interactive,
-        body.map-zooming .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+        body.map-zooming .leaflet-buildings-pane .leaflet-interactive,
+        body.map-zooming .leaflet-buildings-pane .leaflet-interactive:hover {
             filter: none !important;
             transition: none !important;
             stroke-width: 1.25 !important;
@@ -53,10 +53,19 @@
 
         /* Mobile uses the same static depth polygons without CSS filters. */
         @media (hover: none), (max-width: 768px) {
+            .leaflet-buildings-pane svg,
+            .leaflet-buildingDepth-pane svg,
+            body.map-moving .leaflet-buildings-pane svg,
+            body.map-moving .leaflet-buildingDepth-pane svg,
+            body.map-zooming .leaflet-buildings-pane svg,
+            body.map-zooming .leaflet-buildingDepth-pane svg {
+                shape-rendering: optimizeSpeed !important;
+            }
+
             body.map-moving .fake-3d-building,
             body.map-moving .fake-3d-building:hover,
-            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive,
-            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+            body.map-moving .leaflet-buildings-pane .leaflet-interactive,
+            body.map-moving .leaflet-buildings-pane .leaflet-interactive:hover {
                 filter: none !important;
                 stroke-width: 1.15 !important;
                 fill-opacity: 0.98 !important;
@@ -64,8 +73,8 @@
 
             body.map-zooming .fake-3d-building,
             body.map-zooming .fake-3d-building:hover,
-            body.map-zooming .leaflet-buildingsPane-pane .leaflet-interactive,
-            body.map-zooming .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+            body.map-zooming .leaflet-buildings-pane .leaflet-interactive,
+            body.map-zooming .leaflet-buildings-pane .leaflet-interactive:hover {
                 filter: none !important;
                 stroke-width: 1.15 !important;
             }
@@ -74,12 +83,12 @@
         @media (max-width: 420px) {
             body.map-moving .fake-3d-building,
             body.map-moving .fake-3d-building:hover,
-            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive,
-            body.map-moving .leaflet-buildingsPane-pane .leaflet-interactive:hover,
+            body.map-moving .leaflet-buildings-pane .leaflet-interactive,
+            body.map-moving .leaflet-buildings-pane .leaflet-interactive:hover,
             body.map-zooming .fake-3d-building,
             body.map-zooming .fake-3d-building:hover,
-            body.map-zooming .leaflet-buildingsPane-pane .leaflet-interactive,
-            body.map-zooming .leaflet-buildingsPane-pane .leaflet-interactive:hover {
+            body.map-zooming .leaflet-buildings-pane .leaflet-interactive,
+            body.map-zooming .leaflet-buildings-pane .leaflet-interactive:hover {
                 filter: none !important;
                 stroke-width: 1.1 !important;
             }

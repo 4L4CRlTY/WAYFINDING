@@ -88,10 +88,18 @@ test('mobile dragging uses one lightweight map interaction controller', () => {
         new URL('../../public/js/wayfinding/11-map-performance.js', import.meta.url),
         'utf8',
     );
+    const mapDataUi = readFileSync(
+        new URL('../../public/js/wayfinding/02-map-data-ui.js', import.meta.url),
+        'utf8',
+    );
 
     assert.match(responsivePerformance, /map\.on\('dragstart', markMapDragging\)/);
     assert.match(responsivePerformance, /body\.classList\.add\('map-dragging'\)/);
     assert.match(responsivePerformance, /body\.classList\.remove\('map-dragging'\)/);
+    assert.match(finalMapPerformance, /\.leaflet-buildings-pane svg/);
+    assert.doesNotMatch(responsivePerformance, /leaflet-buildingsPane-pane/);
+    assert.doesNotMatch(finalMapPerformance, /leaflet-buildingsPane-pane/);
+    assert.doesNotMatch(mapDataUi, /mapInstance\.on\('zoom move', this\._queueUpdate\)/);
     assert.doesNotMatch(responsivePerformance, /map\.on\('move zoom', markMoving\)/);
     assert.doesNotMatch(finalMapPerformance, /map-moving-lite-3d/);
     assert.doesNotMatch(finalMapPerformance, /map\.on\('move zoom'/);
@@ -123,7 +131,7 @@ test('mobile route glow and tile churn are disabled only during interaction', ()
     assert.match(mapCore, /keepBuffer:\s*5/);
     assert.match(
         mapCore,
-        /const MOBILE_ZOOM_SNAP\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*===\s*'low'\s*\?\s*0\.5\s*:\s*0\.25/,
+        /const MOBILE_ZOOM_SNAP\s*=\s*0/,
     );
     assert.match(mapCore, /zoomSnap:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*MOBILE_ZOOM_SNAP\s*:\s*1/);
     assert.match(mapCore, /zoomAnimation:\s*false/);
@@ -189,7 +197,10 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
         mapCore,
         /const SHOULD_RENDER_FAR_BUILDING_DEPTH\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*!==\s*'low'/,
     );
-    assert.match(mapCore, /const MOBILE_STATIC_PATH_WIDTH_SCALE\s*=/);
+    assert.match(
+        mapCore,
+        /const MOBILE_STATIC_PATH_WIDTH_SCALE\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*===\s*'low'\s*\?\s*0\.36\s*:\s*0\.42/,
+    );
     assert.match(mapCore, /function updateMobileBuildingDepthScale\(\)/);
     assert.match(mapCore, /const depthScale\s*=\s*0\.45\s*\+\s*\(0\.55\s*\*\s*zoomProgress\)/);
     assert.match(mapCore, /const MOBILE_OUTDOOR_MIN_ZOOM_VALUE\s*=\s*17\.25/);

@@ -228,7 +228,7 @@ test('mobile outdoor map keeps a buffered render area during panning', () => {
     const mapDataUi = readFileSync(mapDataUiPath, 'utf8');
     const mapPerformance = readFileSync(mapPerformancePath, 'utf8');
 
-    assert.match(mapCore, /OUTDOOR_VECTOR_RENDER_PADDING\s*=\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*1\s*:\s*0\.5/);
+    assert.match(mapCore, /OUTDOOR_VECTOR_RENDER_PADDING\s*=\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*0\.65\s*:\s*0\.5/);
     assert.match(mapCore, /pane:\s*'pathsPane',\s*padding:\s*OUTDOOR_VECTOR_RENDER_PADDING/);
     assert.match(mapCore, /pane:\s*'buildingDepthPane',\s*padding:\s*OUTDOOR_VECTOR_RENDER_PADDING/);
     assert.match(mapCore, /pane:\s*'buildingsPane',\s*padding:\s*OUTDOOR_VECTOR_RENDER_PADDING/);

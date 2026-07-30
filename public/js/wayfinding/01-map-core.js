@@ -87,10 +87,15 @@
     | silhouette. Only genuinely low-end devices omit the farther layer.
     */
     const SHOULD_RENDER_FAR_BUILDING_DEPTH = WAYFINDING_RENDER_PROFILE.mode !== 'low';
-    const MOBILE_ZOOM_SNAP = WAYFINDING_RENDER_PROFILE.mode === 'low' ? 0.5 : 0.25;
+    /*
+    | Do not force a fractional snap after a phone pinch. Leaflet can keep the
+    | exact pinch scale, so releasing both fingers does not cause a small,
+    | perceptible second zoom step.
+    */
+    const MOBILE_ZOOM_SNAP = 0;
     const MOBILE_STATIC_PATH_WIDTH_SCALE = WAYFINDING_RENDER_PROFILE.mode === 'low'
-        ? 0.46
-        : 0.54;
+        ? 0.36
+        : 0.42;
 
     window.detectWayfindingRenderProfile = detectWayfindingRenderProfile;
     window.applyWayfindingRenderProfile = applyWayfindingRenderProfile;
@@ -98,7 +103,12 @@
     const MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE = 17.75;
     const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 17.25;
     const MOBILE_OUTDOOR_MAX_ZOOM_VALUE = 19;
-    const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW ? 1 : 0.5;
+    /*
+    | A full-screen padding value of 1 created SVG surfaces around 3x the
+    | viewport width and height on phones. A 0.65 buffer still covers a fast
+    | swipe beyond the screen while substantially reducing mobile GPU work.
+    */
+    const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW ? 0.65 : 0.5;
     const MOBILE_PATH_CANVAS_PADDING = 0.35;
     const OUTDOOR_VECTOR_RENDERER = L.svg({
         /*

@@ -237,7 +237,7 @@ body.render-quality-low.map-zooming .building-depth-solid-near {
 /* Stable SVG rendering */
 .fake-3d-building,
 .leaflet-interactive.fake-3d-building,
-.leaflet-buildingsPane-pane .leaflet-interactive {
+.leaflet-buildings-pane .leaflet-interactive {
     transform: none !important;
     backface-visibility: hidden !important;
     vector-effect: non-scaling-stroke !important;
