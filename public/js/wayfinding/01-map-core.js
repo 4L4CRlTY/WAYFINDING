@@ -89,14 +89,14 @@
     const SHOULD_RENDER_FAR_BUILDING_DEPTH = WAYFINDING_RENDER_PROFILE.mode !== 'low';
     const MOBILE_ZOOM_SNAP = WAYFINDING_RENDER_PROFILE.mode === 'low' ? 0.5 : 0.25;
     const MOBILE_STATIC_PATH_WIDTH_SCALE = WAYFINDING_RENDER_PROFILE.mode === 'low'
-        ? 0.62
-        : 0.72;
+        ? 0.46
+        : 0.54;
 
     window.detectWayfindingRenderProfile = detectWayfindingRenderProfile;
     window.applyWayfindingRenderProfile = applyWayfindingRenderProfile;
-    const MOBILE_OUTDOOR_MIN_ZOOM_VALUE = 17;
-    const MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE = 18;
-    const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 17;
+    const MOBILE_OUTDOOR_MIN_ZOOM_VALUE = 16.5;
+    const MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE = 17.75;
+    const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE = 16.75;
     const MOBILE_OUTDOOR_MAX_ZOOM_VALUE = 19;
     const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW ? 1 : 0.5;
     const MOBILE_PATH_CANVAS_PADDING = 0.35;
@@ -215,22 +215,22 @@
 
         const zoomRange = Math.max(
             0.01,
-            MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE - MOBILE_OUTDOOR_MIN_ZOOM_VALUE
+            MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE - MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE
         );
         const zoomProgress = Math.max(
             0,
             Math.min(
                 1,
-                (map.getZoom() - MOBILE_OUTDOOR_MIN_ZOOM_VALUE) / zoomRange
+                (map.getZoom() - MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE) / zoomRange
             )
         );
 
         /*
-        | At the farthest campus overview the depth is 62% of its normal mobile
+        | At the campus overview the depth is 45% of its normal mobile
         | size. It grows gradually to full depth by the default zoom, preventing
         | small buildings from looking bulky without flattening close-up views.
         */
-        const depthScale = 0.62 + (0.38 * zoomProgress);
+        const depthScale = 0.45 + (0.55 * zoomProgress);
         const round2 = (value) => Math.round(value * 100) / 100;
 
         document.documentElement.style.setProperty('--mobile-side-1', `${round2(1.2 * depthScale)}px`);
@@ -238,7 +238,7 @@
         document.documentElement.style.setProperty('--mobile-side-3', `${round2(2.5 * depthScale)}px`);
         document.documentElement.style.setProperty(
             '--mobile-edge-width',
-            `${round2(0.9 + (0.2 * zoomProgress))}`
+            `${round2(0.78 + (0.32 * zoomProgress))}`
         );
     }
 

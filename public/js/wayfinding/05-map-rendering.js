@@ -62,7 +62,7 @@
         }
     };
 
-    function scaleStaticPathWeight(weight, minimum = 1.5) {
+    function scaleStaticPathWeight(weight, minimum = 1.2) {
         if (!IS_MOBILE_OUTDOOR_VIEW) {
             return weight;
         }
@@ -391,7 +391,7 @@
                 const config = pathConfig[getPathType(f)] || pathConfig.walkway;
                 return {
                     color: config.casingColor,
-                    weight: scaleStaticPathWeight(config.casingWeight, 2.5),
+                    weight: scaleStaticPathWeight(config.casingWeight, 1.8),
                     opacity: 0.96,
                     lineCap: 'round',
                     lineJoin: 'round',
@@ -436,7 +436,7 @@
             filter: (f) => getPathType(f) === 'covered_stairs',
             style: {
                 color: '#f4f7fa',
-                weight: scaleStaticPathWeight(3.5, 1.8),
+                weight: scaleStaticPathWeight(3.5, 1.25),
                 opacity: 0.95,
                 dashArray: '2, 7',
                 className: 'path-canopy-frames'

@@ -191,7 +191,10 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
     );
     assert.match(mapCore, /const MOBILE_STATIC_PATH_WIDTH_SCALE\s*=/);
     assert.match(mapCore, /function updateMobileBuildingDepthScale\(\)/);
-    assert.match(mapCore, /const depthScale\s*=\s*0\.62\s*\+\s*\(0\.38\s*\*\s*zoomProgress\)/);
+    assert.match(mapCore, /const depthScale\s*=\s*0\.45\s*\+\s*\(0\.55\s*\*\s*zoomProgress\)/);
+    assert.match(mapCore, /const MOBILE_OUTDOOR_MIN_ZOOM_VALUE\s*=\s*16\.5/);
+    assert.match(mapCore, /const MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE\s*=\s*17\.75/);
+    assert.match(mapCore, /const MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE\s*=\s*16\.75/);
     assert.match(mapCore, /--mobile-side-1',\s*`\$\{round2\(1\.2\s*\*\s*depthScale\)\}px`/);
     assert.match(mapCore, /--mobile-side-2',\s*`\$\{round2\(2\.5\s*\*\s*depthScale\)\}px`/);
     assert.doesNotMatch(mapCore, /mobileDepthZoomFrame/);
