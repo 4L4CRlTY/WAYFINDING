@@ -71,12 +71,22 @@ class CampusSnapshotPublisher
         $searchIndex = $this->buildSearchIndex();
         $generatedAt = now()->toIso8601String();
         $cacheVersion = $this->cache->version();
+        $indoorDocuments = $this->buildIndoorDocuments($datasets, $cacheVersion, $generatedAt);
+
+        // Large indoor graph geometry is fetched only when a building is opened.
+        unset(
+            $datasets['/api/indoor-paths'],
+            $datasets['/api/indoor-entrances'],
+            $datasets['/api/indoor-stairs-links'],
+        );
+
         $snapshot = [
             'schema_version' => 1,
             'cache_version' => $cacheVersion,
             'generated_at' => $generatedAt,
             'datasets' => $datasets,
             'search_index_url' => '/data/destination-keywords.json',
+            'indoor_data_url_template' => '/data/indoor/{building}.json',
         ];
         $searchIndexDocument = [
             'schema_version' => 1,
@@ -107,6 +117,31 @@ class CampusSnapshotPublisher
                 : public_path(self::SEARCH_INDEX_PUBLIC_PATH));
         $this->files->ensureDirectoryExists(dirname($path));
         $this->files->ensureDirectoryExists(dirname($searchIndexPath));
+        $indoorDirectory = dirname($path).DIRECTORY_SEPARATOR.'indoor';
+        $this->files->ensureDirectoryExists($indoorDirectory);
+
+        foreach ($indoorDocuments as $buildingId => $document) {
+            $this->files->replace(
+                $indoorDirectory.DIRECTORY_SEPARATOR.$buildingId.'.json',
+                json_encode(
+                    $document,
+                    JSON_THROW_ON_ERROR
+                        | JSON_UNESCAPED_SLASHES
+                        | JSON_UNESCAPED_UNICODE
+                        | JSON_INVALID_UTF8_SUBSTITUTE
+                )
+            );
+        }
+
+        $currentIndoorFiles = collect(array_keys($indoorDocuments))
+            ->map(fn ($buildingId) => $indoorDirectory.DIRECTORY_SEPARATOR.$buildingId.'.json')
+            ->all();
+        foreach ($this->files->glob($indoorDirectory.DIRECTORY_SEPARATOR.'*.json') as $existingIndoorFile) {
+            if (! in_array($existingIndoorFile, $currentIndoorFiles, true)) {
+                $this->files->delete($existingIndoorFile);
+            }
+        }
+
         // Publish the dependency first. Browsers using the previous snapshot
         // can still use its endpoint fallback during this brief replacement.
         $this->files->replace($searchIndexPath, $searchIndexJson);
@@ -121,7 +156,54 @@ class CampusSnapshotPublisher
             'bytes' => strlen($json) + strlen($searchIndexJson),
             'snapshot_bytes' => strlen($json),
             'search_index_bytes' => strlen($searchIndexJson),
+            'indoor_buildings' => count($indoorDocuments),
         ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function buildIndoorDocuments(array $datasets, int $cacheVersion, string $generatedAt): array
+    {
+        $buildingIds = collect($datasets['/api/indoor-maps'] ?? [])
+            ->pluck('building_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $filterFeatures = static function (array $collection, int $buildingId): array {
+            return [
+                'type' => 'FeatureCollection',
+                'features' => collect($collection['features'] ?? [])
+                    ->filter(fn ($feature) => (int) data_get($feature, 'properties.building_id') === $buildingId)
+                    ->values()
+                    ->all(),
+            ];
+        };
+
+        return $buildingIds
+            ->mapWithKeys(function (int $buildingId) use ($datasets, $cacheVersion, $generatedAt, $filterFeatures) {
+                return [$buildingId => [
+                    'schema_version' => 1,
+                    'cache_version' => $cacheVersion,
+                    'generated_at' => $generatedAt,
+                    'building_id' => $buildingId,
+                    'datasets' => [
+                        '/api/indoor-paths' => $filterFeatures(
+                            $datasets['/api/indoor-paths'] ?? [],
+                            $buildingId
+                        ),
+                        '/api/indoor-entrances' => $filterFeatures(
+                            $datasets['/api/indoor-entrances'] ?? [],
+                            $buildingId
+                        ),
+                        '/api/indoor-stairs-links' => collect($datasets['/api/indoor-stairs-links'] ?? [])
+                            ->filter(fn ($link) => (int) ($link['building_id'] ?? 0) === $buildingId)
+                            ->values()
+                            ->all(),
+                    ],
+                ]];
+            })
+            ->all();
     }
 
     /**

@@ -98,7 +98,25 @@ body.page-hidden .hazard-pin {
 }
 
 /* Lighter effects on mobile = less lag */
-@media (max-width: 768px) {
+@media (hover: none), (pointer: coarse), (max-width: 768px) {
+    /*
+    | These are outdoor mobile layout rules and must stay in the always-loaded
+    | core stylesheet. Keeping them in the lazy indoor stylesheet allowed the
+    | desktop route legend and attribution to cover the navigator before an
+    | indoor map had ever been opened.
+    */
+    .premium-legend,
+    .premium-legend .legend-title,
+    .premium-legend .legend-item,
+    .leaflet-control-attribution {
+        display: none !important;
+    }
+
+    .leaflet-bottom.leaflet-left,
+    .leaflet-bottom.leaflet-right {
+        bottom: 118px !important;
+    }
+
     /*
     | The path casing already keeps campus roads readable. Removing dozens of
     | per-path SVG shadows and hover transitions saves substantial phone GPU work.
@@ -259,13 +277,14 @@ body.many-buildings-mode .fake-3d-building:hover {
     transition: none !important;
 }
 
-/* During zoom: still fake 3D, but smaller 3 layers */
+/*
+| The solid depth polygons already provide the 3D silhouette. Never add CSS
+| drop-shadow stacks during pinch zoom: each filter creates an extra GPU
+| compositing pass and was the main source of the delayed mobile repaint.
+*/
 body.map-zooming .fake-3d-building,
 body.map-zooming .fake-3d-building:hover {
-    filter:
-        drop-shadow(1px 1px 0 var(--building-side-1, rgba(15, 23, 42, 0.28)))
-        drop-shadow(2px 2px 0 var(--building-side-2, rgba(15, 23, 42, 0.20)))
-        drop-shadow(3px 3px 1px var(--building-side-3, rgba(15, 23, 42, 0.12))) !important;
+    filter: none !important;
 }
 
 /* Pause small animations while the map is zooming */

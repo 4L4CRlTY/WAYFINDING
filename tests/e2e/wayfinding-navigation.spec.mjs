@@ -247,6 +247,15 @@ test.describe('mobile layout', () => {
 
     test('keeps mobile cards readable, touch-friendly, and fully inside the screen', async ({ page }) => {
         const runtime = monitorRuntimeErrors(page);
+        const accessibilityWarnings = [];
+        page.on('console', message => {
+            if (
+                message.type() === 'warning'
+                && message.text().includes('Blocked aria-hidden')
+            ) {
+                accessibilityWarnings.push(message.text());
+            }
+        });
         await loginAsUser(page);
         await openDestinationBrowser(page);
         await page.locator('#destination-building-select').selectOption({
@@ -257,6 +266,15 @@ test.describe('mobile layout', () => {
         const popup = page.locator('.route-building-map-popup');
         await expect(popup).toBeVisible();
         await page.waitForTimeout(500);
+
+        const closedBrowseState = await page.locator('#browseOptionsModal').evaluate(element => ({
+            ariaHidden: element.getAttribute('aria-hidden'),
+            inert: element.inert,
+            containsFocus: element.contains(document.activeElement),
+        }));
+        expect(closedBrowseState.ariaHidden).toBeNull();
+        expect(closedBrowseState.inert).toBe(true);
+        expect(closedBrowseState.containsFocus).toBe(false);
 
         const layout = await page.evaluate(() => {
             const popupElement = document.querySelector('.route-building-map-popup');
@@ -296,6 +314,10 @@ test.describe('mobile layout', () => {
         const dashboardLayout = await page.evaluate(() => {
             const modeBar = document.querySelector('.floating-start-bar')?.getBoundingClientRect();
             const routeSheet = document.querySelector('#navigation-sheet')?.getBoundingClientRect();
+            const navigatorBadge = document.querySelector('.floating-ai-badge')?.getBoundingClientRect();
+            const navigatorOrb = document.querySelector('.floating-main-pin')?.getBoundingClientRect();
+            const navigatorPin = document.querySelector('.pin-icon');
+            const navigatorPinRect = navigatorPin?.getBoundingClientRect();
             const controls = Array.from(document.querySelectorAll(
                 '.floating-mode-btn, .navigation-action, .navigation-details-toggle',
             ))
@@ -315,6 +337,8 @@ test.describe('mobile layout', () => {
             return {
                 viewportWidth: document.documentElement.clientWidth,
                 scrollWidth: document.documentElement.scrollWidth,
+                modeLeft: modeBar?.left ?? -1,
+                modeRight: modeBar?.right ?? window.innerWidth + 1,
                 controls,
                 quickPillHeights: Array.from(
                     document.querySelectorAll('.navigation-details-toggle'),
@@ -322,10 +346,33 @@ test.describe('mobile layout', () => {
                 ),
                 routeBottom: routeSheet?.bottom ?? 0,
                 modeTop: modeBar?.top ?? window.innerHeight,
+                navigatorClearance: navigatorBadge && navigatorOrb
+                    ? navigatorOrb.top - navigatorBadge.bottom
+                    : 0,
+                navigatorPinTransform: navigatorPin
+                    ? window.getComputedStyle(navigatorPin).transform
+                    : null,
+                navigatorPinWidth: navigatorPinRect?.width ?? 0,
+                navigatorPinHeight: navigatorPinRect?.height ?? 0,
+                routeLegendDisplay: window.getComputedStyle(
+                    document.querySelector('.premium-legend'),
+                ).display,
+                filteredBuildings: Array.from(
+                    document.querySelectorAll('.leaflet-buildings-pane path'),
+                ).filter(element => window.getComputedStyle(element).filter !== 'none').length,
+                mapCanvasCount: document.querySelectorAll('#map canvas').length,
             };
         });
 
         expect(dashboardLayout.scrollWidth).toBeLessThanOrEqual(dashboardLayout.viewportWidth + 1);
+        expect(dashboardLayout.modeLeft).toBeGreaterThanOrEqual(0);
+        expect(dashboardLayout.modeRight).toBeLessThanOrEqual(dashboardLayout.viewportWidth);
+        expect(dashboardLayout.navigatorClearance).toBeGreaterThanOrEqual(16);
+        expect(dashboardLayout.navigatorPinTransform).toBe('none');
+        expect(dashboardLayout.navigatorPinHeight).toBeGreaterThan(dashboardLayout.navigatorPinWidth);
+        expect(dashboardLayout.routeLegendDisplay).toBe('none');
+        expect(dashboardLayout.filteredBuildings).toBe(0);
+        expect(dashboardLayout.mapCanvasCount).toBeGreaterThanOrEqual(1);
         expect(
             Math.min(...dashboardLayout.controls
                 .filter(control => !control.compact)
@@ -376,6 +423,7 @@ test.describe('mobile layout', () => {
         await expect
             .poll(() => dialog.evaluate(element => element.contains(document.activeElement)))
             .toBe(true);
+        expect(accessibilityWarnings).toEqual([]);
         runtime.expectNone();
     });
 });

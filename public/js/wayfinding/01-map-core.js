@@ -137,10 +137,65 @@
         pane: 'pathsPane',
         padding: OUTDOOR_VECTOR_RENDER_PADDING
     });
-    const OUTDOOR_BUILDING_DEPTH_RENDERER = L.svg({
-        pane: 'buildingDepthPane',
-        padding: OUTDOOR_VECTOR_RENDER_PADDING
+    /*
+    | Canvas paths do not respond to the SVG `transform` rules that previously
+    | created the fixed-pixel building extrusion. Draw every depth polygon with
+    | its own lightweight pixel offset inside one shared Canvas instead. This
+    | preserves the two-layer futuristic silhouette without CSS filters or a
+    | large SVG DOM, and the apparent depth stays stable after every zoom.
+    */
+    const WayfindingBuildingDepthCanvas = L.Canvas.extend({
+        _updatePoly(layer, closed) {
+            if (!this._drawing) return;
+
+            const parts = layer._parts || [];
+            if (!parts.length) return;
+
+            const ctx = this._ctx;
+            const baseOffset = Number(layer.options?.depthPixelOffset || 0);
+            const zoom = Number(this._map?.getZoom?.() || MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE);
+            const zoomRange = Math.max(
+                0.01,
+                MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE - MOBILE_OUTDOOR_MIN_ZOOM_VALUE
+            );
+            const zoomProgress = Math.max(
+                0,
+                Math.min(
+                    1,
+                    (zoom - MOBILE_OUTDOOR_MIN_ZOOM_VALUE) / zoomRange
+                )
+            );
+            /*
+             * At the farthest campus overview, depth is only 45% so small
+             * buildings never look bulky. It reaches the normal restrained
+             * depth at the default zoom and stays stable during close zooms.
+             */
+            const offset = baseOffset * (0.45 + (0.55 * zoomProgress));
+            ctx.beginPath();
+
+            parts.forEach(part => {
+                part.forEach((point, index) => {
+                    ctx[index ? 'lineTo' : 'moveTo'](
+                        point.x + offset,
+                        point.y + offset
+                    );
+                });
+                if (closed) ctx.closePath();
+            });
+
+            this._fillStroke(ctx, layer);
+        }
     });
+    const OUTDOOR_BUILDING_DEPTH_RENDERER = IS_MOBILE_OUTDOOR_VIEW
+        ? new WayfindingBuildingDepthCanvas({
+            pane: 'buildingDepthPane',
+            padding: MOBILE_PATH_CANVAS_PADDING,
+            tolerance: 0
+        })
+        : L.svg({
+            pane: 'buildingDepthPane',
+            padding: OUTDOOR_VECTOR_RENDER_PADDING
+        });
     const OUTDOOR_BUILDINGS_RENDERER = L.svg({
         pane: 'buildingsPane',
         padding: OUTDOOR_VECTOR_RENDER_PADDING
@@ -218,6 +273,77 @@
         keepBuffer: 5
     }).addTo(map);
 
+    function createWayfindingInteractionController(mapInstance) {
+        const callbacks = new Map();
+        const lifecycleCallbacks = new Map();
+        const body = document.body;
+        let settleTimer = null;
+        let settleFrame = null;
+        let interactionDepth = 0;
+
+        function beginInteraction(event) {
+            interactionDepth += 1;
+            if (settleTimer) clearTimeout(settleTimer);
+            body?.classList.add('map-moving');
+            if (event?.type === 'zoomstart') body?.classList.add('map-zooming');
+            if (event?.type === 'dragstart') body?.classList.add('map-dragging');
+            lifecycleCallbacks.forEach(callbacksForKey => {
+                callbacksForKey.start?.(event);
+            });
+        }
+
+        function flushCallbacks() {
+            if (settleFrame) cancelAnimationFrame(settleFrame);
+            settleFrame = requestAnimationFrame(() => {
+                settleFrame = null;
+                callbacks.forEach(callback => callback());
+            });
+        }
+
+        function endInteraction(event) {
+            interactionDepth = Math.max(0, interactionDepth - 1);
+            if (event?.type === 'dragend') body?.classList.remove('map-dragging');
+            lifecycleCallbacks.forEach(callbacksForKey => {
+                callbacksForKey.end?.(event);
+            });
+            if (interactionDepth > 0) return;
+
+            if (settleTimer) clearTimeout(settleTimer);
+            settleTimer = setTimeout(() => {
+                body?.classList.remove('map-moving', 'map-zooming', 'map-dragging');
+                flushCallbacks();
+            }, 96);
+        }
+
+        mapInstance.on('movestart zoomstart dragstart', beginInteraction);
+        mapInstance.on('moveend zoomend dragend', endInteraction);
+        mapInstance.on('viewreset resize', flushCallbacks);
+
+        return Object.freeze({
+            register(key, callback) {
+                if (!key || typeof callback !== 'function') return;
+                callbacks.set(String(key), callback);
+            },
+            unregister(key) {
+                callbacks.delete(String(key));
+            },
+            registerLifecycle(key, lifecycle = {}) {
+                if (!key || (!lifecycle.start && !lifecycle.end)) return;
+                lifecycleCallbacks.set(String(key), lifecycle);
+            },
+            unregisterLifecycle(key) {
+                lifecycleCallbacks.delete(String(key));
+            },
+            schedule: flushCallbacks,
+            isActive() {
+                return interactionDepth > 0;
+            }
+        });
+    }
+
+    const wayfindingInteraction = createWayfindingInteractionController(map);
+    window.WayfindingInteraction = wayfindingInteraction;
+
     function updateMobileBuildingDepthScale() {
         if (!IS_MOBILE_OUTDOOR_VIEW || typeof map === 'undefined' || !map) {
             return;
@@ -287,12 +413,8 @@
             updateBuildingPerformanceMode();
         }
     }
-    map.on('zoomend', () => {
+    wayfindingInteraction.register('building-depth-and-route-popup', () => {
         updateShadows();
-        updateRouteBuildingPopupScale();
-    });
-
-    map.on('moveend viewreset resize', () => {
         updateRouteBuildingPopupScale();
     });
 

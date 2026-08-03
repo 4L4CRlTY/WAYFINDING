@@ -19,6 +19,8 @@ class CampusSnapshotTest extends TestCase
 
     private ?string $searchIndexPath = null;
 
+    private ?string $indoorSnapshotDirectory = null;
+
     protected function tearDown(): void
     {
         if ($this->snapshotPath) {
@@ -26,6 +28,9 @@ class CampusSnapshotTest extends TestCase
         }
         if ($this->searchIndexPath) {
             File::delete($this->searchIndexPath);
+        }
+        if ($this->indoorSnapshotDirectory) {
+            File::deleteDirectory($this->indoorSnapshotDirectory);
         }
 
         parent::tearDown();
@@ -74,14 +79,18 @@ class CampusSnapshotTest extends TestCase
 
         $this->snapshotPath = storage_path('framework/testing/campus-snapshot.json');
         $this->searchIndexPath = storage_path('framework/testing/destination-keywords.json');
+        $this->indoorSnapshotDirectory = storage_path('framework/testing/indoor');
         $result = app(CampusSnapshotPublisher::class)->publish($this->snapshotPath);
         $snapshot = json_decode(File::get($this->snapshotPath), true, flags: JSON_THROW_ON_ERROR);
         $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame(1, $snapshot['schema_version']);
-        $this->assertSame(13, $result['datasets']);
+        $this->assertSame(10, $result['datasets']);
+        $this->assertSame(1, $result['indoor_buildings']);
         $this->assertArrayHasKey('/api/buildings', $snapshot['datasets']);
-        $this->assertArrayHasKey('/api/indoor-stairs-links', $snapshot['datasets']);
+        $this->assertArrayNotHasKey('/api/indoor-paths', $snapshot['datasets']);
+        $this->assertArrayNotHasKey('/api/indoor-entrances', $snapshot['datasets']);
+        $this->assertArrayNotHasKey('/api/indoor-stairs-links', $snapshot['datasets']);
         $this->assertArrayHasKey('/api/campus-events', $snapshot['datasets']);
         $this->assertSame('IT Orientation', $snapshot['datasets']['/api/campus-events'][0]['title']);
         $this->assertSame('Information Technology Building', $snapshot['datasets']['/api/buildings'][0]['name']);
@@ -94,6 +103,16 @@ class CampusSnapshotTest extends TestCase
             $snapshot['datasets']['/api/indoor-maps'][0]['backup_floorplan_image']
         );
         $this->assertSame('/data/destination-keywords.json', $snapshot['search_index_url']);
+        $this->assertSame('/data/indoor/{building}.json', $snapshot['indoor_data_url_template']);
+        $indoorSnapshot = json_decode(
+            File::get($this->indoorSnapshotDirectory.DIRECTORY_SEPARATOR.$building->id.'.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR
+        );
+        $this->assertSame($building->id, $indoorSnapshot['building_id']);
+        $this->assertArrayHasKey('/api/indoor-paths', $indoorSnapshot['datasets']);
+        $this->assertArrayHasKey('/api/indoor-entrances', $indoorSnapshot['datasets']);
+        $this->assertArrayHasKey('/api/indoor-stairs-links', $indoorSnapshot['datasets']);
         $this->assertArrayNotHasKey('search_index', $snapshot);
         $this->assertSame('IT', $searchIndex['search_index'][0]['keyword']);
         $this->assertSame('building', $searchIndex['search_index'][0]['destination_type']);

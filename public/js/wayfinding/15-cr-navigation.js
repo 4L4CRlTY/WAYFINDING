@@ -264,6 +264,8 @@ async function rankComfortRooms(currentOperation) {
     const rooms = (bridge?.getRooms?.() || []).filter(isComfortRoom);
     const ranked = [];
 
+    await bridge?.prepareRooms?.(rooms);
+
     for (let index = 0; index < rooms.length; index += 1) {
         if (currentOperation !== operationId) {
             throw new DOMException('Cancelled', 'AbortError');
@@ -455,12 +457,12 @@ modeButtons.forEach(button => {
     button.addEventListener('click', () => chooseMode(button.dataset.crMode));
 });
 
-list?.addEventListener('click', event => {
+list?.addEventListener('click', async event => {
     const button = event.target.closest('[data-cr-suggestion-index]');
     if (!button) return;
 
     const item = rankedRooms[Number(button.dataset.crSuggestionIndex)];
-    if (!item || !bridge?.routeToRoom?.(item.room)) {
+    if (!item || !await bridge?.routeToRoom?.(item.room)) {
         showStatus('This comfort room route is unavailable. Choose another suggestion.', 'error');
         return;
     }

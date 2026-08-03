@@ -338,8 +338,56 @@
             .some(mapItem => Boolean(String(mapItem?.floorplan_image || '').trim()));
     }
 
-function openIndoorPanelForBuilding(buildingId) {
+    let indoorStylesPromise = null;
+
+    function ensureIndoorStyles() {
+        if (document.querySelector('link[data-wayfinding-indoor-styles]')) {
+            return Promise.resolve();
+        }
+
+        if (indoorStylesPromise) return indoorStylesPromise;
+
+        indoorStylesPromise = new Promise((resolve, reject) => {
+            const stylesheet = document.createElement('link');
+            stylesheet.rel = 'stylesheet';
+            stylesheet.href = '/css/wayfinding/04-indoor-navigation.css';
+            stylesheet.dataset.wayfindingIndoorStyles = 'true';
+            stylesheet.addEventListener('load', resolve, { once: true });
+            stylesheet.addEventListener('error', () => {
+                indoorStylesPromise = null;
+                reject(new Error('Indoor navigation styles could not be loaded.'));
+            }, { once: true });
+            /*
+             * Keep the original cascade order: indoor component rules first,
+             * then the main futuristic theme. Appending the component after the
+             * theme made its white legacy header override the dark HUD while the
+             * theme's white title remained, producing invisible text.
+             */
+            const mainWayfindingStylesheet = Array.from(
+                document.querySelectorAll('link[rel="stylesheet"]')
+            ).find(link => /\/build\/assets\/wayfinding-[^/]+\.css/.test(link.href));
+
+            if (mainWayfindingStylesheet?.parentNode) {
+                mainWayfindingStylesheet.parentNode.insertBefore(
+                    stylesheet,
+                    mainWayfindingStylesheet
+                );
+            } else {
+                document.head.appendChild(stylesheet);
+            }
+        });
+
+        return indoorStylesPromise;
+    }
+
+    async function openIndoorPanelForBuilding(buildingId) {
         const normalizedBuildingId = Number(buildingId);
+        if (!normalizedBuildingId) return;
+
+        await Promise.all([
+            ensureIndoorStyles(),
+            ensureIndoorBuildingData(normalizedBuildingId)
+        ]);
         const buildingMaps = getIndoorBuildingMaps(normalizedBuildingId)
             .filter(mapItem => Boolean(String(mapItem?.floorplan_image || '').trim()));
 
@@ -1030,7 +1078,7 @@ function openIndoorPanelForBuilding(buildingId) {
         return buildingEntrances.find(e => Number(e.building_id) === Number(buildingId)) || null;
     }
 
-    function findRouteToLanduse(landuseId) {
+    async function findRouteToLanduse(landuseId) {
         if (!startNodeKey) {
             alert('Please choose your starting point first.');
             return;
@@ -1073,7 +1121,13 @@ function openIndoorPanelForBuilding(buildingId) {
             return;
         }
 
-        const result = dijkstra(startNodeKey, targetNodeKey);
+        let result;
+        try {
+            result = await dijkstraAsync(startNodeKey, targetNodeKey);
+        } catch (error) {
+            if (error?.code === 'STALE_ROUTE_REQUEST') return;
+            throw error;
+        }
 
         if (!result) {
             alert('No route found to this landuse.');
@@ -1101,7 +1155,7 @@ function openIndoorPanelForBuilding(buildingId) {
         setRouteResultLabel(`Route ready to ${landuse.name || 'landuse area'} only.`);
     }
 
-    function findRouteToBuilding(buildingId) {
+    async function findRouteToBuilding(buildingId) {
         if (!startNodeKey) {
             alert('Please choose your start point first.');
             return;
@@ -1145,7 +1199,13 @@ function openIndoorPanelForBuilding(buildingId) {
 
         selectedBuildingEntranceId = Number(chosenEntrance.id);
 
-        const result = dijkstra(startNodeKey, gatewayNodeKey);
+        let result;
+        try {
+            result = await dijkstraAsync(startNodeKey, gatewayNodeKey);
+        } catch (error) {
+            if (error?.code === 'STALE_ROUTE_REQUEST') return;
+            throw error;
+        }
 
         if (!result) {
             alert('No outdoor route found.');
@@ -1504,7 +1564,7 @@ function openIndoorPanelForBuilding(buildingId) {
     }
 
 
-    function computeCompleteRouteToRoom(roomFeature) {
+    async function computeCompleteRouteToRoom(roomFeature) {
         if (!roomFeature) return;
 
         if (!startNodeKey) {
@@ -1514,6 +1574,8 @@ function openIndoorPanelForBuilding(buildingId) {
 
         selectedIndoorRoomFeature = roomFeature;
         selectedDestinationBuildingId = Number(roomFeature.properties?.building_id);
+
+        await ensureIndoorBuildingData(selectedDestinationBuildingId);
 
         const bestRoute = findBestEntranceLinkForRoom(roomFeature);
 
@@ -1642,7 +1704,7 @@ function openIndoorPanelForBuilding(buildingId) {
             selectedIndoorRoomFeature = room;
             selectedDestinationBuildingId = Number(room.properties?.building_id);
             closeBrowseOptionsModal();
-            computeCompleteRouteToRoom(room);
+            await computeCompleteRouteToRoom(room);
             return;
         }
     }

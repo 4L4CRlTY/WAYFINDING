@@ -35,7 +35,6 @@ test('wayfinding core preserves routing order and account features are lazy chun
         'public/js/wayfinding/08-navigation-accessibility.js',
         'public/js/wayfinding/09-building-indoor-ui.js',
         'public/js/wayfinding/10-responsive-performance.js',
-        'public/js/wayfinding/11-map-performance.js',
         'public/js/wayfinding/14-pwa-offline.js',
     ];
 
@@ -51,6 +50,7 @@ test('wayfinding core preserves routing order and account features are lazy chun
     assert.match(viteConfig, /'virtual:wayfinding-assistant'/);
     assert.match(viteConfig, /'virtual:wayfinding-gps'/);
     assert.match(viteConfig, /'virtual:wayfinding-gps-diagnostics'/);
+    assert.doesNotMatch(viteConfig, /public\/js\/wayfinding\/11-map-performance\.js/);
 
     const entry = readFileSync(
         new URL('../../resources/js/wayfinding-entry.js', import.meta.url),
@@ -80,12 +80,12 @@ test('wayfinding core preserves routing order and account features are lazy chun
 });
 
 test('mobile dragging uses one lightweight map interaction controller', () => {
-    const responsivePerformance = readFileSync(
-        new URL('../../public/js/wayfinding/10-responsive-performance.js', import.meta.url),
+    const mapCore = readFileSync(
+        new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
         'utf8',
     );
-    const finalMapPerformance = readFileSync(
-        new URL('../../public/js/wayfinding/11-map-performance.js', import.meta.url),
+    const responsivePerformance = readFileSync(
+        new URL('../../public/js/wayfinding/10-responsive-performance.js', import.meta.url),
         'utf8',
     );
     const mapDataUi = readFileSync(
@@ -93,16 +93,15 @@ test('mobile dragging uses one lightweight map interaction controller', () => {
         'utf8',
     );
 
-    assert.match(responsivePerformance, /map\.on\('dragstart', markMapDragging\)/);
-    assert.match(responsivePerformance, /body\.classList\.add\('map-dragging'\)/);
-    assert.match(responsivePerformance, /body\.classList\.remove\('map-dragging'\)/);
-    assert.match(finalMapPerformance, /\.leaflet-buildings-pane svg/);
+    assert.match(mapCore, /function createWayfindingInteractionController\(mapInstance\)/);
+    assert.match(mapCore, /mapInstance\.on\('movestart zoomstart dragstart', beginInteraction\)/);
+    assert.match(mapCore, /mapInstance\.on\('moveend zoomend dragend', endInteraction\)/);
+    assert.match(mapCore, /requestAnimationFrame/);
+    assert.match(mapCore, /body\?\.classList\.add\('map-moving'\)/);
+    assert.match(mapCore, /body\?\.classList\.remove\('map-moving', 'map-zooming', 'map-dragging'\)/);
     assert.doesNotMatch(responsivePerformance, /leaflet-buildingsPane-pane/);
-    assert.doesNotMatch(finalMapPerformance, /leaflet-buildingsPane-pane/);
     assert.doesNotMatch(mapDataUi, /mapInstance\.on\('zoom move', this\._queueUpdate\)/);
-    assert.doesNotMatch(responsivePerformance, /map\.on\('move zoom', markMoving\)/);
-    assert.doesNotMatch(finalMapPerformance, /map-moving-lite-3d/);
-    assert.doesNotMatch(finalMapPerformance, /map\.on\('move zoom'/);
+    assert.doesNotMatch(responsivePerformance, /map\.on\('(?:move|zoom|drag)/);
 });
 
 test('mobile route glow and tile churn are disabled only during interaction', () => {
@@ -124,8 +123,8 @@ test('mobile route glow and tile churn are disabled only during interaction', ()
     assert.match(performanceCss, /body\.map-dragging \.leaflet-popup-pane,/);
     assert.match(performanceCss, /shape-rendering:\s*optimizeSpeed !important;/);
     assert.doesNotMatch(performanceCss, /body\.map-moving body\.map-moving/);
-    assert.match(outdoorRouting, /map\.on\('moveend zoomend'/);
-    assert.doesNotMatch(outdoorRouting, /map\.on\('move zoomend'/);
+    assert.match(outdoorRouting, /wayfindingInteraction\.register\('pick-path-helper'/);
+    assert.doesNotMatch(outdoorRouting, /map\.on\('moveend zoomend'/);
     assert.match(mapCore, /updateWhenIdle:\s*IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /updateWhenZooming:\s*!IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /keepBuffer:\s*5/);
@@ -159,7 +158,8 @@ test('low-powered phones avoid path hit-testing and GPS redraws during manual dr
     assert.match(mapCore, /OUTDOOR_PATHS_RENDERER\s*=\s*IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /L\.canvas\(\{[\s\S]*?pane:\s*'pathsPane'/);
     assert.match(mapCore, /const OUTDOOR_ROUTE_RENDERER\s*=\s*L\.svg/);
-    assert.match(gpsTracking, /map\.on\('dragstart', pauseGpsFollowForManualDrag\)/);
+    assert.match(gpsTracking, /WayfindingInteraction\?\.registerLifecycle\('gps-manual-drag'/);
+    assert.doesNotMatch(gpsTracking, /map\.on\('dragstart'/);
     assert.match(gpsTracking, /pendingGpsRouteRefreshPosition/);
     assert.match(gpsTracking, /if \(gpsMapDragActive && !force\)/);
     assert.match(gpsTracking, /liveGpsFollow && smoothLatLng && !gpsMapDragActive/);
@@ -213,6 +213,11 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
     assert.doesNotMatch(responsivePerformance, /applyMobileOutdoorRouteZoomFinal\(\d+\)/);
     assert.doesNotMatch(responsivePerformance, /applyMobileOutdoorDefaultZoomFinal\(\d+\)/);
     assert.match(mapRendering, /if \(SHOULD_RENDER_FAR_BUILDING_DEPTH\)/);
+    assert.match(mapCore, /const OUTDOOR_BUILDING_DEPTH_RENDERER\s*=\s*IS_MOBILE_OUTDOOR_VIEW[\s\S]*?new WayfindingBuildingDepthCanvas/);
+    assert.match(mapCore, /const OUTDOOR_BUILDINGS_RENDERER\s*=\s*L\.svg/);
+    assert.match(mapRendering, /buildingFarDepthLayerGroup/);
+    assert.match(mapRendering, /buildingNearDepthLayerGroup/);
+    assert.match(mapRendering, /wayfinding:render-profile/);
     assert.match(mapRendering, /building-depth-solid-near/);
     assert.match(mapRendering, /function scaleStaticPathWeight\(/);
     assert.match(mapRendering, /weight:\s*scaleStaticPathWeight\(config\.casingWeight/);
@@ -240,6 +245,107 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
         themeCss,
         /body\.render-quality-low \.building-depth-solid-far\s*\{[\s\S]*?display:\s*none !important;/,
     );
+});
+
+test('mobile Canvas building depth keeps two fixed-pixel visual layers', () => {
+    const mapCore = readFileSync(
+        new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
+        'utf8',
+    );
+    const mapRendering = readFileSync(
+        new URL('../../public/js/wayfinding/05-map-rendering.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(mapCore, /WayfindingBuildingDepthCanvas = L\.Canvas\.extend/);
+    assert.match(mapCore, /point\.x \+ offset/);
+    assert.match(mapCore, /point\.y \+ offset/);
+    assert.match(mapCore, /const offset = baseOffset \* \(0\.45 \+ \(0\.55 \* zoomProgress\)\)/);
+    assert.match(mapRendering, /depthPixelOffset: IS_MOBILE_OUTDOOR_VIEW \? 2 : 0/);
+    assert.match(mapRendering, /depthPixelOffset: IS_MOBILE_OUTDOOR_VIEW \? 1 : 0/);
+});
+
+test('mobile route legend stays hidden before indoor resources load', () => {
+    const performanceCss = readFileSync(
+        new URL('../../public/css/wayfinding/09-map-performance.css', import.meta.url),
+        'utf8',
+    );
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(performanceCss, /\.premium-legend[\s\S]*\.leaflet-control-attribution[\s\S]*display: none !important/);
+    assert.match(
+        performanceCss,
+        /@media \(hover:\s*none\), \(pointer:\s*coarse\), \(max-width:\s*768px\)/,
+    );
+    assert.match(indoorRouting, /insertBefore\([\s\S]*stylesheet,[\s\S]*mainWayfindingStylesheet/);
+});
+
+test('building depth has one post-interaction update owner', () => {
+    const mapCore = readFileSync(
+        new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
+        'utf8',
+    );
+    const responsivePerformance = readFileSync(
+        new URL('../../public/js/wayfinding/10-responsive-performance.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(mapCore, /register\('building-depth-and-route-popup'/);
+    assert.doesNotMatch(responsivePerformance, /three-layer-building-depth/);
+    assert.doesNotMatch(responsivePerformance, /cleanMobileBuildingShadowFix/);
+});
+
+test('indoor graph and styles stay deferred until a building is opened', () => {
+    const coreCss = readFileSync(
+        new URL('../../resources/css/wayfinding.css', import.meta.url),
+        'utf8',
+    );
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const dataLoader = readFileSync(
+        new URL('../../public/js/wayfinding/07-campus-events-data.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.doesNotMatch(coreCss, /04-indoor-navigation\.css/);
+    assert.match(indoorRouting, /function ensureIndoorStyles\(\)/);
+    assert.match(indoorRouting, /ensureIndoorBuildingData\(normalizedBuildingId\)/);
+    assert.match(indoorRouting, /stylesheet\.href = '\/css\/wayfinding\/04-indoor-navigation\.css'/);
+    assert.doesNotMatch(dataLoader, /fetchDataset\('\/api\/indoor-paths'/);
+    assert.doesNotMatch(dataLoader, /fetchDataset\('\/api\/indoor-entrances'/);
+    assert.doesNotMatch(dataLoader, /fetchDataset\('\/api\/indoor-stairs-links'/);
+    assert.doesNotMatch(dataLoader, /ensureIndoorMap\(\)/);
+
+    const indoorDataTransport = readFileSync(
+        new URL('../../public/js/wayfinding-indoor-data.js', import.meta.url),
+        'utf8',
+    );
+    assert.match(indoorDataTransport, /WayfindingIndoorDataLoader/);
+    assert.match(indoorDataTransport, /\/data\/indoor\/\{building\}\.json/);
+});
+
+test('outdoor route worker rejects stale results and keeps synchronous fallback', () => {
+    const outdoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/03-outdoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const worker = readFileSync(
+        new URL('../../public/js/wayfinding-route-worker.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(outdoorRouting, /latestOutdoorRouteRequestId/);
+    assert.match(outdoorRouting, /STALE_ROUTE_REQUEST/);
+    assert.match(outdoorRouting, /resolve\(dijkstra\(startKey, endKey\)\)/);
+    assert.match(outdoorRouting, /new Worker\('\/js\/wayfinding-route-worker\.js'\)/);
+    assert.match(worker, /importScripts\('\/js\/wayfinding-routing\.js'\)/);
+    assert.match(worker, /message\.type === 'init'/);
+    assert.match(worker, /message\.type !== 'route'/);
 });
 
 test('full capacity tester covers public and authenticated journeys safely', () => {

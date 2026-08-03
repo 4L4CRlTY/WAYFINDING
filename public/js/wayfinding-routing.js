@@ -15,12 +15,81 @@
             || String(properties.status || '').toLowerCase() === 'blocked';
     }
 
+    class MinPriorityQueue {
+        constructor() {
+            this.items = [];
+        }
+
+        get size() {
+            return this.items.length;
+        }
+
+        push(item) {
+            this.items.push(item);
+            let index = this.items.length - 1;
+
+            while (index > 0) {
+                const parentIndex = Math.floor((index - 1) / 2);
+                if (this.items[parentIndex].distance <= item.distance) break;
+
+                this.items[index] = this.items[parentIndex];
+                index = parentIndex;
+            }
+
+            this.items[index] = item;
+        }
+
+        pop() {
+            if (!this.items.length) return null;
+
+            const first = this.items[0];
+            const last = this.items.pop();
+
+            if (this.items.length && last) {
+                let index = 0;
+
+                while (true) {
+                    const leftIndex = (index * 2) + 1;
+                    const rightIndex = leftIndex + 1;
+                    let smallestIndex = index;
+
+                    if (
+                        leftIndex < this.items.length
+                        && this.items[leftIndex].distance < last.distance
+                    ) {
+                        smallestIndex = leftIndex;
+                    }
+
+                    if (
+                        rightIndex < this.items.length
+                        && this.items[rightIndex].distance < (
+                            smallestIndex === index
+                                ? last.distance
+                                : this.items[leftIndex].distance
+                        )
+                    ) {
+                        smallestIndex = rightIndex;
+                    }
+
+                    if (smallestIndex === index) break;
+
+                    this.items[index] = this.items[smallestIndex];
+                    index = smallestIndex;
+                }
+
+                this.items[index] = last;
+            }
+
+            return first;
+        }
+    }
+
     function shortestPath(graph, startKey, endKey, options = {}) {
         const distances = {};
         const previous = {};
         const previousMeta = {};
         const visited = new Set();
-        const queue = [];
+        const queue = new MinPriorityQueue();
         const canEnterNode = options.canEnterNode || (() => true);
         const canExpandNode = options.canExpandNode || (() => true);
 
@@ -37,10 +106,8 @@
         distances[startKey] = 0;
         queue.push({ key: startKey, distance: 0 });
 
-        while (queue.length > 0) {
-            queue.sort((a, b) => a.distance - b.distance);
-
-            const current = queue.shift();
+        while (queue.size > 0) {
+            const current = queue.pop();
 
             if (!current) {
                 break;

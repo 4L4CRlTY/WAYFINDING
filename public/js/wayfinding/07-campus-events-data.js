@@ -674,10 +674,7 @@
         const optionalDefinitions = [
             { key: 'indoorMaps', label: 'Indoor maps', url: '/api/indoor-maps', fallback: [] },
             { key: 'indoorRooms', label: 'Indoor rooms', url: '/api/indoor-rooms', fallback: EMPTY_WAYFINDING_FEATURE_COLLECTION },
-            { key: 'indoorPaths', label: 'Indoor paths', url: '/api/indoor-paths', fallback: EMPTY_WAYFINDING_FEATURE_COLLECTION },
-            { key: 'indoorEntrances', label: 'Indoor entrances', url: '/api/indoor-entrances', fallback: EMPTY_WAYFINDING_FEATURE_COLLECTION },
             { key: 'buildingEntranceLinks', label: 'Entrance links', url: '/api/building-entrance-links', fallback: [] },
-            { key: 'indoorStairsLinks', label: 'Indoor stairs', url: '/api/indoor-stairs-links', fallback: [] },
             { key: 'events', label: 'Campus events', url: '/api/campus-events', fallback: [] },
         ];
 
@@ -692,19 +689,14 @@
         allIndoorRooms = normalizeFeatureCollection(
             settledValue(optionalResults, 1, EMPTY_WAYFINDING_FEATURE_COLLECTION)
         );
-        allIndoorPaths = normalizeFeatureCollection(
-            settledValue(optionalResults, 2, EMPTY_WAYFINDING_FEATURE_COLLECTION)
-        );
-        allIndoorEntrances = normalizeFeatureCollection(
-            settledValue(optionalResults, 3, EMPTY_WAYFINDING_FEATURE_COLLECTION)
-        );
-        allBuildingEntranceLinks = settledValue(optionalResults, 4, []) || [];
-        allIndoorStairsLinks = settledValue(optionalResults, 5, []) || [];
-        campusEvents = settledValue(optionalResults, 6, []) || [];
+        allIndoorPaths = EMPTY_WAYFINDING_FEATURE_COLLECTION;
+        allIndoorEntrances = EMPTY_WAYFINDING_FEATURE_COLLECTION;
+        allBuildingEntranceLinks = settledValue(optionalResults, 2, []) || [];
+        allIndoorStairsLinks = [];
+        campusEvents = settledValue(optionalResults, 3, []) || [];
 
         populateDestinationRoomSelect();
         renderCampusEventMarkers();
-        ensureIndoorMap();
         updateDestinationUi();
         updateRouteLabels();
         if (indoorMap) indoorMap.invalidateSize();

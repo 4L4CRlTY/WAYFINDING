@@ -6,8 +6,10 @@ use App\Models\Building;
 use App\Models\CampusEvent;
 use App\Models\DestinationKeyword;
 use App\Models\IndoorMap;
+use App\Models\IndoorEntrance;
 use App\Models\IndoorPath;
 use App\Models\IndoorRoom;
+use App\Models\IndoorStairLink;
 use App\Models\Path;
 use App\Models\User;
 use App\Support\WayfindingCache;
@@ -272,6 +274,80 @@ class WayfindingApiTest extends TestCase
             ->assertJsonPath('features.0.properties.id', $path->id)
             ->assertJsonPath('features.0.properties.is_blocked', true)
             ->assertJsonPath('features.0.properties.properties.reason', 'maintenance');
+    }
+
+    public function test_indoor_graph_endpoints_can_be_filtered_per_building(): void
+    {
+        $firstBuilding = Building::create([
+            'name' => 'First Building',
+            'geometry' => $this->buildingGeometry(124.0),
+        ]);
+        $secondBuilding = Building::create([
+            'name' => 'Second Building',
+            'geometry' => $this->buildingGeometry(124.01),
+        ]);
+        $firstFloor = IndoorMap::create([
+            'building_id' => $firstBuilding->id,
+            'name' => 'First Floor',
+            'floor_number' => 1,
+            'is_active' => true,
+        ]);
+        $secondFloor = IndoorMap::create([
+            'building_id' => $secondBuilding->id,
+            'name' => 'Second Floor',
+            'floor_number' => 1,
+            'is_active' => true,
+        ]);
+
+        foreach ([$firstFloor, $secondFloor] as $index => $floor) {
+            IndoorPath::create([
+                'indoor_map_id' => $floor->id,
+                'name' => 'Hallway '.($index + 1),
+                'path_type' => 'hallway',
+                'geometry' => [
+                    'type' => 'LineString',
+                    'coordinates' => [[124.0 + $index, 10.0], [124.001 + $index, 10.001]],
+                ],
+                'is_blocked' => false,
+            ]);
+            IndoorEntrance::create([
+                'indoor_map_id' => $floor->id,
+                'name' => 'Entrance '.($index + 1),
+                'ent_type' => 'main',
+                'geometry' => [
+                    'type' => 'Point',
+                    'coordinates' => [124.0 + $index, 10.0],
+                ],
+            ]);
+        }
+
+        $firstEntrance = IndoorEntrance::where('indoor_map_id', $firstFloor->id)->firstOrFail();
+        $secondEntrance = IndoorEntrance::where('indoor_map_id', $secondFloor->id)->firstOrFail();
+        IndoorStairLink::create([
+            'building_id' => $firstBuilding->id,
+            'from_entrance_id' => $firstEntrance->id,
+            'to_entrance_id' => $firstEntrance->id,
+            'name' => 'First Building Stairs',
+        ]);
+        IndoorStairLink::create([
+            'building_id' => $secondBuilding->id,
+            'from_entrance_id' => $secondEntrance->id,
+            'to_entrance_id' => $secondEntrance->id,
+            'name' => 'Second Building Stairs',
+        ]);
+
+        $this->getJson('/api/indoor-paths?building_id='.$firstBuilding->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'features')
+            ->assertJsonPath('features.0.properties.building_id', $firstBuilding->id);
+        $this->getJson('/api/indoor-entrances?building_id='.$firstBuilding->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'features')
+            ->assertJsonPath('features.0.properties.building_id', $firstBuilding->id);
+        $this->getJson('/api/indoor-stairs-links?building_id='.$firstBuilding->id)
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.building_id', $firstBuilding->id);
     }
 
     public function test_destination_search_requires_text_and_an_active_keyword(): void

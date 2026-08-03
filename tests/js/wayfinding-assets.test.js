@@ -136,11 +136,18 @@ test('the initial wayfinding stylesheet imports each core component exactly once
             '13-gps-simulator.css',
             '14-gps-diagnostics.css',
             '17-cr-navigation.css',
+            '04-indoor-navigation.css',
         ].includes(filename),
     );
 
     assert.deepEqual(importedComponents, expectedComponents);
     assert.equal(new Set(importedComponents).size, importedComponents.length);
+
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    assert.match(indoorRouting, /04-indoor-navigation\.css/);
 });
 
 test('GPS-only styles are bundled with their lazy feature entries', () => {
@@ -436,6 +443,8 @@ test('PWA assets provide installable metadata and privacy-safe caching', () => {
     assert.match(serviceWorker, /assetUrls\.map\(url => cache\.add\(url\)/);
     assert.match(serviceWorker, /\/css\/wayfinding\/17-cr-navigation\.css/);
     assert.match(serviceWorker, /\/js\/wayfinding\/15-cr-navigation\.js/);
+    assert.match(serviceWorker, /\/js\/wayfinding-route-worker\.js/);
+    assert.match(serviceWorker, /isCacheableIndoorDataPath/);
     assert.match(serviceWorker, /request\.mode === 'navigate'/);
     assert.match(serviceWorker, /caches\.match\(OFFLINE_URL\)/);
     assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);

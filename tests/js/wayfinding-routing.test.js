@@ -41,6 +41,54 @@ test('outdoor routing selects the lowest-cost path', () => {
     assert.equal(result.totalCost, 4);
 });
 
+test('route worker returns the exact same outdoor route as the synchronous router', () => {
+    const workerSource = readFileSync(
+        new URL('../../public/js/wayfinding-route-worker.js', import.meta.url),
+        'utf8',
+    );
+    const postedMessages = [];
+    let messageHandler = null;
+    const workerSelf = {
+        WayfindingRouting: routing,
+        addEventListener(type, handler) {
+            if (type === 'message') messageHandler = handler;
+        },
+        postMessage(message) {
+            postedMessages.push(message);
+        },
+    };
+    runInNewContext(workerSource, {
+        self: workerSelf,
+        importScripts() {},
+    });
+
+    const graph = undirectedGraph([
+        ['start', 'safe', 2, { hasHazard: false, maxSeverity: 0 }],
+        ['safe', 'destination', 3, { hasHazard: true, maxSeverity: 2 }],
+        ['start', 'expensive', 20],
+        ['expensive', 'destination', 20],
+    ]);
+    const expected = routing.outdoorShortestPath(graph, 'start', 'destination');
+
+    messageHandler({ data: { type: 'init', graph, snapshotVersion: 77 } });
+    messageHandler({
+        data: {
+            type: 'route',
+            requestId: 9,
+            snapshotVersion: 77,
+            startKey: 'start',
+            endKey: 'destination',
+        },
+    });
+
+    assert.equal(postedMessages[0].type, 'ready');
+    assert.equal(postedMessages[1].type, 'result');
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(postedMessages[1].result)),
+        JSON.parse(JSON.stringify(expected)),
+    );
+});
+
 test('outdoor routing returns null for a disconnected destination', () => {
     const graph = {
         start: [{ key: 'nearby', weight: 1, meta: {} }],

@@ -111,6 +111,84 @@
         outdoorEdgeMeta[edgeKey(aKey, bKey)] = meta;
     }
 
+    let outdoorRouteWorker = null;
+    let outdoorRouteWorkerRevision = 0;
+    let outdoorRouteRequestSequence = 0;
+    let latestOutdoorRouteRequestId = 0;
+    const pendingOutdoorRouteRequests = new Map();
+
+    function stopOutdoorRouteWorker(error = null) {
+        outdoorRouteWorker?.terminate();
+        outdoorRouteWorker = null;
+
+        pendingOutdoorRouteRequests.forEach(pending => {
+            clearTimeout(pending.timeoutId);
+            pending.reject(error || Object.assign(new Error('Route worker stopped.'), {
+                code: 'ROUTE_WORKER_STOPPED'
+            }));
+        });
+        pendingOutdoorRouteRequests.clear();
+    }
+
+    function initializeOutdoorRouteWorker() {
+        if (typeof Worker !== 'function') return false;
+
+        stopOutdoorRouteWorker();
+
+        try {
+            outdoorRouteWorker = new Worker('/js/wayfinding-route-worker.js');
+        } catch (error) {
+            outdoorRouteWorker = null;
+            return false;
+        }
+
+        outdoorRouteWorker.addEventListener('message', event => {
+            const message = event.data || {};
+            if (!['result', 'error'].includes(message.type)) return;
+
+            const requestId = Number(message.requestId || 0);
+            const pending = pendingOutdoorRouteRequests.get(requestId);
+            if (!pending) return;
+
+            pendingOutdoorRouteRequests.delete(requestId);
+            clearTimeout(pending.timeoutId);
+
+            if (pending.latestOnly && requestId !== latestOutdoorRouteRequestId) {
+                pending.reject(Object.assign(new Error('A newer destination replaced this route.'), {
+                    code: 'STALE_ROUTE_REQUEST'
+                }));
+                return;
+            }
+
+            if (message.type === 'error') {
+                pending.reject(Object.assign(
+                    new Error(message.error?.message || 'Route worker failed.'),
+                    { code: message.error?.code || 'ROUTE_WORKER_ERROR' }
+                ));
+                return;
+            }
+
+            pending.resolve(message.result || null);
+        });
+
+        outdoorRouteWorker.addEventListener('error', event => {
+            stopOutdoorRouteWorker(Object.assign(
+                new Error(event?.message || 'Route worker became unavailable.'),
+                { code: 'ROUTE_WORKER_UNAVAILABLE' }
+            ));
+        });
+
+        outdoorRouteWorkerRevision += 1;
+        outdoorRouteWorker.postMessage({
+            type: 'init',
+            requestId: 0,
+            snapshotVersion: outdoorRouteWorkerRevision,
+            graph: outdoorGraph
+        });
+
+        return true;
+    }
+
     function buildOutdoorGraph(featureCollection) {
         outdoorGraph = {};
         outdoorNodeCoords = {};
@@ -495,6 +573,8 @@
                 });
         });
 
+        initializeOutdoorRouteWorker();
+
     }
 
     function dijkstra(startKey, endKey) {
@@ -503,6 +583,50 @@
             startKey,
             endKey
         );
+    }
+
+    function dijkstraAsync(startKey, endKey, options = {}) {
+        const latestOnly = options.latestOnly !== false;
+
+        if (!outdoorRouteWorker) {
+            return Promise.resolve(dijkstra(startKey, endKey));
+        }
+
+        const requestId = ++outdoorRouteRequestSequence;
+        if (latestOnly) latestOutdoorRouteRequestId = requestId;
+
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                pendingOutdoorRouteRequests.delete(requestId);
+
+                if (latestOnly && requestId !== latestOutdoorRouteRequestId) {
+                    reject(Object.assign(new Error('A newer destination replaced this route.'), {
+                        code: 'STALE_ROUTE_REQUEST'
+                    }));
+                    return;
+                }
+
+                resolve(dijkstra(startKey, endKey));
+            }, 1800);
+
+            pendingOutdoorRouteRequests.set(requestId, {
+                resolve,
+                reject,
+                timeoutId,
+                latestOnly
+            });
+
+            outdoorRouteWorker.postMessage({
+                type: 'route',
+                requestId,
+                snapshotVersion: outdoorRouteWorkerRevision,
+                startKey,
+                endKey
+            });
+        }).catch(error => {
+            if (error?.code === 'STALE_ROUTE_REQUEST') throw error;
+            return dijkstra(startKey, endKey);
+        });
     }
 
 
@@ -773,9 +897,7 @@
         setRouteResultLabel(startNodeKey ? 'Tap My Location cancelled. Previous start point kept.' : 'Tap My Location cancelled.');
     }
 
-    map.on('moveend zoomend', function() {
-        updatePickPathHelperText();
-    });
+    wayfindingInteraction.register('pick-path-helper', updatePickPathHelperText);
 
     map.on('click', function(e) {
         if (!placingStartMode) return;
@@ -919,11 +1041,19 @@
     }
 
     function openBrowseOptionsModal() {
+        const modal = document.getElementById('browseOptionsModal');
+        const activeElement = document.activeElement;
+        const returnFocus = activeElement instanceof HTMLElement && !modal?.contains(activeElement)
+            ? activeElement
+            : document.getElementById('destination-menu-toggle');
+
         closeFloatingActionCard();
 
-        const modal = document.getElementById('browseOptionsModal');
-
         if (modal) {
+            modal.__wayfindingReturnFocus = returnFocus;
+            modal.inert = false;
+            modal.removeAttribute('inert');
+            modal.removeAttribute('aria-hidden');
             modal.style.display = 'flex';
         }
 
@@ -940,6 +1070,30 @@
         const modal = document.getElementById('browseOptionsModal');
 
         if (modal) {
+            const focusedElement = document.activeElement;
+            if (focusedElement instanceof HTMLElement && modal.contains(focusedElement)) {
+                const returnFocus = modal.__wayfindingReturnFocus;
+                const fallbackFocus = document.getElementById('destination-menu-toggle');
+                const returnFocusIsUsable = returnFocus instanceof HTMLElement
+                    && returnFocus.isConnected
+                    && !returnFocus.closest('[inert]')
+                    && returnFocus.getClientRects().length > 0;
+                const focusTarget = returnFocusIsUsable
+                    ? returnFocus
+                    : fallbackFocus;
+
+                if (focusTarget instanceof HTMLElement) {
+                    focusTarget.focus({ preventScroll: true });
+                }
+
+                if (modal.contains(document.activeElement)) {
+                    focusedElement.blur();
+                }
+            }
+
+            modal.inert = true;
+            modal.setAttribute('inert', '');
+            modal.removeAttribute('aria-hidden');
             modal.style.display = 'none';
         }
     }

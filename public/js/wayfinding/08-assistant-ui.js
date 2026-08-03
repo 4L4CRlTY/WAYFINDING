@@ -398,8 +398,9 @@
     const __originalCloseBrowseOptionsModal = typeof closeBrowseOptionsModal === 'function' ? closeBrowseOptionsModal :
         null;
     closeBrowseOptionsModal = function() {
-        const modal = document.getElementById('browseOptionsModal');
-        if (modal) modal.style.display = 'none';
+        if (__originalCloseBrowseOptionsModal) {
+            __originalCloseBrowseOptionsModal();
+        }
         hideAiPanels();
     };
 

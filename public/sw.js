@@ -3,7 +3,7 @@
  * Authenticated HTML and external map tiles are deliberately never cached.
  * Only public campus datasets and same-origin application assets are saved.
  */
-const PWA_CACHE_VERSION = '2026-07-28.1';
+const PWA_CACHE_VERSION = '2026-08-03.6';
 const CACHE_PREFIX = 'wayfinding-pwa-';
 const STATIC_CACHE = `${CACHE_PREFIX}static-${PWA_CACHE_VERSION}`;
 const DATA_CACHE = `${CACHE_PREFIX}data-${PWA_CACHE_VERSION}`;
@@ -18,6 +18,7 @@ const PRECACHE_URLS = [
     '/icons/pwa-icon-512.png',
     '/css/wayfinding/17-cr-navigation.css',
     '/js/wayfinding/15-cr-navigation.js',
+    '/js/wayfinding-route-worker.js',
 ];
 
 const CACHEABLE_DATA_PATHS = new Set([
@@ -44,6 +45,10 @@ function isCacheableStaticPath(pathname) {
         || pathname.startsWith('/icons/')
         || pathname.startsWith('/css/wayfinding/')
         || pathname.startsWith('/js/wayfinding/');
+}
+
+function isCacheableIndoorDataPath(pathname) {
+    return /^\/data\/indoor\/\d+\.json$/.test(pathname);
 }
 
 function isCacheableResponse(response) {
@@ -196,7 +201,7 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    if (CACHEABLE_DATA_PATHS.has(url.pathname)) {
+    if (CACHEABLE_DATA_PATHS.has(url.pathname) || isCacheableIndoorDataPath(url.pathname)) {
         event.respondWith(networkFirstData(request));
         return;
     }

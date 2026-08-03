@@ -1,6 +1,23 @@
     const buildingVisualLayers = new Map();
     let selectedBuildingVisualId = null;
     let buildingDepthLayerGroup = null;
+    let buildingFarDepthLayerGroup = null;
+    let buildingNearDepthLayerGroup = null;
+
+    function syncAdaptiveBuildingDepth() {
+        if (!buildingDepthLayerGroup || !buildingFarDepthLayerGroup) return;
+
+        const showFarDepth = window.wayfindingRenderProfile?.mode !== 'low';
+        const farDepthVisible = buildingDepthLayerGroup.hasLayer(buildingFarDepthLayerGroup);
+
+        if (showFarDepth && !farDepthVisible) {
+            buildingDepthLayerGroup.addLayer(buildingFarDepthLayerGroup);
+        } else if (!showFarDepth && farDepthVisible) {
+            buildingDepthLayerGroup.removeLayer(buildingFarDepthLayerGroup);
+        }
+    }
+
+    window.addEventListener('wayfinding:render-profile', syncAdaptiveBuildingDepth);
 
     function setSelectedBuildingVisual(buildingId) {
         selectedBuildingVisualId = Number(buildingId) || null;
@@ -238,6 +255,12 @@
         }
 
         buildingDepthLayerGroup = L.layerGroup().addTo(map);
+        buildingFarDepthLayerGroup = L.layerGroup();
+        buildingNearDepthLayerGroup = L.layerGroup().addTo(buildingDepthLayerGroup);
+
+        if (SHOULD_RENDER_FAR_BUILDING_DEPTH) {
+            buildingFarDepthLayerGroup.addTo(buildingDepthLayerGroup);
+        }
         updateBuildingPerformanceMode();
 
         buildingRecords.forEach((building, index) => {
@@ -276,10 +299,11 @@
                         color: farDepthColor,
                         weight: 1,
                         fillColor: farDepthColor,
-                        fillOpacity: 0.46,
-                        lineJoin: 'round'
+                        fillOpacity: 0.40,
+                        lineJoin: 'round',
+                        depthPixelOffset: IS_MOBILE_OUTDOOR_VIEW ? 2 : 0
                     }
-                }).addTo(buildingDepthLayerGroup);
+                }).addTo(buildingFarDepthLayerGroup);
             }
 
             L.geoJSON(geojson, {
@@ -291,10 +315,11 @@
                     color: nearDepthColor,
                     weight: IS_MOBILE_OUTDOOR_VIEW ? 0.7 : 1,
                     fillColor: nearDepthColor,
-                    fillOpacity: IS_MOBILE_OUTDOOR_VIEW ? 0.72 : 0.88,
-                    lineJoin: 'round'
+                    fillOpacity: IS_MOBILE_OUTDOOR_VIEW ? 0.68 : 0.88,
+                    lineJoin: 'round',
+                    depthPixelOffset: IS_MOBILE_OUTDOOR_VIEW ? 1 : 0
                 }
-            }).addTo(buildingDepthLayerGroup);
+            }).addTo(buildingNearDepthLayerGroup);
 
             /*
             |--------------------------------------------------------------------------
@@ -366,6 +391,8 @@
         if (selectedBuildingVisualId) {
             setSelectedBuildingVisual(selectedBuildingVisualId);
         }
+
+        syncAdaptiveBuildingDepth();
 
         if (geojsonLayers.length > 0) {
             const group = L.featureGroup(geojsonLayers);

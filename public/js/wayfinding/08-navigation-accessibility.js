@@ -646,10 +646,8 @@
         const browseBackdrop = document.getElementById('browseOptionsModal');
         if (browseBackdrop) {
             const isOpen = browseBackdrop.style.display !== 'none';
-            const hidden = isOpen ? 'false' : 'true';
-            if (browseBackdrop.getAttribute('aria-hidden') !== hidden) {
-                browseBackdrop.setAttribute('aria-hidden', hidden);
-            }
+            browseBackdrop.inert = !isOpen;
+            browseBackdrop.removeAttribute('aria-hidden');
         }
     }
 
@@ -679,16 +677,24 @@
 
         [browseBackdrop, indoorDialog, actionCard, profileMenu].filter(Boolean).forEach(element => {
             const observer = new MutationObserver(() => {
-                syncExpandedControls();
-                if (element === browseBackdrop && browseDialog && isDialogVisible(browseBackdrop)) {
-                    focusOpenedDialog(browseDialog);
-                } else if (
+                const browseIsVisible = element === browseBackdrop && isDialogVisible(browseBackdrop);
+                if (
                     element === browseBackdrop
                     && browseDialog
+                    && !browseIsVisible
                     && browseDialog.contains(document.activeElement)
-                    && lastFocusedBeforeDialog?.focus
                 ) {
-                    lastFocusedBeforeDialog.focus({ preventScroll: true });
+                    if (lastFocusedBeforeDialog?.focus) {
+                        lastFocusedBeforeDialog.focus({ preventScroll: true });
+                    } else if (document.activeElement instanceof HTMLElement) {
+                        document.activeElement.blur();
+                    }
+                }
+
+                syncExpandedControls();
+
+                if (element === browseBackdrop && browseDialog && browseIsVisible) {
+                    focusOpenedDialog(browseDialog);
                 }
                 if (element === indoorDialog && isDialogVisible(indoorDialog)) {
                     focusOpenedDialog(indoorDialog);
@@ -702,7 +708,7 @@
             });
             observer.observe(element, {
                 attributes: true,
-                attributeFilter: ['style', 'class', 'aria-hidden'],
+                attributeFilter: ['style', 'class'],
             });
         });
 

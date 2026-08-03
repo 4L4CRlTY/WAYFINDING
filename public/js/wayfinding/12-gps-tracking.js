@@ -765,7 +765,7 @@
         setRouteResultLabel(`${instruction.title}. ${instruction.meta}`);
     }
 
-    function refreshActiveRouteFromGps(position, force = false) {
+    async function refreshActiveRouteFromGps(position, force = false) {
         if (!activeOutdoorDestinationKey || !position) return false;
 
         /*
@@ -806,7 +806,16 @@
             return true;
         }
 
-        const refreshedRoute = dijkstra(currentNodeKey, activeOutdoorDestinationKey);
+        let refreshedRoute;
+
+        try {
+            refreshedRoute = typeof window.dijkstraAsync === 'function'
+                ? await window.dijkstraAsync(currentNodeKey, activeOutdoorDestinationKey)
+                : dijkstra(currentNodeKey, activeOutdoorDestinationKey);
+        } catch (error) {
+            if (error?.code === 'STALE_ROUTE_REQUEST') return false;
+            refreshedRoute = dijkstra(currentNodeKey, activeOutdoorDestinationKey);
+        }
         if (!refreshedRoute) {
             setLiveGpsStatus(
                 'weak',
@@ -865,8 +874,14 @@
     }
 
     if (typeof map !== 'undefined' && map) {
-        map.on('dragstart', pauseGpsFollowForManualDrag);
-        map.on('dragend', resumeDeferredGpsRouteRefresh);
+        window.WayfindingInteraction?.registerLifecycle('gps-manual-drag', {
+            start(event) {
+                if (event?.type === 'dragstart') pauseGpsFollowForManualDrag();
+            },
+            end(event) {
+                if (event?.type === 'dragend') resumeDeferredGpsRouteRefresh();
+            }
+        });
     }
 
     function collectGpsSample(position) {

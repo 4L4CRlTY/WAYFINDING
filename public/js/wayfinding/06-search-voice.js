@@ -182,6 +182,8 @@
     ]);
     let wayfindingSnapshotPromise = null;
     let wayfindingSearchIndexPromise = null;
+    const loadedIndoorBuildingIds = new Set();
+    const indoorBuildingDataPromises = new Map();
 
     window.__wayfindingStaleDataUrls = window.__wayfindingStaleDataUrls || new Set();
 
@@ -273,6 +275,99 @@
         }
 
         return dataset;
+    }
+
+    function mergeIndoorFeatureCollection(target, incoming) {
+        const existing = new Map(
+            (target?.features || []).map(feature => [
+                Number(feature?.properties?.id || 0),
+                feature
+            ])
+        );
+
+        (incoming?.features || []).forEach(feature => {
+            existing.set(Number(feature?.properties?.id || 0), normalizeIndoorFeature(feature));
+        });
+
+        return {
+            type: 'FeatureCollection',
+            features: Array.from(existing.values())
+        };
+    }
+
+    function mergeIndoorLinks(target, incoming) {
+        const existing = new Map(
+            (target || []).map(link => [Number(link?.id || 0), link])
+        );
+        (incoming || []).forEach(link => existing.set(Number(link?.id || 0), link));
+        return Array.from(existing.values());
+    }
+
+    let indoorDataLoaderPromise = null;
+
+    function loadIndoorDataTransport() {
+        if (window.WayfindingIndoorDataLoader) {
+            return Promise.resolve(window.WayfindingIndoorDataLoader);
+        }
+        if (indoorDataLoaderPromise) return indoorDataLoaderPromise;
+
+        indoorDataLoaderPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = '/js/wayfinding-indoor-data.js';
+            script.async = true;
+            script.dataset.wayfindingIndoorData = 'true';
+            script.addEventListener('load', () => {
+                if (window.WayfindingIndoorDataLoader) {
+                    resolve(window.WayfindingIndoorDataLoader);
+                    return;
+                }
+                reject(new Error('Indoor data loader did not initialize.'));
+            }, { once: true });
+            script.addEventListener('error', () => {
+                indoorDataLoaderPromise = null;
+                reject(new Error('Indoor data loader could not be loaded.'));
+            }, { once: true });
+            document.head.appendChild(script);
+        });
+
+        return indoorDataLoaderPromise;
+    }
+
+    async function ensureIndoorBuildingData(buildingId) {
+        const normalizedBuildingId = Number(buildingId || 0);
+        if (!normalizedBuildingId) return false;
+        if (loadedIndoorBuildingIds.has(normalizedBuildingId)) return true;
+        if (indoorBuildingDataPromises.has(normalizedBuildingId)) {
+            return indoorBuildingDataPromises.get(normalizedBuildingId);
+        }
+
+        const promise = (async () => {
+            const loader = await loadIndoorDataTransport();
+            const datasets = await loader.load(normalizedBuildingId, {
+                loadSnapshot: loadWayfindingSnapshot,
+                fetchJson
+            });
+
+            allIndoorPaths = mergeIndoorFeatureCollection(
+                allIndoorPaths,
+                datasets['/api/indoor-paths']
+            );
+            allIndoorEntrances = mergeIndoorFeatureCollection(
+                allIndoorEntrances,
+                datasets['/api/indoor-entrances']
+            );
+            allIndoorStairsLinks = mergeIndoorLinks(
+                allIndoorStairsLinks,
+                datasets['/api/indoor-stairs-links']
+            );
+            loadedIndoorBuildingIds.add(normalizedBuildingId);
+            return true;
+        })().finally(() => {
+            indoorBuildingDataPromises.delete(normalizedBuildingId);
+        });
+
+        indoorBuildingDataPromises.set(normalizedBuildingId, promise);
+        return promise;
     }
 
     function normalizeSnapshotCampusEvents(events) {

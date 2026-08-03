@@ -929,6 +929,35 @@ body.guest-mode .cr-navigation-modes {
     box-shadow: 0 0 0 4px rgba(245, 183, 55, 0.13);
 }
 
+/*
+ * One canonical navigator-pin shape.
+ * The older cascade combined an already-upright clip path with a -45deg
+ * rotation, which made the pin point down-right on real mobile browsers.
+ */
+#floating-route-ui .pin-icon {
+    display: block !important;
+    position: relative !important;
+    width: 40px !important;
+    height: 56px !important;
+    border-radius: 0 !important;
+    clip-path: path('M20 0 C31 0 40 9 40 20 C40 36 20 56 20 56 C20 56 0 36 0 20 C0 9 9 0 20 0 Z') !important;
+    transform: none !important;
+    background: linear-gradient(180deg, #ffffff 0%, #e7f3ff 100%) !important;
+    box-shadow: 0 8px 18px rgba(2, 20, 38, 0.2) !important;
+}
+
+#floating-route-ui .pin-hole {
+    display: block !important;
+    position: absolute !important;
+    top: 14px !important;
+    left: 50% !important;
+    width: 13px !important;
+    height: 13px !important;
+    border-radius: 50% !important;
+    transform: translateX(-50%) !important;
+    background: linear-gradient(180deg, #19c37d, #0c9c72) !important;
+}
+
 @media (max-width: 480px) {
     .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner,
     .leaflet-popup-pane .route-building-map-popup .route-building-map-popup-inner.is-unavailable {
@@ -964,5 +993,22 @@ body.guest-mode .cr-navigation-modes {
     .building-map-summary {
         width: min(210px, calc(100vw - 34px));
         padding: 11px;
+    }
+
+    /*
+     * Keep the compact status badge visually separate from the navigator orb.
+     * The elements already had a small layout gap, but the badge shadow filled
+     * that gap on phones and made the two controls look overlapped.
+     */
+    #floating-route-ui {
+        gap: 18px !important;
+    }
+
+    #floating-route-ui .floating-ai-badge {
+        flex: 0 0 auto !important;
+        margin-bottom: 6px !important;
+        box-shadow:
+            0 5px 14px rgba(2, 20, 38, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
     }
 }

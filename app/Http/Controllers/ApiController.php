@@ -249,11 +249,17 @@ class ApiController extends Controller
         ]);
     }
 
-    public function indoorPaths()
+    public function indoorPaths(?Request $request = null)
     {
+        $buildingId = ($request ?? request())->integer('building_id');
+
         return response()->json([
             'type' => 'FeatureCollection',
             'features' => IndoorPath::with('indoorMap.building')
+                ->when($buildingId > 0, fn ($query) => $query->whereHas(
+                    'indoorMap',
+                    fn ($mapQuery) => $mapQuery->where('building_id', $buildingId)
+                ))
                 ->orderBy('id')
                 ->get()
                 ->map(function ($path) {
@@ -281,11 +287,17 @@ class ApiController extends Controller
         ]);
     }
 
-    public function indoorEntrances()
+    public function indoorEntrances(?Request $request = null)
     {
+        $buildingId = ($request ?? request())->integer('building_id');
+
         return response()->json([
             'type' => 'FeatureCollection',
             'features' => IndoorEntrance::with('indoorMap.building')
+                ->when($buildingId > 0, fn ($query) => $query->whereHas(
+                    'indoorMap',
+                    fn ($mapQuery) => $mapQuery->where('building_id', $buildingId)
+                ))
                 ->orderBy('id')
                 ->get()
                 ->map(function ($entrance) {
@@ -692,14 +704,17 @@ class ApiController extends Controller
         ], 404);
     }
 
-    public function indoorStairsLinks()
+    public function indoorStairsLinks(?Request $request = null)
     {
+        $buildingId = ($request ?? request())->integer('building_id');
+
         return response()->json(
             IndoorStairLink::with([
                 'building',
                 'fromEntrance.indoorMap',
                 'toEntrance.indoorMap',
             ])
+                ->when($buildingId > 0, fn ($query) => $query->where('building_id', $buildingId))
                 ->orderBy('id')
                 ->get()
                 ->map(function ($link) {

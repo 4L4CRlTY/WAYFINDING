@@ -727,7 +727,7 @@
     <div class="floating-modal-backdrop"
          id="browseOptionsModal"
          style="display:none;"
-         aria-hidden="true">
+         inert>
         <div class="floating-modal-card browse-destination-card"
              role="dialog"
              aria-modal="true"

@@ -16,7 +16,6 @@ const WAYFINDING_VIRTUAL_SOURCES = {
     'public/js/wayfinding/08-navigation-accessibility.js',
     'public/js/wayfinding/09-building-indoor-ui.js',
     'public/js/wayfinding/10-responsive-performance.js',
-    'public/js/wayfinding/11-map-performance.js',
     'public/js/wayfinding/14-pwa-offline.js',
     ],
     'virtual:wayfinding-assistant': [
@@ -100,6 +99,7 @@ function orderedWayfindingBundle() {
                 exposeWayfindingBinding('clearRouteLayer', () => clearRouteLayer, value => { clearRouteLayer = value; });
                 exposeWayfindingBinding('clearStartMarker', () => clearStartMarker);
                 exposeWayfindingBinding('dijkstra', () => dijkstra);
+                exposeWayfindingBinding('dijkstraAsync', () => dijkstraAsync);
                 exposeWayfindingBinding('drawOutdoorRoute', () => drawOutdoorRoute, value => { drawOutdoorRoute = value; });
                 exposeWayfindingBinding('drawOutsideGuideLine', () => drawOutsideGuideLine);
                 exposeWayfindingBinding('hidePickPathHelper', () => hidePickPathHelper);
@@ -150,6 +150,12 @@ function orderedWayfindingBundle() {
                 window.toggleUserProfileMenu = toggleUserProfileMenu;
                 window.WayfindingCrBridge = Object.freeze({
                     getRooms: () => [...(allIndoorRooms.features || [])],
+                    prepareRooms: rooms => Promise.all(
+                        Array.from(new Set((rooms || [])
+                            .map(room => Number(room?.properties?.building_id || 0))
+                            .filter(Boolean)))
+                            .map(buildingId => ensureIndoorBuildingData(buildingId))
+                    ),
                     getStartState: () => ({
                         key: startNodeKey,
                         source: startSourceType,
@@ -169,12 +175,12 @@ function orderedWayfindingBundle() {
                             indoorCost: Number(result.indoorCost || 0),
                         } : null;
                     },
-                    routeToRoom(room) {
+                    async routeToRoom(room) {
                         const roomId = Number(room?.properties?.id || 0);
                         if (!roomId) return false;
                         setBrowseDestinationType('room');
                         selectBrowseRoom(roomId);
-                        computeCompleteRouteToRoom(room);
+                        await computeCompleteRouteToRoom(room);
                         return true;
                     },
                 });
