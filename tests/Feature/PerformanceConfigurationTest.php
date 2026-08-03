@@ -17,6 +17,7 @@ class PerformanceConfigurationTest extends TestCase
         $deploymentScript = file_get_contents(
             base_path('deploy/hostinger/deploy-hostinger.sh')
         );
+        $databaseConfig = file_get_contents(config_path('database.php'));
 
         $this->assertStringContainsString(
             "'default' => env('CACHE_STORE', 'file')",
@@ -25,6 +26,9 @@ class PerformanceConfigurationTest extends TestCase
         $this->assertStringContainsString('CACHE_STORE=file', $productionEnvironment);
         $this->assertStringContainsString('SESSION_DRIVER=database', $productionEnvironment);
         $this->assertStringContainsString('CACHE_STORE=file', $hostingerEnvironment);
+        $this->assertStringContainsString('DB_HOST=localhost', $hostingerEnvironment);
+        $this->assertStringContainsString('DB_PERSISTENT=true', $hostingerEnvironment);
+        $this->assertStringContainsString('PDO::ATTR_PERSISTENT', $databaseConfig);
         $this->assertStringContainsString(
             'RewriteRule ^((?!public/).*)$ public/$1',
             $hostingerRewrite,
