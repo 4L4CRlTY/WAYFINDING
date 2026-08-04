@@ -765,6 +765,11 @@
         if (lastIndoorRoutePackage) {
             redrawPersistentIndoorRouteForCurrentFloor();
         }
+
+        scheduleIndoorViewportFit({
+            reason: 'floor-select',
+            preferRoute: Boolean(lastIndoorRoutePackage)
+        });
     });
 
     indoorRoomSearch.addEventListener('input', function() {

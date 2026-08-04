@@ -3,7 +3,7 @@
  * Authenticated HTML and external map tiles are deliberately never cached.
  * Only public campus datasets and same-origin application assets are saved.
  */
-const PWA_CACHE_VERSION = '2026-08-03.6';
+const PWA_CACHE_VERSION = '2026-08-04.1';
 const CACHE_PREFIX = 'wayfinding-pwa-';
 const STATIC_CACHE = `${CACHE_PREFIX}static-${PWA_CACHE_VERSION}`;
 const DATA_CACHE = `${CACHE_PREFIX}data-${PWA_CACHE_VERSION}`;
@@ -19,6 +19,7 @@ const PRECACHE_URLS = [
     '/css/wayfinding/17-cr-navigation.css',
     '/js/wayfinding/15-cr-navigation.js',
     '/js/wayfinding-route-worker.js',
+    '/js/wayfinding-search-worker.js',
 ];
 
 const CACHEABLE_DATA_PATHS = new Set([
@@ -170,6 +171,27 @@ async function networkFirstData(request) {
     }
 }
 
+async function staleWhileRevalidateData(request, event) {
+    const cache = await caches.open(DATA_CACHE);
+    const cached = await cache.match(request);
+    const network = fetch(request)
+        .then(async response => {
+            if (isCacheableResponse(response)) {
+                await cache.put(request, response.clone());
+                await trimCache(DATA_CACHE, 60);
+            }
+            return response;
+        })
+        .catch(() => null);
+
+    if (cached) {
+        event.waitUntil(network);
+        return cached;
+    }
+
+    return (await network) || Response.error();
+}
+
 self.addEventListener('install', event => {
     event.waitUntil(precacheAppShell());
 });
@@ -201,7 +223,16 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    if (CACHEABLE_DATA_PATHS.has(url.pathname) || isCacheableIndoorDataPath(url.pathname)) {
+    if (
+        url.pathname === '/data/campus-snapshot.json'
+        || url.pathname === '/data/destination-keywords.json'
+        || isCacheableIndoorDataPath(url.pathname)
+    ) {
+        event.respondWith(staleWhileRevalidateData(request, event));
+        return;
+    }
+
+    if (CACHEABLE_DATA_PATHS.has(url.pathname)) {
         event.respondWith(networkFirstData(request));
         return;
     }

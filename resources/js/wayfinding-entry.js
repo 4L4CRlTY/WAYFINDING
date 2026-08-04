@@ -82,6 +82,11 @@ if (!guestMode) {
     ['openInlineTextSearch', 'openInlineVoiceSearch'].forEach(functionName => {
         const lazyFunction = async function (...args) {
             await loadAssistantFeature();
+            // Start fetching/normalizing the keyword index only after the
+            // user opens a search tool. This gives the fetch time to overlap
+            // with typing or voice capture without competing with initial map
+            // rendering and touch gestures on mobile.
+            window.preloadWayfindingSearchIndex?.();
             const loadedFunction = window[functionName];
             return loadedFunction && loadedFunction !== lazyFunction
                 ? loadedFunction.apply(this, args)
@@ -94,4 +99,28 @@ if (!guestMode) {
         await loadGpsFeature();
         window.WayfindingGpsDiagnostics?.open();
     };
+
+    const idlePreloadSearch = () => {
+        loadAssistantFeature().catch(() => {});
+        window.preloadWayfindingSearchIndex?.();
+    };
+
+    window.addEventListener('load', () => {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
+        const constrainedConnection = connection?.saveData === true
+            || /(^|-)2g$/.test(String(connection?.effectiveType || ''));
+
+        // The generated search index is intentionally not background-loaded
+        // on phones. Parsing it while Leaflet is settling was a measurable
+        // source of delayed first drag/pinch on real devices. Search remains
+        // available and begins loading as soon as its button is opened.
+        if (isMobileViewport || constrainedConnection) return;
+
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(idlePreloadSearch, { timeout: 2500 });
+        } else {
+            window.setTimeout(idlePreloadSearch, 1200);
+        }
+    }, { once: true });
 }

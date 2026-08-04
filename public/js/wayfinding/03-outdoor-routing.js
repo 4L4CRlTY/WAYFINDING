@@ -744,7 +744,11 @@
 
         if (options.fitBounds !== false) {
             map.fitBounds(L.latLngBounds(latlngs), {
-                padding: [60, 60]
+                padding: IS_MOBILE_OUTDOOR_VIEW ? [80, 80] : [60, 60],
+                maxZoom: IS_MOBILE_OUTDOOR_VIEW
+                    ? MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE
+                    : undefined,
+                animate: !IS_MOBILE_OUTDOOR_VIEW
             });
         }
     }

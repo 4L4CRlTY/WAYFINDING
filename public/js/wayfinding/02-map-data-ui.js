@@ -1032,7 +1032,10 @@ function formatCoordKey(lng, lat) {
             this._update = this._update.bind(this);
             this._queueUpdate = this._queueUpdate.bind(this);
 
-            mapInstance.on('zoomend moveend viewreset resize', this._queueUpdate);
+            this._interactionKey = `landuse-overlay:${String(
+                this._props?.id || this._feature?.properties?.id || L.stamp(this)
+            )}`;
+            wayfindingInteraction.register(this._interactionKey, this._queueUpdate);
 
             /*
             | Leaflet already transforms this pane while the user drags or pinches.
@@ -1043,7 +1046,7 @@ function formatCoordKey(lng, lat) {
         },
 
         onRemove: function(mapInstance) {
-            mapInstance.off('zoomend moveend viewreset resize', this._queueUpdate);
+            wayfindingInteraction.unregister(this._interactionKey);
             if (this._queuedUpdateFrame) {
                 cancelAnimationFrame(this._queuedUpdateFrame);
                 this._queuedUpdateFrame = null;
@@ -1472,15 +1475,13 @@ function formatCoordKey(lng, lat) {
     function openIndoorPanelModal() {
         if (indoorBackdrop) indoorBackdrop.classList.add('active');
         if (indoorPanel) indoorPanel.classList.add('active');
-
-        setTimeout(() => {
-            if (indoorMap) indoorMap.invalidateSize();
-        }, 120);
+        document.body.classList.add('indoor-open');
     }
 
     function closeIndoorPanelFn() {
         if (indoorBackdrop) indoorBackdrop.classList.remove('active');
         if (indoorPanel) indoorPanel.classList.remove('active');
+        document.body.classList.remove('indoor-open');
     }
 
     function getHazardsForPath(pathId) {

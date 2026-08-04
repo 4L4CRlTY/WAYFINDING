@@ -331,6 +331,7 @@
             const layer = L.geoJSON(geojson, {
                 pane: 'buildingsPane',
                 renderer: OUTDOOR_BUILDINGS_RENDERER,
+                interactive: true,
                 className: `fake-3d-building ${className}`,
                 style: {
                     color: darkenColor(baseColor, 0.32),
@@ -401,7 +402,10 @@
             if (bounds.isValid()) {
                 map.fitBounds(bounds, {
                     padding: [50, 50],
-                    maxZoom: 18.5
+                    maxZoom: IS_MOBILE_OUTDOOR_VIEW
+                        ? MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE
+                        : 18.5,
+                    animate: !IS_MOBILE_OUTDOOR_VIEW
                 });
                 campusBounds = bounds.pad(0.08);
             }

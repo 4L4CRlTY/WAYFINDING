@@ -308,6 +308,38 @@ test.describe('mobile layout', () => {
         expect(layout.actionHeight).toBeGreaterThanOrEqual(44);
         expect(layout.diagnosticsPresent).toBe(false);
 
+        const readPopupAnchor = () => page.evaluate(() => {
+            const building = document.querySelector('.fake-3d-building.building-selected');
+            const tip = document.querySelector('.route-building-map-popup .leaflet-popup-tip');
+            const buildingRect = building?.getBoundingClientRect();
+            const tipRect = tip?.getBoundingClientRect();
+
+            return {
+                buildingX: buildingRect ? buildingRect.left + buildingRect.width / 2 : null,
+                buildingY: buildingRect ? buildingRect.top + buildingRect.height / 2 : null,
+                tipX: tipRect ? tipRect.left + tipRect.width / 2 : null,
+                tipY: tipRect ? tipRect.top + tipRect.height / 2 : null,
+            };
+        });
+        const anchorBeforeDrag = await readPopupAnchor();
+        const mapBox = await page.locator('#map').boundingBox();
+        expect(mapBox).not.toBeNull();
+        await page.mouse.move(mapBox.x + mapBox.width * 0.65, mapBox.y + mapBox.height * 0.48);
+        await page.mouse.down();
+        await page.mouse.move(mapBox.x + mapBox.width * 0.48, mapBox.y + mapBox.height * 0.58, {
+            steps: 5,
+        });
+        await page.mouse.up();
+        await page.waitForTimeout(150);
+        const anchorAfterDrag = await readPopupAnchor();
+
+        const buildingDeltaX = anchorAfterDrag.buildingX - anchorBeforeDrag.buildingX;
+        const buildingDeltaY = anchorAfterDrag.buildingY - anchorBeforeDrag.buildingY;
+        const popupDeltaX = anchorAfterDrag.tipX - anchorBeforeDrag.tipX;
+        const popupDeltaY = anchorAfterDrag.tipY - anchorBeforeDrag.tipY;
+        expect(Math.abs(buildingDeltaX - popupDeltaX)).toBeLessThan(3);
+        expect(Math.abs(buildingDeltaY - popupDeltaY)).toBeLessThan(3);
+
         await page.getByRole('button', { name: 'Close indoor popup' }).click();
         await expect(popup).toHaveCount(0);
 

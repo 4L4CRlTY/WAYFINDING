@@ -257,6 +257,8 @@ body.render-quality-low.map-zooming .building-depth-solid-near {
 .leaflet-interactive.fake-3d-building,
 .leaflet-buildings-pane .leaflet-interactive {
     transform: none !important;
+    filter: none !important;
+    transition: none !important;
     backface-visibility: hidden !important;
     vector-effect: non-scaling-stroke !important;
     shape-rendering: geometricPrecision !important;
@@ -282,6 +284,8 @@ body.many-buildings-mode .fake-3d-building:hover {
 | drop-shadow stacks during pinch zoom: each filter creates an extra GPU
 | compositing pass and was the main source of the delayed mobile repaint.
 */
+.fake-3d-building,
+.fake-3d-building:hover,
 body.map-zooming .fake-3d-building,
 body.map-zooming .fake-3d-building:hover {
     filter: none !important;

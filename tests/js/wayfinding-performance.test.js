@@ -62,6 +62,8 @@ test('wayfinding core preserves routing order and account features are lazy chun
     assert.match(entry, /import\('\.\/wayfinding-gps-diagnostics-entry\.js'\)/);
     assert.match(entry, /window\.selectGpsMode = lazyGpsMode/);
     assert.match(entry, /\['openInlineTextSearch', 'openInlineVoiceSearch'\]/);
+    assert.match(entry, /window\.preloadWayfindingSearchIndex\?\.\(\)/);
+    assert.match(entry, /if \(isMobileViewport \|\| constrainedConnection\) return/);
     assert.doesNotMatch(
         entry,
         /const assistantFunctions[\s\S]*searchTextDestination/,
@@ -97,8 +99,10 @@ test('mobile dragging uses one lightweight map interaction controller', () => {
     assert.match(mapCore, /mapInstance\.on\('movestart zoomstart dragstart', beginInteraction\)/);
     assert.match(mapCore, /mapInstance\.on\('moveend zoomend dragend', endInteraction\)/);
     assert.match(mapCore, /requestAnimationFrame/);
-    assert.match(mapCore, /body\?\.classList\.add\('map-moving'\)/);
-    assert.match(mapCore, /body\?\.classList\.remove\('map-moving', 'map-zooming', 'map-dragging'\)/);
+    assert.match(mapCore, /const activeInteractions = new Set\(\)/);
+    assert.match(mapCore, /classList\.toggle\('map-moving', active\)/);
+    assert.match(mapCore, /classList\.toggle\('map-zooming', activeInteractions\.has\('zoom'\)\)/);
+    assert.doesNotMatch(mapCore, /settleTimer/);
     assert.doesNotMatch(responsivePerformance, /leaflet-buildingsPane-pane/);
     assert.doesNotMatch(mapDataUi, /mapInstance\.on\('zoom move', this\._queueUpdate\)/);
     assert.doesNotMatch(responsivePerformance, /map\.on\('(?:move|zoom|drag)/);
@@ -296,6 +300,54 @@ test('building depth has one post-interaction update owner', () => {
     assert.match(mapCore, /register\('building-depth-and-route-popup'/);
     assert.doesNotMatch(responsivePerformance, /three-layer-building-depth/);
     assert.doesNotMatch(responsivePerformance, /cleanMobileBuildingShadowFix/);
+});
+
+test('mobile camera has one explicit route fit and one ResizeObserver indoor fit owner', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const outdoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/03-outdoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const buildingUi = readFileSync(
+        new URL('../../public/js/wayfinding/09-building-indoor-ui.js', import.meta.url),
+        'utf8',
+    );
+    const responsivePerformance = readFileSync(
+        new URL('../../public/js/wayfinding/10-responsive-performance.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /new ResizeObserver\(/);
+    assert.match(indoorRouting, /function scheduleIndoorViewportFit\(/);
+    assert.match(indoorRouting, /indoorMap\.fitBounds\(paddedBounds/);
+    assert.doesNotMatch(indoorRouting, /setTimeout\([\s\S]{0,180}(?:fitBounds|invalidateSize)/);
+    assert.match(outdoorRouting, /map\.fitBounds\(L\.latLngBounds\(latlngs\)/);
+    assert.match(outdoorRouting, /animate:\s*!IS_MOBILE_OUTDOOR_VIEW/);
+    assert.doesNotMatch(responsivePerformance, /map\.fitBounds\s*=/);
+    assert.doesNotMatch(buildingUi, /keepRouteBuildingPopupOnScreen/);
+    assert.match(buildingUi, /autoPan:\s*true/);
+    assert.doesNotMatch(buildingUi, /keepRoutePopupInsideMapViewport|style\.marginLeft/);
+    assert.doesNotMatch(buildingUi, /setTimeout\([\s\S]{0,160}(?:fitBounds|panBy|invalidateSize)/);
+});
+
+test('building top remains clickable while Canvas depth cannot intercept clicks', () => {
+    const mapRendering = readFileSync(
+        new URL('../../public/js/wayfinding/05-map-rendering.js', import.meta.url),
+        'utf8',
+    );
+    const performanceCss = readFileSync(
+        new URL('../../public/css/wayfinding/09-map-performance.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(mapRendering, /renderer:\s*OUTDOOR_BUILDINGS_RENDERER/);
+    assert.match(mapRendering, /interactive:\s*true/);
+    assert.match(mapRendering, /renderer:\s*OUTDOOR_BUILDING_DEPTH_RENDERER/);
+    assert.match(mapRendering, /interactive:\s*false/);
+    assert.match(performanceCss, /\.fake-3d-building,[\s\S]*?filter:\s*none !important;/);
 });
 
 test('indoor graph and styles stay deferred until a building is opened', () => {

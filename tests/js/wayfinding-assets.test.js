@@ -547,8 +547,9 @@ test('simple user mode keeps route cards readable and technical GPS tools option
     assert.match(navigation, /function collapseRouteDetails\(\)/);
     assert.match(navigation, /New route selected\. Navigation updated automatically\./);
     assert.match(indoor, /route-building-map-popup-custom-close, \.leaflet-popup-close-button/);
-    assert.match(indoor, /function keepRouteBuildingPopupOnScreen\(\)/);
-    assert.match(indoor, /popupRect\.left < safeLeft/);
+    assert.match(indoor, /autoPan:\s*true/);
+    assert.doesNotMatch(indoor, /keepRouteBuildingPopupOnScreen|map\.panBy/);
+    assert.doesNotMatch(indoor, /keepRoutePopupInsideMapViewport|popup\.style\.marginLeft/);
     assert.match(indoor, /isCompactMobilePopup \? 220/);
     assert.match(indoor, /Indoor not available/);
     assert.match(indoor, /hasIndoorMap \? `[\s\S]*OPEN INDOOR ROOMS/);

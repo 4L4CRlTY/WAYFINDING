@@ -277,42 +277,63 @@
         const callbacks = new Map();
         const lifecycleCallbacks = new Map();
         const body = document.body;
-        let settleTimer = null;
         let settleFrame = null;
-        let interactionDepth = 0;
+        let pendingFlush = false;
+        const activeInteractions = new Set();
+
+        function interactionName(type = '') {
+            return String(type).replace(/(?:start|end)$/, '');
+        }
+
+        function syncInteractionClasses() {
+            const active = activeInteractions.size > 0;
+            body?.classList.toggle('map-moving', active);
+            body?.classList.toggle('map-zooming', activeInteractions.has('zoom'));
+            body?.classList.toggle('map-dragging', activeInteractions.has('drag'));
+        }
 
         function beginInteraction(event) {
-            interactionDepth += 1;
-            if (settleTimer) clearTimeout(settleTimer);
-            body?.classList.add('map-moving');
-            if (event?.type === 'zoomstart') body?.classList.add('map-zooming');
-            if (event?.type === 'dragstart') body?.classList.add('map-dragging');
-            lifecycleCallbacks.forEach(callbacksForKey => {
-                callbacksForKey.start?.(event);
-            });
+            const wasActive = activeInteractions.size > 0;
+            const name = interactionName(event?.type);
+            if (name) activeInteractions.add(name);
+            if (settleFrame) {
+                cancelAnimationFrame(settleFrame);
+                settleFrame = null;
+            }
+            syncInteractionClasses();
+            if (!wasActive && activeInteractions.size > 0) {
+                lifecycleCallbacks.forEach(callbacksForKey => {
+                    callbacksForKey.start?.(event);
+                });
+            }
         }
 
         function flushCallbacks() {
+            if (activeInteractions.size > 0) {
+                pendingFlush = true;
+                return;
+            }
             if (settleFrame) cancelAnimationFrame(settleFrame);
             settleFrame = requestAnimationFrame(() => {
                 settleFrame = null;
+                pendingFlush = false;
                 callbacks.forEach(callback => callback());
             });
         }
 
         function endInteraction(event) {
-            interactionDepth = Math.max(0, interactionDepth - 1);
-            if (event?.type === 'dragend') body?.classList.remove('map-dragging');
+            const name = interactionName(event?.type);
+            if (name) activeInteractions.delete(name);
+            syncInteractionClasses();
+            if (activeInteractions.size > 0) return;
+
             lifecycleCallbacks.forEach(callbacksForKey => {
                 callbacksForKey.end?.(event);
             });
-            if (interactionDepth > 0) return;
 
-            if (settleTimer) clearTimeout(settleTimer);
-            settleTimer = setTimeout(() => {
-                body?.classList.remove('map-moving', 'map-zooming', 'map-dragging');
-                flushCallbacks();
-            }, 96);
+            // One paint after the final Leaflet gesture event. No delayed
+            // timeout means releasing a pinch cannot create a second jump.
+            if (pendingFlush || callbacks.size > 0) flushCallbacks();
         }
 
         mapInstance.on('movestart zoomstart dragstart', beginInteraction);
@@ -336,7 +357,10 @@
             },
             schedule: flushCallbacks,
             isActive() {
-                return interactionDepth > 0;
+                return activeInteractions.size > 0;
+            },
+            activeTypes() {
+                return new Set(activeInteractions);
             }
         });
     }

@@ -182,6 +182,15 @@
     ]);
     let wayfindingSnapshotPromise = null;
     let wayfindingSearchIndexPromise = null;
+    let wayfindingSearchWorker = null;
+    let wayfindingSearchWorkerReady = null;
+    let wayfindingSearchWorkerVersion = null;
+    let wayfindingSearchWorkerRequestId = 0;
+    let latestWayfindingSearchWorkerRequestId = 0;
+    let latestDestinationSearchRequestId = 0;
+    let activeDestinationSearchController = null;
+    const wayfindingSearchWorkerPending = new Map();
+    const wayfindingSearchResultCache = new Map();
     const loadedIndoorBuildingIds = new Set();
     const indoorBuildingDataPromises = new Map();
 
@@ -199,7 +208,7 @@
         if (wayfindingSnapshotPromise) return wayfindingSnapshotPromise;
 
         wayfindingSnapshotPromise = fetch(WAYFINDING_SNAPSHOT_URL, {
-            cache: 'no-cache',
+            cache: 'force-cache',
             headers: {
                 'Accept': 'application/json'
             }
@@ -235,7 +244,7 @@
                 const response = await fetch(
                     snapshot.search_index_url || '/data/destination-keywords.json',
                     {
-                        cache: 'no-cache',
+                        cache: 'force-cache',
                         headers: {
                             'Accept': 'application/json'
                         }
@@ -252,12 +261,20 @@
                     return null;
                 }
 
+                initializeWayfindingSearchWorker(
+                    document.search_index,
+                    Number(document.cache_version)
+                );
                 return document.search_index;
             })
             .catch(() => null);
 
         return wayfindingSearchIndexPromise;
     }
+
+    window.preloadWayfindingSearchIndex = function preloadWayfindingSearchIndex() {
+        return loadWayfindingSearchIndex().catch(() => null);
+    };
 
     async function readWayfindingSnapshotDataset(url) {
         const pathname = getWayfindingUrlPath(url);
@@ -436,7 +453,7 @@
         }
     }
 
-    async function fetchJson(url) {
+    async function fetchJson(url, options = {}) {
         const snapshotData = await readWayfindingSnapshotDataset(url);
         if (snapshotData !== null) {
             saveLastKnownWayfindingResponse(url, snapshotData);
@@ -447,7 +464,8 @@
             const res = await fetch(url, {
                 headers: {
                     'Accept': 'application/json'
-                }
+                },
+                signal: options.signal
             });
             if (!res.ok) throw new Error(`Failed to load ${url}`);
 
@@ -464,6 +482,83 @@
 
             throw error;
         }
+    }
+
+    function failWayfindingSearchWorker(error) {
+        wayfindingSearchWorker?.terminate?.();
+        wayfindingSearchWorker = null;
+        wayfindingSearchWorkerVersion = null;
+        wayfindingSearchWorkerReady = Promise.reject(error);
+        wayfindingSearchWorkerReady.catch(() => {});
+        wayfindingSearchWorkerPending.forEach(({ reject }) => reject(error));
+        wayfindingSearchWorkerPending.clear();
+    }
+
+    function initializeWayfindingSearchWorker(entries, version) {
+        if (typeof Worker !== 'function') return Promise.resolve(false);
+        if (
+            wayfindingSearchWorker
+            && wayfindingSearchWorkerVersion === version
+            && wayfindingSearchWorkerReady
+        ) {
+            return wayfindingSearchWorkerReady;
+        }
+
+        wayfindingSearchWorker?.terminate?.();
+        wayfindingSearchWorkerVersion = version;
+        wayfindingSearchWorker = new Worker('/js/wayfinding-search-worker.js');
+
+        wayfindingSearchWorkerReady = new Promise((resolve, reject) => {
+            const readyTimeout = window.setTimeout(() => {
+                reject(new Error('Search worker initialization timed out.'));
+            }, 5000);
+            let initialized = false;
+
+            wayfindingSearchWorker.addEventListener('message', event => {
+                const message = event.data || {};
+
+                if (message.type === 'ready') {
+                    window.clearTimeout(readyTimeout);
+                    initialized = true;
+                    resolve(true);
+                    return;
+                }
+
+                const pending = wayfindingSearchWorkerPending.get(message.requestId);
+                if (!pending) return;
+                wayfindingSearchWorkerPending.delete(message.requestId);
+
+                if (message.type === 'error') {
+                    pending.reject(Object.assign(new Error(message.message), {
+                        code: message.code || 'SEARCH_WORKER_FAILED'
+                    }));
+                    return;
+                }
+
+                pending.resolve({
+                    stale: message.requestId !== latestWayfindingSearchWorkerRequestId,
+                    matches: Array.isArray(message.matches) ? message.matches : []
+                });
+            });
+
+            wayfindingSearchWorker.addEventListener('error', event => {
+                window.clearTimeout(readyTimeout);
+                const error = new Error(event.message || 'Search worker failed.');
+                if (!initialized) reject(error);
+                failWayfindingSearchWorker(error);
+            });
+        }).catch(error => {
+            failWayfindingSearchWorker(error);
+            return false;
+        });
+
+        wayfindingSearchWorker.postMessage({
+            type: 'init',
+            version,
+            entries
+        });
+
+        return wayfindingSearchWorkerReady;
     }
 
     function normalizeSnapshotKeywordText(value) {
@@ -530,30 +625,82 @@
         return commonWords.length ? (commonWords.length * 120) + candidate.length : -1;
     }
 
+    function rankSearchIndexSynchronously(searchIndex, normalized) {
+        const queryWords = normalized.split(' ').filter(Boolean);
+        const matches = [];
+
+        searchIndex.forEach((entry, index) => {
+            let score = snapshotKeywordScore(entry?.keyword, normalized, queryWords);
+            if (score < 100 || !entry?.result) return;
+            if (entry.destination_type === 'room') score += 350;
+            if (entry.destination_type === 'building') score += 120;
+            matches.push({ entry, score, index });
+        });
+
+        return matches.sort((left, right) =>
+            right.score - left.score
+            || Number(right.entry.priority || 0) - Number(left.entry.priority || 0)
+            || left.index - right.index
+        );
+    }
+
+    async function rankSearchIndex(searchIndex, normalized) {
+        const workerReady = await initializeWayfindingSearchWorker(
+            searchIndex,
+            wayfindingSearchWorkerVersion ?? 'runtime'
+        );
+        if (!workerReady || !wayfindingSearchWorker) {
+            return rankSearchIndexSynchronously(searchIndex, normalized);
+        }
+
+        const requestId = ++wayfindingSearchWorkerRequestId;
+        latestWayfindingSearchWorkerRequestId = requestId;
+
+        try {
+            const response = await new Promise((resolve, reject) => {
+                wayfindingSearchWorkerPending.set(requestId, { resolve, reject });
+                wayfindingSearchWorker.postMessage({
+                    type: 'search',
+                    requestId,
+                    query: normalized
+                });
+            });
+
+            if (response.stale) return [];
+            return response.matches
+                .map(match => ({
+                    entry: searchIndex[Number(match.index)],
+                    score: Number(match.score || 0),
+                    index: Number(match.index)
+                }))
+                .filter(match => Boolean(match.entry));
+        } catch (error) {
+            failWayfindingSearchWorker(error);
+            return rankSearchIndexSynchronously(searchIndex, normalized);
+        }
+    }
+
+    function rememberWayfindingSearchResult(normalized, response) {
+        if (!response?.success) return response;
+        if (wayfindingSearchResultCache.size >= 64) {
+            wayfindingSearchResultCache.delete(wayfindingSearchResultCache.keys().next().value);
+        }
+        wayfindingSearchResultCache.set(normalized, response);
+        return response;
+    }
+
     async function findSnapshotKeywordMatch(message) {
         const normalized = normalizeSnapshotKeywordText(message);
         if (!normalized) return null;
+        if (wayfindingSearchResultCache.has(normalized)) {
+            return wayfindingSearchResultCache.get(normalized);
+        }
 
         const snapshot = await loadWayfindingSnapshot();
         const searchIndex = await loadWayfindingSearchIndex();
         if (!snapshot || !Array.isArray(searchIndex)) return null;
 
-        const queryWords = normalized.split(' ').filter(Boolean);
-        const matches = searchIndex
-            .map((entry, index) => {
-                let score = snapshotKeywordScore(entry?.keyword, normalized, queryWords);
-                if (score < 100 || !entry?.result) return null;
-                if (entry.destination_type === 'room') score += 350;
-                if (entry.destination_type === 'building') score += 120;
-
-                return { entry, score, index };
-            })
-            .filter(Boolean)
-            .sort((left, right) =>
-                right.score - left.score
-                || Number(right.entry.priority || 0) - Number(left.entry.priority || 0)
-                || left.index - right.index
-            );
+        const matches = await rankSearchIndex(searchIndex, normalized);
 
         if (!matches.length) return null;
 
@@ -568,7 +715,10 @@
             buildingMatch
             && normalized === normalizeSnapshotKeywordText(buildingMatch.entry.keyword)
         ) {
-            return createSnapshotKeywordResponse(buildingMatch.entry);
+            return rememberWayfindingSearchResult(
+                normalized,
+                createSnapshotKeywordResponse(buildingMatch.entry)
+            );
         }
 
         const roomMatches = matches.filter(match =>
@@ -591,7 +741,7 @@
                     Number(roomMatch.entry.id),
                 ];
             }
-            return response;
+            return rememberWayfindingSearchResult(normalized, response);
         }
 
         if (detectedBuildingId && roomMatches.length) {
@@ -604,14 +754,20 @@
         }
 
         if (buildingMatch) {
-            return createSnapshotKeywordResponse(buildingMatch.entry);
+            return rememberWayfindingSearchResult(
+                normalized,
+                createSnapshotKeywordResponse(buildingMatch.entry)
+            );
         }
 
         const landuseMatch = matches.find(match =>
             match.entry.destination_type === 'landuse'
         );
         return landuseMatch
-            ? createSnapshotKeywordResponse(landuseMatch.entry)
+            ? rememberWayfindingSearchResult(
+                normalized,
+                createSnapshotKeywordResponse(landuseMatch.entry)
+            )
             : null;
     }
 
@@ -933,13 +1089,23 @@
 
         if (!ensureDefaultStartBeforeRoute()) return;
 
+        const searchRequestId = ++latestDestinationSearchRequestId;
+        activeDestinationSearchController?.abort?.();
+        activeDestinationSearchController = typeof AbortController === 'function'
+            ? new AbortController()
+            : null;
+
         try {
             setRouteResultLabel('Checking destination keyword database...');
 
             const snapshotResponse = await findSnapshotKeywordMatch(message);
+            if (searchRequestId !== latestDestinationSearchRequestId) return;
+
             const apiResponse = snapshotResponse || await fetchJson(
-                `/api/search-destination?q=${encodeURIComponent(message)}`
+                `/api/search-destination?q=${encodeURIComponent(message)}`,
+                { signal: activeDestinationSearchController?.signal }
             );
+            if (searchRequestId !== latestDestinationSearchRequestId) return;
 
             if (!apiResponse || !apiResponse.success || !apiResponse.result) {
                 const errorMessage = apiResponse?.message || 'No destination keyword matched your text.';
@@ -983,9 +1149,16 @@
             closeTextSearchModal();
             applyTextSearchDestination(apiResponse.result, matchedText.length ? [...new Set(matchedText)].join(' + ') : '');
         } catch (error) {
+            if (error?.name === 'AbortError' || searchRequestId !== latestDestinationSearchRequestId) {
+                return;
+            }
             console.error(error);
             alert('Failed to search destination keyword.');
             setRouteResultLabel('Failed to search destination keyword.');
+        } finally {
+            if (searchRequestId === latestDestinationSearchRequestId) {
+                activeDestinationSearchController = null;
+            }
         }
     }
 

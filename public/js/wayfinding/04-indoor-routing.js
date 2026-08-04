@@ -22,9 +22,9 @@
 
         indoorMap.setView([10.2925, 124.9985], 20);
 
-        setTimeout(() => {
-            indoorMap.invalidateSize();
-        }, 50);
+        requestAnimationFrame(() => {
+            scheduleIndoorViewportFit({ reason: 'map-created' });
+        });
     }
 
     function getIndoorBuildingMaps(buildingId) {
@@ -151,6 +151,119 @@
 
             roomList.appendChild(div);
         });
+    }
+
+    let indoorViewportFitFrame = null;
+    let indoorViewportResizeObserver = null;
+    let indoorViewportObservedElement = null;
+    let indoorViewportFitRequest = null;
+    let indoorViewportLastSize = '';
+
+    function isIndoorPanelVisible() {
+        return Boolean(indoorPanel?.classList.contains('active'));
+    }
+
+    function getIndoorViewportBounds(preferRoute = false) {
+        if (preferRoute && typeof persistentIndoorRouteByFloor !== 'undefined') {
+            const routePoints = persistentIndoorRouteByFloor?.[currentIndoorFloor] || [];
+            if (routePoints.length >= 2) {
+                return {
+                    bounds: L.latLngBounds(routePoints),
+                    route: true
+                };
+            }
+        }
+
+        const mapItem = allIndoorMaps.find(item =>
+            Number(item.building_id) === Number(currentIndoorBuildingId) &&
+            Number(item.floor_number) === Number(currentIndoorFloor)
+        );
+        const geometryBounds = getIndoorMapBoundsFromGeometry(mapItem?.geometry);
+        if (geometryBounds?.isValid()) {
+            return {
+                bounds: geometryBounds,
+                route: false
+            };
+        }
+
+        const layers = [indoorPathsLayer, indoorRoomsLayer, indoorEntrancesLayer]
+            .filter(Boolean);
+        if (!layers.length) return null;
+
+        const bounds = L.featureGroup(layers).getBounds();
+        return bounds.isValid() ? { bounds, route: false } : null;
+    }
+
+    function fitIndoorViewportOnce(options = {}) {
+        if (
+            !indoorMap ||
+            !isIndoorPanelVisible() ||
+            !currentIndoorBuildingId ||
+            !hasIndoorFloorValue(currentIndoorFloor)
+        ) {
+            return false;
+        }
+
+        const container = indoorMap.getContainer?.();
+        if (!container || container.clientWidth < 2 || container.clientHeight < 2) {
+            return false;
+        }
+
+        indoorMap.invalidateSize({ animate: false, pan: false });
+        const viewport = getIndoorViewportBounds(Boolean(options.preferRoute));
+        if (!viewport) return false;
+
+        const mobile = window.matchMedia('(max-width: 768px)').matches;
+        const paddedBounds = viewport.route
+            ? viewport.bounds
+            : viewport.bounds.pad(mobile ? 0.03 : 0.12);
+
+        indoorMap.fitBounds(paddedBounds, {
+            animate: false,
+            padding: viewport.route
+                ? (mobile ? [18, 18] : [44, 44])
+                : (mobile ? [8, 8] : [28, 28]),
+            maxZoom: 22
+        });
+
+        return true;
+    }
+
+    function scheduleIndoorViewportFit(options = {}) {
+        indoorViewportFitRequest = {
+            ...(indoorViewportFitRequest || {}),
+            ...(options || {})
+        };
+
+        if (indoorViewportFitFrame) cancelAnimationFrame(indoorViewportFitFrame);
+        indoorViewportFitFrame = requestAnimationFrame(() => {
+            indoorViewportFitFrame = null;
+            const request = indoorViewportFitRequest || {};
+            if (fitIndoorViewportOnce(request)) {
+                indoorViewportFitRequest = null;
+            }
+        });
+    }
+
+    function ensureIndoorViewportObserver() {
+        const target = indoorMap?.getContainer?.()?.parentElement || indoorPanel;
+        if (!target || typeof ResizeObserver !== 'function') return;
+        if (indoorViewportResizeObserver && indoorViewportObservedElement === target) return;
+
+        indoorViewportResizeObserver?.disconnect();
+        indoorViewportObservedElement = target;
+        indoorViewportResizeObserver = new ResizeObserver(entries => {
+            const rect = entries[0]?.contentRect;
+            if (!rect || !isIndoorPanelVisible()) return;
+            const nextSize = `${Math.round(rect.width)}x${Math.round(rect.height)}`;
+            if (nextSize === indoorViewportLastSize) return;
+            indoorViewportLastSize = nextSize;
+            scheduleIndoorViewportFit({
+                reason: 'container-resize',
+                preferRoute: Boolean(lastIndoorRoutePackage)
+            });
+        });
+        indoorViewportResizeObserver.observe(target);
     }
 
     function renderIndoorFloor() {
@@ -286,30 +399,6 @@
 
         loadIndoorFloorImage();
 
-        const currentMapItem = allIndoorMaps.find(m =>
-            Number(m.building_id) === Number(currentIndoorBuildingId) &&
-            Number(m.floor_number) === Number(currentIndoorFloor)
-        );
-
-        const geometryBounds = getIndoorMapBoundsFromGeometry(currentMapItem?.geometry);
-
-        if (geometryBounds && geometryBounds.isValid()) {
-            indoorMap.fitBounds(geometryBounds.pad(0.08));
-        } else {
-            const layers = [];
-            if (floorPaths.length) layers.push(indoorPathsLayer);
-            if (floorRooms.length) layers.push(indoorRoomsLayer);
-            if (floorEntrances.length) layers.push(indoorEntrancesLayer);
-
-            if (layers.length) {
-                const fg = L.featureGroup(layers);
-                const bounds = fg.getBounds();
-                if (bounds.isValid()) {
-                    indoorMap.fitBounds(bounds.pad(0.18));
-                }
-            }
-        }
-
         indoorFooter.innerHTML = `
             <span class="indoor-badge badge-blue">${getBuildingNameById(currentIndoorBuildingId)}</span>
             <span class="indoor-badge badge-green">${indoorFloorSelect.selectedOptions[0]?.textContent || ('Floor ' + currentIndoorFloor)}</span>
@@ -442,37 +531,31 @@
         setIndoorLoading(true);
 
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                try {
-                    if (indoorMap) {
-                        indoorMap.invalidateSize();
-                    }
+            try {
+                renderIndoorFloor();
+                renderIndoorRoomList();
+                restoreIndoorRouteIfAvailable();
 
-                    renderIndoorFloor();
-                    renderIndoorRoomList();
-                    restoreIndoorRouteIfAvailable();
-
-                    if (typeof renderIndoorFloorButtonsFinal === 'function') {
-                        renderIndoorFloorButtonsFinal();
-                    }
-
-                    if (typeof updateIndoorFloorButtonActiveFinal === 'function') {
-                        updateIndoorFloorButtonActiveFinal();
-                    }
-
-                    setTimeout(() => {
-                        if (indoorMap) {
-                            indoorMap.invalidateSize();
-                        }
-                        setIndoorLoading(false);
-                    }, 120);
-                } catch (error) {
-                    console.error('Indoor render failed:', error);
-                    setIndoorLoading(false);
-                    // No alert popup. Just keep the app quiet and prevent wrong panel behavior.
-                    closeIndoorPanelFn();
+                if (typeof renderIndoorFloorButtonsFinal === 'function') {
+                    renderIndoorFloorButtonsFinal();
                 }
-            });
+
+                if (typeof updateIndoorFloorButtonActiveFinal === 'function') {
+                    updateIndoorFloorButtonActiveFinal();
+                }
+
+                ensureIndoorViewportObserver();
+                scheduleIndoorViewportFit({
+                    reason: 'panel-open',
+                    preferRoute: Boolean(lastIndoorRoutePackage)
+                });
+                setIndoorLoading(false);
+            } catch (error) {
+                console.error('Indoor render failed:', error);
+                setIndoorLoading(false);
+                // No alert popup. Just keep the app quiet and prevent wrong panel behavior.
+                closeIndoorPanelFn();
+            }
         });
 
         return true;
@@ -966,18 +1049,17 @@
             }).addTo(indoorMap).bindPopup(roomFeature.properties?.name || 'Destination Room');
         }
 
-        if (currentFloorPoints.length >= 2) {
-            indoorMap.fitBounds(L.latLngBounds(currentFloorPoints), {
-                padding: [40, 40]
-            });
-        }
-
         lastIndoorRoutePackage = {
             indoorGraphData,
             indoorResult,
             entranceFeature,
             roomFeature
         };
+
+        scheduleIndoorViewportFit({
+            reason: 'route-created',
+            preferRoute: currentFloorPoints.length >= 2
+        });
 
         if (indoorFooter && currentFloorPoints.length >= 2) {
             indoorFooter.innerHTML = `
@@ -1035,11 +1117,10 @@
             }).addTo(indoorMap).bindPopup(roomFeature.properties?.name || 'Destination Room');
         }
 
-        if (currentFloorPoints.length >= 2) {
-            indoorMap.fitBounds(L.latLngBounds(currentFloorPoints), {
-                padding: [40, 40]
-            });
-        }
+        scheduleIndoorViewportFit({
+            reason: 'route-floor-redraw',
+            preferRoute: currentFloorPoints.length >= 2
+        });
 
         if (indoorFooter && lastIndoorRoutePackage) {
             const entranceFloor = Number(entranceFeature?.properties?.floor_number ?? NaN);
@@ -1224,6 +1305,9 @@
 
         updateRouteLabels();
         setRouteResultLabel('Outdoor route computed to selected building only.');
+        if (typeof showRoutePopupForSelectedBuilding === 'function') {
+            showRoutePopupForSelectedBuilding(buildingId);
+        }
     }
 
     function findBestEntranceLinkForRoom(roomFeature) {
@@ -1644,6 +1728,9 @@
         setRouteResultLabel(
             `Route ready via nearest path + entrance${coveredStairsNote}: ${chosenIndoorEntranceName} (${chosenIndoorEntranceFloor}F). Indoor floors: ${floorsWithRoute || (roomFeature.properties?.floor_label || '1F')}`
         );
+        if (typeof showRoutePopupForSelectedBuilding === 'function') {
+            showRoutePopupForSelectedBuilding(selectedDestinationBuildingId);
+        }
     }
 
     async function findRouteByDestination() {
@@ -1756,6 +1843,16 @@
         closeIndoorPanelFn();
         if (typeof closeRouteBuildingPopup === 'function') {
             closeRouteBuildingPopup();
+        }
+
+        if (campusBounds?.isValid?.()) {
+            map.fitBounds(campusBounds, {
+                padding: [50, 50],
+                maxZoom: IS_MOBILE_OUTDOOR_VIEW
+                    ? MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE
+                    : 18.5,
+                animate: !IS_MOBILE_OUTDOOR_VIEW
+            });
         }
     }
 

@@ -5,7 +5,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "test": "node --test tests/js/wayfinding-assets.test.js tests/js/wayfinding-routing.test.js tests/js/wayfinding-performance.test.js",
+        "test": "node --test tests/js/wayfinding-assets.test.js tests/js/wayfinding-routing.test.js tests/js/wayfinding-search-worker.test.js tests/js/wayfinding-performance.test.js",
         "test:e2e": "playwright test",
         "test:capacity": "node scripts/load-test-campus-snapshot.mjs",
         "test:capacity:full": "node scripts/load-test-wayfinding.mjs",

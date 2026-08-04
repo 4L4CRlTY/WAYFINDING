@@ -120,37 +120,6 @@
         }
     }
 
-    function keepRouteBuildingPopupOnScreen() {
-        const popup = document.querySelector('.leaflet-popup-pane .route-building-map-popup');
-        if (!popup || !map) return;
-
-        const popupRect = popup.getBoundingClientRect();
-        const mapRect = map.getContainer().getBoundingClientRect();
-        const isMobile = window.matchMedia('(max-width: 768px)').matches;
-        const safeLeft = mapRect.left + 12;
-        const safeRight = mapRect.right - 12;
-        const safeTop = mapRect.top + (isMobile ? 72 : 18);
-        const safeBottom = mapRect.bottom - (isMobile ? 92 : 18);
-        let dx = 0;
-        let dy = 0;
-
-        if (popupRect.left < safeLeft) {
-            dx = popupRect.left - safeLeft;
-        } else if (popupRect.right > safeRight) {
-            dx = popupRect.right - safeRight;
-        }
-
-        if (popupRect.top < safeTop) {
-            dy = popupRect.top - safeTop;
-        } else if (popupRect.bottom > safeBottom) {
-            dy = popupRect.bottom - safeBottom;
-        }
-
-        if (dx || dy) {
-            map.panBy([dx, dy], { animate: true, duration: 0.22 });
-        }
-    }
-
 function showRouteBuildingPopup(buildingId, buildingName, center) {
         routePopupBuildingId = Number(buildingId);
         routePopupBuildingName = buildingName || getBuildingNameById(buildingId);
@@ -222,6 +191,10 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
             closeButton: false,
             autoClose: true,
             closeOnClick: false,
+            // Let Leaflet make one small pan only when a newly opened popup
+            // would be clipped. The popup itself must never be translated
+            // relative to its anchor, otherwise it appears to follow the
+            // viewport instead of pointing at the building.
             autoPan: true,
             keepInView: false,
             className: 'route-building-map-popup',
@@ -241,17 +214,10 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         .setContent(html)
         .openOn(map);
 
-        updateRouteBuildingPopupScale();
-
-        makeRoutePopupDragFriendly();
-        setTimeout(makeRoutePopupDragFriendly, 80);
-        setTimeout(makeRoutePopupDragFriendly, 220);
-
-        setTimeout(makeRoutePopupDragFriendly, 160);
-        setTimeout(updateRouteBuildingPopupScale, 40);
-        setTimeout(updateRouteBuildingPopupScale, 180);
-        setTimeout(keepRouteBuildingPopupOnScreen, 90);
-        setTimeout(keepRouteBuildingPopupOnScreen, 360);
+        requestAnimationFrame(() => {
+            updateRouteBuildingPopupScale();
+            makeRoutePopupDragFriendly();
+        });
     }
 
 
@@ -304,6 +270,12 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         }
     }
 
+    window.WayfindingInteraction?.registerLifecycle('route-popup-settled-ui', {
+        end: () => requestAnimationFrame(() => {
+            updateRouteBuildingPopupScale();
+        })
+    });
+
     function closeRouteBuildingPopup() {
         const popup = document.getElementById('route-building-popup');
         if (popup) {
@@ -347,236 +319,16 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         );
     }
 
-    /*
-       Wrap route functions so popup appears after successful route.
-    */
-    if (typeof findRouteToBuilding === 'function' && !window.__routePopupBuildingWrapped) {
-        window.__routePopupBuildingWrapped = true;
-        const __baseFindRouteToBuildingPopup = findRouteToBuilding;
-
-        findRouteToBuilding = function(buildingId) {
-            const result = __baseFindRouteToBuildingPopup.apply(this, arguments);
-
-            setTimeout(() => {
-                showRoutePopupForSelectedBuilding(buildingId);
-            }, 280);
-
-            return result;
-        };
-    }
-
-    if (typeof computeCompleteRouteToRoom === 'function' && !window.__routePopupRoomWrapped) {
-        window.__routePopupRoomWrapped = true;
-        const __baseComputeCompleteRouteToRoomPopup = computeCompleteRouteToRoom;
-
-        computeCompleteRouteToRoom = function(roomFeature) {
-            const result = __baseComputeCompleteRouteToRoomPopup.apply(this, arguments);
-
-            const buildingId = Number(roomFeature?.properties?.building_id || selectedDestinationBuildingId);
-            if (buildingId) {
-                setTimeout(() => {
-                    showRoutePopupForSelectedBuilding(buildingId);
-                }, 360);
-            }
-
-            return result;
-        };
-    }
-
-    /*
-       Make every building click open indoor rooms and show popup.
-       This does not remove existing building click behavior.
-    */
-    function attachIndoorClickToBuildingLayersFinal() {
-        if (!window.__routePopupBuildingClickHooked) {
-            window.__routePopupBuildingClickHooked = true;
-        }
-
-        map.eachLayer(layer => {
-            const feature = layer.feature;
-            const props = feature?.properties || {};
-
-            const buildingId =
-                props.id ??
-                props.building_id ??
-                props.properties?.id ??
-                null;
-
-            if (!buildingId || !feature?.geometry) return;
-            if (layer.__indoorClickAdded) return;
-
-            layer.__indoorClickAdded = true;
-
-            layer.on('click', function() {
-                // If this building has no indoor map, do nothing silently.
-                if (!hasIndoorForBuildingFinal(buildingId)) {
-                    return;
-                }
-
-                showRoutePopupForSelectedBuilding(buildingId);
-
-                if (typeof openIndoorPanelForBuilding === 'function') {
-                    openIndoorPanelForBuilding(Number(buildingId));
-                }
-            });
-        });
-    }
-
-    /*
-       Try hooking after data/rendering, and after map layer changes.
-    */
-    setTimeout(attachIndoorClickToBuildingLayersFinal, 1200);
-    setTimeout(attachIndoorClickToBuildingLayersFinal, 2500);
-
-    map.on('layeradd', function() {
-        setTimeout(attachIndoorClickToBuildingLayersFinal, 80);
-    });
-
-    // Popup is now a Leaflet popup anchored to the building.
-    // No manual screen-follow positioning needed.
+    // Route completion invokes this popup directly. Building clicks remain
+    // owned by the original interactive SVG top layer in 05-map-rendering.js.
 
     window.showRouteBuildingPopup = showRouteBuildingPopup;
     window.closeRouteBuildingPopup = closeRouteBuildingPopup;
     window.openIndoorFromRoutePopup = openIndoorFromRoutePopup;
 
 
-    /* =========================================================
-       INDOOR FRONT MODE PATCH
-       Adds body.indoor-open while indoor panel is active.
-    ========================================================= */
-
-    function setIndoorFrontModeFinal(isOpen = true) {
-        const body = document.body;
-        const panel = document.getElementById('indoorPanel');
-        const backdrop = document.getElementById('indoorBackdrop');
-
-        if (isOpen) {
-            body.classList.add('indoor-open');
-
-            if (panel) {
-                panel.classList.add('active');
-                panel.style.zIndex = '120010';
-            }
-
-            if (backdrop) {
-                backdrop.classList.add('active');
-                backdrop.style.zIndex = '120000';
-            }
-
-            if (typeof closeFloatingActionCard === 'function') closeFloatingActionCard();
-            if (typeof closeRouteBuildingPopup === 'function') closeRouteBuildingPopup();
-
-            const browseModal = document.getElementById('browseOptionsModal');
-            if (browseModal) browseModal.style.display = 'none';
-
-            const searchPanel = document.getElementById('ai-search-panel');
-            const voicePanel = document.getElementById('ai-voice-panel');
-            const dock = document.getElementById('floating-route-ui');
-
-            if (searchPanel) searchPanel.style.display = 'none';
-            if (voicePanel) voicePanel.style.display = 'none';
-            if (dock) dock.classList.remove('transforming', 'search-mode', 'voice-mode');
-
-            setTimeout(() => {
-                if (typeof indoorMap !== 'undefined' && indoorMap) {
-                    indoorMap.invalidateSize();
-                }
-            }, 180);
-        } else {
-            body.classList.remove('indoor-open');
-
-            if (panel) panel.classList.remove('active');
-            if (backdrop) backdrop.classList.remove('active');
-
-            setTimeout(() => {
-                if (typeof map !== 'undefined' && map) {
-                    map.invalidateSize();
-                }
-            }, 120);
-        }
-    }
-
-    /*
-       Wrap indoor open/close functions so indoor is always front.
-    */
-    if (typeof openIndoorPanelForBuilding === 'function' && !window.__indoorFrontOpenWrapped) {
-        window.__indoorFrontOpenWrapped = true;
-        const __baseOpenIndoorPanelForBuildingFront = openIndoorPanelForBuilding;
-
-        openIndoorPanelForBuilding = function() {
-            const result = __baseOpenIndoorPanelForBuildingFront.apply(this, arguments);
-
-            setTimeout(() => {
-                setIndoorFrontModeFinal(true);
-            }, 40);
-
-            return result;
-        };
-    }
-
-    if (typeof closeIndoorPanelFn === 'function' && !window.__indoorFrontCloseWrapped) {
-        window.__indoorFrontCloseWrapped = true;
-        const __baseCloseIndoorPanelFront = closeIndoorPanelFn;
-
-        closeIndoorPanelFn = function() {
-            const result = __baseCloseIndoorPanelFront.apply(this, arguments);
-            setIndoorFrontModeFinal(false);
-            return result;
-        };
-    }
-
-    /*
-       Direct button/backdrop safety.
-    */
-    document.addEventListener('DOMContentLoaded', function() {
-        const closeBtn = document.getElementById('closeIndoorPanel');
-        const backdrop = document.getElementById('indoorBackdrop');
-
-        if (closeBtn && !closeBtn.__indoorFrontBound) {
-            closeBtn.__indoorFrontBound = true;
-            closeBtn.addEventListener('click', function() {
-                setTimeout(() => setIndoorFrontModeFinal(false), 20);
-            });
-        }
-
-        if (backdrop && !backdrop.__indoorFrontBound) {
-            backdrop.__indoorFrontBound = true;
-            backdrop.addEventListener('click', function() {
-                setTimeout(() => setIndoorFrontModeFinal(false), 20);
-            });
-        }
-    });
-
-    /*
-       Watch class changes in case another function opens/closes indoor panel.
-    */
-    (function watchIndoorPanelFrontMode() {
-        const panel = document.getElementById('indoorPanel');
-        if (!panel || panel.__frontModeObserver) return;
-
-        panel.__frontModeObserver = true;
-
-        const observer = new MutationObserver(() => {
-            const isActive = panel.classList.contains('active') || panel.style.display === 'block';
-            document.body.classList.toggle('indoor-open', isActive);
-
-            if (isActive) {
-                panel.style.zIndex = '120010';
-                const backdrop = document.getElementById('indoorBackdrop');
-                if (backdrop) backdrop.style.zIndex = '120000';
-                setTimeout(() => {
-                    if (typeof indoorMap !== 'undefined' && indoorMap) indoorMap.invalidateSize();
-                }, 150);
-            }
-        });
-
-        observer.observe(panel, {
-            attributes: true,
-            attributeFilter: ['class', 'style']
-        });
-    })();
-
-    window.setIndoorFrontModeFinal = setIndoorFrontModeFinal;
+    /* Indoor stacking is owned by openIndoorPanelModal()/closeIndoorPanelFn(). */
+    window.showRoutePopupForSelectedBuilding = showRoutePopupForSelectedBuilding;
     window.openIndoorPanelForBuilding = openIndoorPanelForBuilding;
     window.closeIndoorPanelFn = closeIndoorPanelFn;
 
@@ -638,24 +390,10 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
             redrawPersistentIndoorRouteForCurrentFloor();
         }
 
-        setTimeout(() => {
-            if (indoorMap) {
-                indoorMap.invalidateSize();
-
-                const mapItem = allIndoorMaps.find(m =>
-                    Number(m.building_id) === Number(currentIndoorBuildingId) &&
-                    Number(m.floor_number) === Number(currentIndoorFloor)
-                );
-
-                const bounds = mapItem ? getIndoorMapBoundsFromGeometry(mapItem.geometry) : null;
-                if (bounds && bounds.isValid()) {
-                    indoorMap.fitBounds(bounds, {
-                        padding: [24, 24],
-                        animate: true
-                    });
-                }
-            }
-        }, 160);
+        scheduleIndoorViewportFit({
+            reason: 'floor-button',
+            preferRoute: Boolean(lastIndoorRoutePackage)
+        });
     }
 
     /*
@@ -664,86 +402,8 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
     if (indoorFloorSelect && !indoorFloorSelect.__floorButtonSyncBound) {
         indoorFloorSelect.__floorButtonSyncBound = true;
         indoorFloorSelect.addEventListener('change', function() {
-            setTimeout(updateIndoorFloorButtonActiveFinal, 30);
+            requestAnimationFrame(updateIndoorFloorButtonActiveFinal);
         });
-    }
-
-    /*
-       Wrap indoor opening so floor buttons are created every time.
-    */
-    if (typeof openIndoorPanelForBuilding === 'function' && !window.__floorButtonsOpenWrapped) {
-        window.__floorButtonsOpenWrapped = true;
-        const __baseOpenIndoorPanelForBuildingFloorButtons = openIndoorPanelForBuilding;
-
-        openIndoorPanelForBuilding = function() {
-            const result = __baseOpenIndoorPanelForBuildingFloorButtons.apply(this, arguments);
-
-            setTimeout(() => {
-                renderIndoorFloorButtonsFinal();
-                updateIndoorFloorButtonActiveFinal();
-
-                if (indoorMap) {
-                    indoorMap.invalidateSize();
-                }
-            }, 220);
-
-            setTimeout(() => {
-                if (indoorMap) {
-                    indoorMap.invalidateSize();
-
-                    const mapItem = allIndoorMaps.find(m =>
-                        Number(m.building_id) === Number(currentIndoorBuildingId) &&
-                        Number(m.floor_number) === Number(currentIndoorFloor)
-                    );
-
-                    const routePoints = (typeof persistentIndoorRouteByFloor !== 'undefined' && persistentIndoorRouteByFloor)
-                        ? (persistentIndoorRouteByFloor[currentIndoorFloor] || [])
-                        : [];
-
-                    if (routePoints.length >= 2) {
-                        indoorMap.fitBounds(L.latLngBounds(routePoints), {
-                            padding: [44, 44],
-                            animate: false
-                        });
-                    } else {
-                        const bounds = mapItem ? getIndoorMapBoundsFromGeometry(mapItem.geometry) : null;
-                        if (bounds && bounds.isValid()) {
-                            indoorMap.fitBounds(bounds, {
-                                padding: [24, 24],
-                                animate: false
-                            });
-                        }
-                    }
-                }
-            }, 420);
-
-            return result;
-        };
-
-        window.openIndoorPanelForBuilding = openIndoorPanelForBuilding;
-    }
-
-    /*
-       Wrap floor render so active button always follows current floor.
-    */
-    if (typeof renderIndoorFloor === 'function' && !window.__floorButtonsRenderWrapped) {
-        window.__floorButtonsRenderWrapped = true;
-        const __baseRenderIndoorFloorButtons = renderIndoorFloor;
-
-        renderIndoorFloor = function() {
-            const result = __baseRenderIndoorFloorButtons.apply(this, arguments);
-
-            setTimeout(() => {
-                renderIndoorFloorButtonsFinal();
-                updateIndoorFloorButtonActiveFinal();
-
-                if (indoorMap) {
-                    indoorMap.invalidateSize();
-                }
-            }, 60);
-
-            return result;
-        };
     }
 
     window.renderIndoorFloorButtonsFinal = renderIndoorFloorButtonsFinal;
@@ -790,144 +450,14 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
 
 
 
-/* =========================================================
-   FINAL MOBILE FRIENDLY JS PATCH
-   Keeps Leaflet maps correct after mobile resizing/orientation/UI changes.
-========================================================= */
-
-function isMobileViewportFinal() {
-    return window.matchMedia('(max-width: 768px)').matches;
-}
-
-function invalidateMainAndIndoorMapsFinal(delay = 160) {
-    setTimeout(() => {
-        if (typeof map !== 'undefined' && map) {
-            map.invalidateSize();
-        }
-
-        if (typeof indoorMap !== 'undefined' && indoorMap) {
-            indoorMap.invalidateSize();
-        }
-    }, delay);
-}
-
+/* Keep the responsive class current without forcing Leaflet camera work. */
 function updateMobileViewportClassFinal() {
-    document.body.classList.toggle('is-mobile-view', isMobileViewportFinal());
-    invalidateMainAndIndoorMapsFinal(180);
+    document.body.classList.toggle(
+        'is-mobile-view',
+        window.matchMedia('(max-width: 768px)').matches
+    );
 }
 
-window.addEventListener('resize', updateMobileViewportClassFinal);
-window.addEventListener('orientationchange', function () {
-    setTimeout(updateMobileViewportClassFinal, 280);
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    updateMobileViewportClassFinal();
-
-    document.querySelectorAll(
-        '.floating-mode-btn, .floating-action-btn, .ai-search-submit, .ai-record-inline-btn, .route-btn, .indoor-floor-btn, .indoor-close'
-    ).forEach(btn => {
-        btn.addEventListener('touchstart', function () {}, {
-            passive: true
-        });
-    });
-});
-
-/*
-|---------------------------------------------------------------------------
-| Wrap indoor open/close and floor button changes so map always resizes
-| correctly on mobile.
-|---------------------------------------------------------------------------
-*/
-if (typeof openIndoorPanelForBuilding === 'function' && !window.__mobileOpenIndoorWrapped) {
-    window.__mobileOpenIndoorWrapped = true;
-    const __baseOpenIndoorPanelForMobile = openIndoorPanelForBuilding;
-
-    openIndoorPanelForBuilding = function () {
-        const result = __baseOpenIndoorPanelForMobile.apply(this, arguments);
-
-        document.body.classList.add('indoor-open');
-        invalidateMainAndIndoorMapsFinal(120);
-        invalidateMainAndIndoorMapsFinal(360);
-        invalidateMainAndIndoorMapsFinal(700);
-
-        return result;
-    };
-
-    window.openIndoorPanelForBuilding = openIndoorPanelForBuilding;
-}
-
-if (typeof closeIndoorPanelFn === 'function' && !window.__mobileCloseIndoorWrapped) {
-    window.__mobileCloseIndoorWrapped = true;
-    const __baseCloseIndoorPanelForMobile = closeIndoorPanelFn;
-
-    closeIndoorPanelFn = function () {
-        const result = __baseCloseIndoorPanelForMobile.apply(this, arguments);
-
-        document.body.classList.remove('indoor-open');
-        invalidateMainAndIndoorMapsFinal(140);
-
-        return result;
-    };
-
-    window.closeIndoorPanelFn = closeIndoorPanelFn;
-}
-
-if (typeof setIndoorFloorFromButtonFinal === 'function' && !window.__mobileFloorButtonWrapped) {
-    window.__mobileFloorButtonWrapped = true;
-    const __baseSetIndoorFloorFromButtonMobile = setIndoorFloorFromButtonFinal;
-
-    setIndoorFloorFromButtonFinal = function () {
-        const result = __baseSetIndoorFloorFromButtonMobile.apply(this, arguments);
-
-        invalidateMainAndIndoorMapsFinal(120);
-        invalidateMainAndIndoorMapsFinal(320);
-
-        return result;
-    };
-
-    window.setIndoorFloorFromButtonFinal = setIndoorFloorFromButtonFinal;
-}
-
-/*
-|---------------------------------------------------------------------------
-| Modal open helpers: scroll to bottom panel correctly on phone.
-|---------------------------------------------------------------------------
-*/
-if (typeof openBrowseOptionsModal === 'function' && !window.__mobileBrowseModalWrapped) {
-    window.__mobileBrowseModalWrapped = true;
-    const __baseOpenBrowseOptionsModalMobile = openBrowseOptionsModal;
-
-    openBrowseOptionsModal = function () {
-        const result = __baseOpenBrowseOptionsModalMobile.apply(this, arguments);
-        invalidateMainAndIndoorMapsFinal(120);
-        return result;
-    };
-
-    window.openBrowseOptionsModal = openBrowseOptionsModal;
-}
-
-if (typeof openInlineTextSearch === 'function' && !window.__mobileTextSearchWrapped) {
-    window.__mobileTextSearchWrapped = true;
-    const __baseOpenInlineTextSearchMobile = openInlineTextSearch;
-
-    openInlineTextSearch = function () {
-        const result = __baseOpenInlineTextSearchMobile.apply(this, arguments);
-
-        setTimeout(() => {
-            const input = document.getElementById('destination-search-input');
-            if (input && isMobileViewportFinal()) {
-                input.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                });
-            }
-        }, 180);
-
-        return result;
-    };
-
-    window.openInlineTextSearch = openInlineTextSearch;
-}
-
-invalidateMainAndIndoorMapsFinal(400);
+window.addEventListener('resize', updateMobileViewportClassFinal, { passive: true });
+window.addEventListener('orientationchange', updateMobileViewportClassFinal, { passive: true });
+document.addEventListener('DOMContentLoaded', updateMobileViewportClassFinal, { once: true });

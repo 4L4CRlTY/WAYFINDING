@@ -25,11 +25,37 @@
 </IfModule>
 
 <IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript
     AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE image/svg+xml application/manifest+json
 </IfModule>
 
 <IfModule mod_headers.c>
     <FilesMatch "^(campus-snapshot|destination-keywords)\.json$">
-        Header set Cache-Control "public, no-cache, must-revalidate"
+        Header set Cache-Control "public, max-age=300, stale-while-revalidate=86400"
     </FilesMatch>
+
+    # Per-building indoor snapshots use the building id as filename.
+    <FilesMatch "^[0-9]+\.json$">
+        Header set Cache-Control "public, max-age=300, stale-while-revalidate=86400"
+    </FilesMatch>
+
+    <FilesMatch "\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=2592000, stale-while-revalidate=86400"
+    </FilesMatch>
+
+    <FilesMatch "\.(?:geojson)$">
+        Header set Cache-Control "public, max-age=300, stale-while-revalidate=86400"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 30 days"
+    ExpiresByType application/javascript "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 30 days"
 </IfModule>

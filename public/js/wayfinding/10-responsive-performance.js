@@ -1,297 +1,8 @@
-/* =========================================================
-   MOBILE INDOOR ZOOM IN PATCH
-   Mobile view only:
-   - smaller padding = more zoom in
-   - no manual zoom-out
-   - adds a little zoom-in after fitBounds
-========================================================= */
-
-function isIndoorMobileViewportFinal() {
-    return window.matchMedia('(max-width: 768px)').matches;
-}
-
-function getCurrentIndoorMapItemFinal() {
-    if (!currentIndoorBuildingId || !hasIndoorFloorValue(currentIndoorFloor)) return null;
-
-    return (allIndoorMaps || []).find(m =>
-        Number(m.building_id) === Number(currentIndoorBuildingId) &&
-        Number(m.floor_number) === Number(currentIndoorFloor)
-    ) || null;
-}
-
-function fitIndoorMapMobileZoomInFinal(delay = 120) {
-    setTimeout(() => {
-        if (!indoorMap || !currentIndoorBuildingId || !hasIndoorFloorValue(currentIndoorFloor)) return;
-
-        const isMobile = isIndoorMobileViewportFinal();
-
-        if (typeof indoorMap.setMinZoom === 'function') {
-            indoorMap.setMinZoom(isMobile ? 15 : 17);
-        }
-
-        indoorMap.invalidateSize();
-
-        const mapItem = getCurrentIndoorMapItemFinal();
-        const bounds = mapItem ? getIndoorMapBoundsFromGeometry(mapItem.geometry) : null;
-
-        if (bounds && bounds.isValid()) {
-            /*
-            |--------------------------------------------------------------------------
-            | Adjust mobilePad diri:
-            | 0.06 = mas zoom in
-            | 0.10 = sakto/gamay zoom in
-            | 0.18 = medyo zoom out
-            |--------------------------------------------------------------------------
-            */
-            const mobilePad = 0.03;
-            const desktopPad = 0.12;
-
-            indoorMap.fitBounds(bounds.pad(isMobile ? mobilePad : desktopPad), {
-                animate: false,
-                padding: isMobile ? [8, 8] : [28, 28],
-                maxZoom: isMobile ? 22 : 22
-            });
-
-            /*
-            |--------------------------------------------------------------------------
-            | Extra mobile zoom-in gamay after fitBounds.
-            | +0.25 = gamay ra
-            | +0.45 = recommended
-            | +0.70 = mas duol / gamay zoom in pa
-            |--------------------------------------------------------------------------
-            */
-            if (isMobile) {
-                const currentZoom = indoorMap.getZoom();
-                indoorMap.setZoom(Math.min(indoorMap.getMaxZoom(), currentZoom + 0.40), {
-                    animate: false
-                });
-            }
-        }
-    }, delay);
-}
-
-if (typeof openIndoorPanelForBuilding === 'function' && !window.__mobileIndoorZoomInOpenWrapped) {
-    window.__mobileIndoorZoomInOpenWrapped = true;
-    const __baseOpenIndoorPanelZoomIn = openIndoorPanelForBuilding;
-
-    openIndoorPanelForBuilding = function () {
-        const result = __baseOpenIndoorPanelZoomIn.apply(this, arguments);
-
-        fitIndoorMapMobileZoomInFinal(180);
-        fitIndoorMapMobileZoomInFinal(480);
-        fitIndoorMapMobileZoomInFinal(850);
-
-        return result;
-    };
-
-    window.openIndoorPanelForBuilding = openIndoorPanelForBuilding;
-}
-
-if (typeof renderIndoorFloor === 'function' && !window.__mobileIndoorZoomInRenderWrapped) {
-    window.__mobileIndoorZoomInRenderWrapped = true;
-    const __baseRenderIndoorFloorZoomIn = renderIndoorFloor;
-
-    renderIndoorFloor = function () {
-        const result = __baseRenderIndoorFloorZoomIn.apply(this, arguments);
-
-        fitIndoorMapMobileZoomInFinal(180);
-        fitIndoorMapMobileZoomInFinal(420);
-
-        return result;
-    };
-
-    window.renderIndoorFloor = renderIndoorFloor;
-}
-
-window.addEventListener('orientationchange', function () {
-    if (isIndoorMobileViewportFinal()) {
-        fitIndoorMapMobileZoomInFinal(360);
-    }
-});
-
-window.addEventListener('resize', function () {
-    if (isIndoorMobileViewportFinal()) {
-        fitIndoorMapMobileZoomInFinal(220);
-    }
-});
-
-window.fitIndoorMapMobileZoomInFinal = fitIndoorMapMobileZoomInFinal;
-
-/* =========================================================
-   MOBILE OUTDOOR ROUTE ZOOM PATCH - MANUAL ZOOM FRIENDLY
-   Outdoor map only. Indoor map is not affected.
-
-   Mobile behavior:
-   - Normal/default outdoor view: zoom 18
-   - After route/navigation: auto zoom out to 17 ONCE
-   - User can still manually zoom in again up to maxZoom 19
-========================================================= */
-function isMobileOutdoorViewFinal() {
-    return window.matchMedia('(max-width: 768px)').matches;
-}
-
-let mobileOutdoorRouteZoomMode = false;
-
-function unlockMobileOutdoorManualZoomFinal() {
-    if (!isMobileOutdoorViewFinal() || !map) return;
-
-    if (typeof map.setMinZoom === 'function') {
-        map.setMinZoom(MOBILE_OUTDOOR_MIN_ZOOM_VALUE);
-    }
-
-    if (typeof map.setMaxZoom === 'function') {
-        map.setMaxZoom(MOBILE_OUTDOOR_MAX_ZOOM_VALUE);
-    }
-}
-
-function applyMobileOutdoorDefaultZoomFinal() {
-    if (!isMobileOutdoorViewFinal() || !map) return;
-
-    map.invalidateSize();
-    unlockMobileOutdoorManualZoomFinal();
-
-    if (campusBounds && typeof campusBounds.isValid === 'function' && campusBounds.isValid()) {
-        map.fitBounds(campusBounds, {
-            padding: [50, 50],
-            maxZoom: MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE,
-            animate: false
-        });
-    } else {
-        map.setZoom(MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE, {
-            animate: false
-        });
-    }
-}
-
-function applyMobileOutdoorRouteZoomFinal() {
-    if (!isMobileOutdoorViewFinal() || !map) return;
-
-    mobileOutdoorRouteZoomMode = true;
-    map.invalidateSize();
-    unlockMobileOutdoorManualZoomFinal();
-
-    /* Immediate overview fallback. Normal route drawing frames through fitBounds. */
-    map.setZoom(MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE, {
-        animate: false
-    });
-}
-
-/*
-|--------------------------------------------------------------------------
-| fitBounds wrapper
-|--------------------------------------------------------------------------
-| Automatic route fitting ra ang limitahan.
-| Manual pinch zoom / plus zoom button pwede gihapon hangtod maxZoom 19.
-*/
-if (!window.__mobileOutdoorFitBoundsZoomPatchWrapped) {
-    window.__mobileOutdoorFitBoundsZoomPatchWrapped = true;
-
-    const __baseOutdoorFitBounds = map.fitBounds.bind(map);
-
-    map.fitBounds = function(bounds, options = {}) {
-        const finalOptions = {
-            ...(options || {})
-        };
-
-        if (isMobileOutdoorViewFinal()) {
-            finalOptions.maxZoom = mobileOutdoorRouteZoomMode
-                ? MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE
-                : MOBILE_OUTDOOR_DEFAULT_ZOOM_VALUE;
-
-            finalOptions.padding = finalOptions.padding || [80, 80];
-            finalOptions.animate = false;
-        }
-
-        return __baseOutdoorFitBounds(bounds, finalOptions);
-    };
-}
-
-
-if (typeof drawOutdoorRoute === 'function' && !window.__mobileOutdoorDrawRouteZoomPatchWrapped) {
-    window.__mobileOutdoorDrawRouteZoomPatchWrapped = true;
-
-    const __baseDrawOutdoorRouteZoomPatch = drawOutdoorRoute;
-
-    drawOutdoorRoute = function(result, options = {}) {
-        mobileOutdoorRouteZoomMode = true;
-        const rendered = __baseDrawOutdoorRouteZoomPatch.call(this, result, options);
-
-        return rendered;
-    };
-
-    window.drawOutdoorRoute = drawOutdoorRoute;
-}
-
-if (typeof findRouteByDestination === 'function' && !window.__mobileOutdoorFindRouteZoomPatchWrapped) {
-    window.__mobileOutdoorFindRouteZoomPatchWrapped = true;
-
-    const __baseFindRouteByDestinationZoomPatch = findRouteByDestination;
-
-    findRouteByDestination = function() {
-        mobileOutdoorRouteZoomMode = true;
-        return __baseFindRouteByDestinationZoomPatch.apply(this, arguments);
-    };
-
-    window.findRouteByDestination = findRouteByDestination;
-}
-
-if (typeof computeCompleteRouteToRoom === 'function' && !window.__mobileOutdoorRoomRouteZoomPatchWrapped) {
-    window.__mobileOutdoorRoomRouteZoomPatchWrapped = true;
-
-    const __baseComputeCompleteRouteToRoomZoomPatch = computeCompleteRouteToRoom;
-
-    computeCompleteRouteToRoom = function() {
-        mobileOutdoorRouteZoomMode = true;
-        return __baseComputeCompleteRouteToRoomZoomPatch.apply(this, arguments);
-    };
-
-    window.computeCompleteRouteToRoom = computeCompleteRouteToRoom;
-}
-
-if (typeof searchTextDestination === 'function' && !window.__mobileOutdoorTextSearchZoomPatchWrapped) {
-    window.__mobileOutdoorTextSearchZoomPatchWrapped = true;
-
-    const __baseSearchTextDestinationZoomPatch = searchTextDestination;
-
-    searchTextDestination = function() {
-        mobileOutdoorRouteZoomMode = true;
-        return __baseSearchTextDestinationZoomPatch.apply(this, arguments);
-    };
-
-    window.searchTextDestination = searchTextDestination;
-}
-
-if (typeof resetRouteSelection === 'function' && !window.__mobileOutdoorResetZoomPatchWrapped) {
-    window.__mobileOutdoorResetZoomPatchWrapped = true;
-
-    const __baseResetRouteSelectionZoomPatch = resetRouteSelection;
-
-    resetRouteSelection = function() {
-        mobileOutdoorRouteZoomMode = false;
-        const result = __baseResetRouteSelectionZoomPatch.apply(this, arguments);
-        applyMobileOutdoorDefaultZoomFinal();
-        return result;
-    };
-
-    window.resetRouteSelection = resetRouteSelection;
-}
-
-window.addEventListener('resize', function() {
-    unlockMobileOutdoorManualZoomFinal();
-});
-
-window.addEventListener('orientationchange', function() {
-    unlockMobileOutdoorManualZoomFinal();
-});
-
-/*
-| Initial framing is owned by renderBuildings()->fitBounds(). Avoid a delayed
-| forced zoom that can fight the user's first pinch gesture.
-*/
-
-window.applyMobileOutdoorDefaultZoomFinal = applyMobileOutdoorDefaultZoomFinal;
-window.applyMobileOutdoorRouteZoomFinal = applyMobileOutdoorRouteZoomFinal;
-window.unlockMobileOutdoorManualZoomFinal = unlockMobileOutdoorManualZoomFinal;
+/* Indoor camera sizing is owned by the single ResizeObserver controller in
+   04-indoor-routing.js. This file must never add delayed camera corrections. */
+
+/* Outdoor framing is explicit at initial render, route drawing, and reset.
+   Manual gestures are never wrapped or corrected from this file. */
 
 window.toggleCampusEventPanel = toggleCampusEventPanel;
 window.closeCampusEventPanel = closeCampusEventPanel;
@@ -384,29 +95,6 @@ window.routeToCampusEvent = routeToCampusEvent;
     }
 
     /*
-    | Throttle popup scale updates so map movement doesn't trigger too many layout updates.
-    */
-    if (typeof updateRouteBuildingPopupScale === 'function' && !window.__smoothPopupScaleThrottled) {
-        window.__smoothPopupScaleThrottled = true;
-
-        const baseUpdateRouteBuildingPopupScale = updateRouteBuildingPopupScale;
-        let scalePending = false;
-
-        updateRouteBuildingPopupScale = function smoothPopupScaleThrottled() {
-            if (scalePending) return;
-
-            scalePending = true;
-
-            requestAnimationFrame(() => {
-                scalePending = false;
-                baseUpdateRouteBuildingPopupScale();
-            });
-        };
-
-        window.updateRouteBuildingPopupScale = updateRouteBuildingPopupScale;
-    }
-
-    /*
     | Pause visual effects when tab is hidden.
     */
     document.addEventListener('visibilitychange', () => {
@@ -430,6 +118,56 @@ window.routeToCampusEvent = routeToCampusEvent;
 
     let pressureObserver = null;
     let pressureDuration = 0;
+    let gestureFrame = null;
+    let gestureStartedAt = 0;
+    let gestureFrames = 0;
+    let sustainedLowFpsGestures = 0;
+
+    function downgradeToLow(reason) {
+        if (window.wayfindingRenderProfile?.mode !== 'balanced') return;
+        window.applyWayfindingRenderProfile({
+            ...(window.wayfindingRenderProfile || {}),
+            mode: 'low',
+            mobile: true
+        }, reason);
+    }
+
+    function sampleGestureFrame(timestamp) {
+        if (!window.WayfindingInteraction?.isActive?.()) {
+            gestureFrame = null;
+            return;
+        }
+        if (!gestureStartedAt) gestureStartedAt = timestamp;
+        gestureFrames += 1;
+        gestureFrame = requestAnimationFrame(sampleGestureFrame);
+    }
+
+    function beginGestureFpsSample() {
+        if (
+            document.hidden
+            || window.wayfindingRenderProfile?.mode !== 'balanced'
+            || gestureFrame
+        ) return;
+        gestureStartedAt = performance.now();
+        gestureFrames = 0;
+        gestureFrame = requestAnimationFrame(sampleGestureFrame);
+    }
+
+    function finishGestureFpsSample() {
+        if (gestureFrame) cancelAnimationFrame(gestureFrame);
+        gestureFrame = null;
+        const duration = performance.now() - gestureStartedAt;
+        if (document.hidden || duration < 350 || gestureFrames < 2) return;
+
+        const fps = (gestureFrames * 1000) / duration;
+        sustainedLowFpsGestures = fps < 40
+            ? sustainedLowFpsGestures + 1
+            : Math.max(0, sustainedLowFpsGestures - 1);
+
+        if (sustainedLowFpsGestures >= 2) {
+            downgradeToLow('sustained-low-fps');
+        }
+    }
 
     function applyCurrentDeviceProfile() {
         if (typeof window.detectWayfindingRenderProfile !== 'function') return;
@@ -464,11 +202,7 @@ window.routeToCampusEvent = routeToCampusEvent;
 
                 if (pressureDuration < 480) return;
 
-                window.applyWayfindingRenderProfile({
-                    ...(window.wayfindingRenderProfile || {}),
-                    mode: 'low',
-                    mobile: true
-                }, 'runtime-pressure');
+                downgradeToLow('runtime-pressure');
 
                 pressureObserver.disconnect();
                 pressureObserver = null;
@@ -493,6 +227,11 @@ window.routeToCampusEvent = routeToCampusEvent;
     });
     window.addEventListener('orientationchange', applyCurrentDeviceProfile, {
         passive: true
+    });
+
+    window.WayfindingInteraction?.registerLifecycle?.('adaptive-fps', {
+        start: beginGestureFpsSample,
+        end: finishGestureFpsSample
     });
 
     if (document.readyState === 'complete') {
