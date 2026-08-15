@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Building;
 use App\Models\CampusEvent;
 use App\Models\DestinationKeyword;
+use App\Models\IndoorEntrance;
 use App\Models\IndoorMap;
+use App\Models\IndoorPath;
 use App\Services\CampusSnapshotPublisher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -55,7 +57,7 @@ class CampusSnapshotTest extends TestCase
             'priority' => 10,
             'is_active' => true,
         ]);
-        IndoorMap::create([
+        $indoorMap = IndoorMap::create([
             'building_id' => $building->id,
             'name' => 'IT First Floor',
             'floor_number' => 1,
@@ -66,6 +68,25 @@ class CampusSnapshotTest extends TestCase
             'height' => 800,
             'geometry' => null,
             'is_active' => true,
+        ]);
+        IndoorPath::create([
+            'indoor_map_id' => $indoorMap->id,
+            'name' => 'Main Hallway',
+            'path_type' => 'hallway',
+            'geometry' => [
+                'type' => 'LineString',
+                'coordinates' => [[124.0, 10.0], [124.01, 10.01]],
+            ],
+            'is_blocked' => false,
+        ]);
+        IndoorEntrance::create([
+            'indoor_map_id' => $indoorMap->id,
+            'name' => 'Main Indoor Entrance',
+            'ent_type' => 'main',
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [124.0, 10.0],
+            ],
         ]);
         CampusEvent::create([
             'event_target_type' => 'building',
@@ -113,6 +134,8 @@ class CampusSnapshotTest extends TestCase
         $this->assertArrayHasKey('/api/indoor-paths', $indoorSnapshot['datasets']);
         $this->assertArrayHasKey('/api/indoor-entrances', $indoorSnapshot['datasets']);
         $this->assertArrayHasKey('/api/indoor-stairs-links', $indoorSnapshot['datasets']);
+        $this->assertCount(1, $indoorSnapshot['datasets']['/api/indoor-paths']['features']);
+        $this->assertCount(1, $indoorSnapshot['datasets']['/api/indoor-entrances']['features']);
         $this->assertArrayNotHasKey('search_index', $snapshot);
         $this->assertSame('IT', $searchIndex['search_index'][0]['keyword']);
         $this->assertSame('building', $searchIndex['search_index'][0]['destination_type']);

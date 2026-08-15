@@ -100,8 +100,12 @@ if (!guestMode) {
         window.WayfindingGpsDiagnostics?.open();
     };
 
-    const idlePreloadSearch = () => {
+    const idlePreloadAssistant = () => {
         loadAssistantFeature().catch(() => {});
+    };
+
+    const idlePreloadSearch = () => {
+        idlePreloadAssistant();
         window.preloadWayfindingSearchIndex?.();
     };
 
@@ -111,18 +115,18 @@ if (!guestMode) {
         const constrainedConnection = connection?.saveData === true
             || /(^|-)2g$|^3g$/.test(String(connection?.effectiveType || ''));
 
-        // Save-data and slower connections use the small server response on
-        // demand. On normal phones, wait until the map has fully settled and
-        // then warm the assistant/index during browser idle time. This avoids
-        // both startup contention and the first-search pause.
+        // Save-data and slower connections load search only on demand. Normal
+        // phones warm the tiny assistant UI bundle after the map settles, but
+        // do not download/normalize the large keyword index until search opens.
+        // Desktop can safely warm both while idle.
         if (constrainedConnection) return;
 
         if (isMobileViewport) {
             window.setTimeout(() => {
                 if (typeof window.requestIdleCallback === 'function') {
-                    window.requestIdleCallback(idlePreloadSearch, { timeout: 6000 });
+                    window.requestIdleCallback(idlePreloadAssistant, { timeout: 6000 });
                 } else {
-                    idlePreloadSearch();
+                    idlePreloadAssistant();
                 }
             }, 3000);
             return;

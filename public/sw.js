@@ -3,7 +3,7 @@
  * Authenticated HTML and external map tiles are deliberately never cached.
  * Only public campus datasets and same-origin application assets are saved.
  */
-const PWA_CACHE_VERSION = '2026-08-15.4';
+const PWA_CACHE_VERSION = '2026-08-15.6';
 const CACHE_PREFIX = 'wayfinding-pwa-';
 const STATIC_CACHE = `${CACHE_PREFIX}static-${PWA_CACHE_VERSION}`;
 const DATA_CACHE = `${CACHE_PREFIX}data-${PWA_CACHE_VERSION}`;
@@ -58,12 +58,30 @@ function isCacheableResponse(response) {
 
 function collectViteAssetUrls(manifest) {
     const urls = new Set();
+    const entries = manifest || {};
+    const visited = new Set();
 
-    Object.values(manifest || {}).forEach(entry => {
-        [entry?.file, ...(entry?.css || []), ...(entry?.assets || [])]
+    function collectEntry(key) {
+        if (!key || visited.has(key)) return;
+        visited.add(key);
+
+        const entry = entries[key];
+        if (!entry) return;
+
+        [entry.file, ...(entry.css || []), ...(entry.assets || [])]
             .filter(path => typeof path === 'string' && path.startsWith('assets/'))
             .forEach(path => urls.add(`/build/${path}`));
-    });
+
+        /* Static imports are required by the entry immediately. Dynamic
+         * imports (search, GPS, and diagnostics) stay truly lazy and are
+         * cached by the normal fetch handler only after the user opens them.
+         */
+        (entry.imports || []).forEach(collectEntry);
+    }
+
+    Object.entries(entries)
+        .filter(([, entry]) => entry?.isEntry === true)
+        .forEach(([key]) => collectEntry(key));
 
     return Array.from(urls);
 }

@@ -442,6 +442,9 @@ test('PWA assets provide installable metadata and privacy-safe caching', () => {
     assert.match(serviceWorker, /CACHEABLE_DATA_PATHS/);
     assert.match(serviceWorker, /fetch\('\/build\/manifest\.json'/);
     assert.match(serviceWorker, /function collectViteAssetUrls\(manifest\)/);
+    assert.match(serviceWorker, /entry\?\.isEntry === true/);
+    assert.match(serviceWorker, /\(entry\.imports \|\| \[\]\)\.forEach\(collectEntry\)/);
+    assert.doesNotMatch(serviceWorker, /entry\.dynamicImports/);
     assert.match(serviceWorker, /assetUrls\.map\(url => cache\.add\(url\)/);
     assert.match(serviceWorker, /\/css\/wayfinding\/17-cr-navigation\.css/);
     assert.match(serviceWorker, /\/js\/wayfinding\/15-cr-navigation\.js/);

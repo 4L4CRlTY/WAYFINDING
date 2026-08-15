@@ -249,6 +249,9 @@ class WayfindingAssetTest extends TestCase
         $this->assertStringContainsString("const OFFLINE_URL = '/offline.html';", $serviceWorker);
         $this->assertStringContainsString("fetch('/build/manifest.json'", $serviceWorker);
         $this->assertStringContainsString('collectViteAssetUrls(manifest)', $serviceWorker);
+        $this->assertStringContainsString('entry?.isEntry === true', $serviceWorker);
+        $this->assertStringContainsString('(entry.imports || []).forEach(collectEntry)', $serviceWorker);
+        $this->assertStringNotContainsString('entry.dynamicImports', $serviceWorker);
         $this->assertStringContainsString('/js/wayfinding/15-cr-navigation.js', $serviceWorker);
         $this->assertStringContainsString('/css/wayfinding/17-cr-navigation.css', $serviceWorker);
         $this->assertStringContainsString("'/api/buildings'", $serviceWorker);

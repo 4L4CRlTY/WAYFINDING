@@ -65,6 +65,11 @@ test('wayfinding core preserves routing order and account features are lazy chun
     assert.match(entry, /window\.preloadWayfindingSearchIndex\?\.\(\)/);
     assert.match(entry, /if \(constrainedConnection\) return/);
     assert.match(entry, /if \(isMobileViewport\)[\s\S]*setTimeout[\s\S]*requestIdleCallback/);
+    assert.match(entry, /requestIdleCallback\(idlePreloadAssistant/);
+    assert.doesNotMatch(
+        entry,
+        /requestIdleCallback\(idlePreloadSearch, \{ timeout: 6000 \}\)/,
+    );
     assert.doesNotMatch(
         entry,
         /const assistantFunctions[\s\S]*searchTextDestination/,
@@ -344,6 +349,23 @@ test('indoor graph diagnostics stay silent unless explicit debug mode is enabled
     assert.match(indoorRouting, /window\.WAYFINDING_DEBUG !== true/);
     assert.match(indoorRouting, /debugIndoorGraphWarning\('\[IndoorGraph\]/);
     assert.equal((indoorRouting.match(/console\.warn\(/g) || []).length, 1);
+});
+
+test('stale empty indoor snapshots fall back to the building API immediately', () => {
+    const transport = readFileSync(
+        new URL('../../public/js/wayfinding-indoor-data.js', import.meta.url),
+        'utf8',
+    );
+    const searchVoice = readFileSync(
+        new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(transport, /indoorPaths\.features\.length === 0/);
+    assert.match(transport, /indoorEntrances\.features\.length === 0/);
+    assert.match(transport, /Indoor snapshot graph is incomplete/);
+    assert.match(transport, /fetchJson\(`\/api\/indoor-paths\$\{suffix\}`\)/);
+    assert.match(searchVoice, /wayfinding-indoor-data\.js\?v=20260815\.2/);
 });
 
 test('building depth has one post-interaction update owner', () => {

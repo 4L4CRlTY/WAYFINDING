@@ -336,7 +336,7 @@
 
         indoorDataLoaderPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = '/js/wayfinding-indoor-data.js?v=20260815.1';
+            script.src = '/js/wayfinding-indoor-data.js?v=20260815.2';
             script.async = true;
             script.dataset.wayfindingIndoorData = 'true';
             script.addEventListener('load', () => {

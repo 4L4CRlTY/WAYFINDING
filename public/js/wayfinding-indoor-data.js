@@ -35,6 +35,23 @@
                 throw new Error('Indoor snapshot format is invalid.');
             }
 
+            const indoorPaths = document.datasets['/api/indoor-paths'];
+            const indoorEntrances = document.datasets['/api/indoor-entrances'];
+
+            /*
+             * A previously published empty document must not silently disable
+             * every room route. Fall through to the building-scoped API so a
+             * stale PWA cache repairs itself during the same indoor opening.
+             */
+            if (
+                !Array.isArray(indoorPaths?.features)
+                || !Array.isArray(indoorEntrances?.features)
+                || indoorPaths.features.length === 0
+                || indoorEntrances.features.length === 0
+            ) {
+                throw new Error('Indoor snapshot graph is incomplete.');
+            }
+
             return document.datasets;
         } catch (error) {
             const suffix = `?building_id=${encodeURIComponent(normalizedBuildingId)}`;
