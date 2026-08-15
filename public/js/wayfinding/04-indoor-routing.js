@@ -35,6 +35,13 @@
             inertia: !lowEndIndoorView
         });
 
+        /* Reuse one compact Canvas renderer for indoor vectors. The room
+           geometry and click targets stay exact while pinch/drag redraws less. */
+        indoorMap.__wayfindingVectorRenderer = L.canvas({
+            padding: lowEndIndoorView ? 0.05 : 0.1,
+            tolerance: lowEndIndoorView ? 7 : 5
+        });
+
         installIndoorInteractionController();
 
         indoorMap.setView([10.2925, 124.9985], 20);
@@ -123,6 +130,14 @@
     function renderIndoorRoomList() {
         if (!currentIndoorBuildingId || !currentIndoorFloor) return;
 
+        /* Focus mode hides this legacy sidebar. Do not build invisible room
+           cards on every floor change; room polygons remain interactive. */
+        const roomSidebar = roomList?.closest('.indoor-sidebar');
+        if (roomList && roomSidebar && window.getComputedStyle(roomSidebar).display === 'none') {
+            roomList.replaceChildren();
+            return;
+        }
+
         const keyword = (indoorRoomSearch.value || '').trim().toLowerCase();
 
         let rooms = getIndoorRoomsFor(currentIndoorBuildingId, currentIndoorFloor);
@@ -168,6 +183,25 @@
 
             roomList.appendChild(div);
         });
+    }
+
+    function getIndoorRoomLayerStyle(feature) {
+        const p = feature?.properties || {};
+        const type = String(p.type || '').toLowerCase();
+        const isSelected = selectedIndoorRoomFeature
+            && Number(selectedIndoorRoomFeature.properties?.id) === Number(p.id);
+
+        let fillColor = '#dbeafe';
+        if (type.includes('office')) fillColor = '#dcfce7';
+        else if (type.includes('restroom')) fillColor = '#fef3c7';
+        else if (type.includes('storage')) fillColor = '#e5e7eb';
+
+        return {
+            color: isSelected ? '#1d4ed8' : '#2563eb',
+            weight: isSelected ? 3 : 2,
+            fillColor,
+            fillOpacity: isSelected ? 0.65 : 0.38
+        };
     }
 
     let indoorViewportFitFrame = null;
@@ -349,6 +383,8 @@
             type: 'FeatureCollection',
             features: floorPaths
         }, {
+            renderer: indoorMap.__wayfindingVectorRenderer,
+            interactive: false,
             style: function(feature) {
                 const p = feature.properties || {};
                 const type = String(p.path_type || 'hallway').toLowerCase();
@@ -378,25 +414,8 @@
             type: 'FeatureCollection',
             features: floorRooms
         }, {
-            style: function(feature) {
-                const p = feature.properties || {};
-                const type = String(p.type || '').toLowerCase();
-                const isSelected = selectedIndoorRoomFeature &&
-                    Number(selectedIndoorRoomFeature.properties?.id) === Number(p.id);
-
-                let fillColor = '#dbeafe';
-                if (type.includes('office')) fillColor = '#dcfce7';
-                else if (type.includes('restroom')) fillColor = '#fef3c7';
-                else if (type.includes('storage')) fillColor = '#e5e7eb';
-                else if (type.includes('classroom')) fillColor = '#dbeafe';
-
-                return {
-                    color: isSelected ? '#1d4ed8' : '#2563eb',
-                    weight: isSelected ? 3 : 2,
-                    fillColor,
-                    fillOpacity: isSelected ? 0.65 : 0.38
-                };
-            },
+            renderer: indoorMap.__wayfindingVectorRenderer,
+            style: getIndoorRoomLayerStyle,
             onEachFeature: function(feature, layer) {
                 const p = feature.properties || {};
 
@@ -422,7 +441,12 @@
                 layer.on('click', function() {
                     selectedIndoorRoomFeature = feature;
                     renderIndoorRoomList();
-                    renderIndoorFloor();
+                    /* Keep the open popup and route action alive. Rebuilding all
+                       indoor layers here caused a visible pause on slower phones. */
+                    indoorRoomsLayer?.eachLayer(roomLayer => {
+                        if (typeof roomLayer.setStyle !== 'function') return;
+                        roomLayer.setStyle(getIndoorRoomLayerStyle(roomLayer.feature));
+                    });
                 });
             }
         }).addTo(indoorMap);
@@ -431,6 +455,7 @@
             type: 'FeatureCollection',
             features: floorEntrances
         }, {
+            renderer: indoorMap.__wayfindingVectorRenderer,
             pointToLayer: function(feature, latlng) {
                 const p = feature.properties || {};
                 const entType = String(p.ent_type || '').toLowerCase();
@@ -442,6 +467,7 @@
                 else if (entType.includes('side')) fillColor = '#0ea5e9';
 
                 return L.circleMarker(latlng, {
+                    renderer: indoorMap.__wayfindingVectorRenderer,
                     radius: 7,
                     color: '#ffffff',
                     weight: 2,

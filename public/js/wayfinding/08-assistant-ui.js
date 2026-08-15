@@ -40,14 +40,19 @@ function updateAssistantKeyboardPosition() {
             return;
         }
 
-        const keyboardIsOpen = visibleHeight < assistantLargestViewportHeight - 80;
+        const mobileInput = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 768px)').matches;
+        const keyboardIsOpen = mobileInput && (
+            inputFocused
+            || visibleHeight < assistantLargestViewportHeight - 80
+        );
         document.body.classList.toggle('assistant-keyboard-open', keyboardIsOpen);
 
         if (!keyboardIsOpen) return;
 
-        const panelHeight = Math.min(panel.offsetHeight || 156, Math.max(120, visibleHeight - 16));
-        const centeredTop = visibleTop + Math.max(8, (visibleHeight - panelHeight) / 2);
-        document.body.style.setProperty('--assistant-keyboard-top', `${Math.round(centeredTop)}px`);
+        /* Dock to the top of the visible viewport. Android browsers may pan
+           rather than resize, which made a vertically centered field vanish. */
+        const safeTop = visibleTop + 8;
+        document.body.style.setProperty('--assistant-keyboard-top', `${Math.round(safeTop)}px`);
         document.body.style.setProperty('--assistant-visible-height', `${Math.round(visibleHeight)}px`);
     });
 }

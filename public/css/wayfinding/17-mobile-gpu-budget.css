@@ -7,6 +7,36 @@
 */
 
 @media (hover: none), (pointer: coarse), (max-width: 768px) {
+    /* Critical mobile layout belongs in the initial bundle. Previously the
+       bottom placement arrived with lazy indoor CSS, causing a visible jump. */
+    #floating-route-ui {
+        position: fixed !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: max(8px, env(safe-area-inset-bottom)) !important;
+        left: 50% !important;
+        width: calc(100vw - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        gap: 6px !important;
+        transform: translateX(-50%) !important;
+        transition: none !important;
+        contain: style;
+    }
+
+    #floating-route-ui .ai-orb-shell {
+        width: 100% !important;
+        min-height: 74px !important;
+        order: 1;
+    }
+
+    #floating-route-ui .floating-start-bar {
+        order: 2;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
     .campus-brand-wrap,
     .floating-ai-badge,
     .floating-start-bar,
@@ -57,6 +87,32 @@
         max-height: calc(var(--assistant-visible-height, 100dvh) - 16px) !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
+    }
+
+    /* Preserve keyboard space for the query and primary actions. */
+    body.assistant-keyboard-open #ai-search-panel .ai-transform-hint,
+    body.assistant-keyboard-open #ai-search-panel .ai-search-progress[hidden] {
+        display: none !important;
+    }
+
+    body.assistant-keyboard-open #ai-search-panel .ai-search-input {
+        scroll-margin-top: 10px;
+    }
+
+    /* Keep exact indoor geometry while removing full-panel compositing cost
+       on phones that have already selected the low rendering profile. */
+    body.render-quality-low .indoor-panel,
+    body.render-quality-low .indoor-map-wrap,
+    body.render-quality-low #indoorMap {
+        box-shadow: none !important;
+        filter: none !important;
+    }
+
+    body.render-quality-low .indoor-header,
+    body.render-quality-low .indoor-floor-toolbar,
+    body.render-quality-low .indoor-footer {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
     }
 }
 

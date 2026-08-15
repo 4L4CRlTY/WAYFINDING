@@ -105,6 +105,8 @@ test('mobile assistant has one search wrapper and dismisses completed searches',
     assert.match(assistant, /showRouteReadyConfirmation/);
     assert.match(assistant, /window\.visualViewport\?\.addEventListener\('resize', updateAssistantKeyboardPosition/);
     assert.match(assistant, /assistant-keyboard-open/);
+    assert.match(assistant, /const keyboardIsOpen = mobileInput && \([\s\S]*inputFocused/);
+    assert.match(assistant, /const safeTop = visibleTop \+ 8/);
     assert.match(assistant, /input\?\.blur\(\)/);
     assert.match(dashboard, /id="ai-route-confirmation"/);
     assert.match(dashboard, /id="ai-search-progress"/);
@@ -122,6 +124,8 @@ test('final mobile GPU budget overrides theme blur and dormant animations', () =
     assert.match(css, /\.ai-voice-orb span[\s\S]*animation:\s*none\s*!important/);
     assert.match(css, /#ai-voice-panel\.is-listening \.ai-voice-orb span[\s\S]*voiceWave/);
     assert.match(css, /body\.assistant-keyboard-open #ai-search-panel[\s\S]*--assistant-keyboard-top/);
+    assert.match(css, /#floating-route-ui\s*\{[\s\S]*position:\s*fixed\s*!important[\s\S]*top:\s*auto\s*!important[\s\S]*bottom:\s*max\(8px,/);
+    assert.match(css, /#floating-route-ui \.floating-start-bar[\s\S]*grid-template-columns:\s*repeat\(3,/);
 
     const entryCss = readFileSync(
         new URL('../../resources/css/wayfinding.css', import.meta.url),
@@ -491,6 +495,19 @@ test('indoor opening responds immediately and caches versioned building data', (
     assert.match(indoorDataTransport, /cacheVersion/);
     assert.match(indoorDataTransport, /cache: 'force-cache'/);
     assert.doesNotMatch(indoorDataTransport, /cache: 'no-cache'/);
+});
+
+test('indoor vectors share one canvas and room selection does not rebuild the floor', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /__wayfindingVectorRenderer\s*=\s*L\.canvas\(/);
+    assert.match(indoorRouting, /renderer:\s*indoorMap\.__wayfindingVectorRenderer/);
+    assert.match(indoorRouting, /interactive:\s*false/);
+    assert.match(indoorRouting, /indoorRoomsLayer\?\.eachLayer/);
+    assert.doesNotMatch(indoorRouting, /selectedIndoorRoomFeature = feature;[\s\S]{0,180}renderIndoorFloor\(\)/);
 });
 
 test('a runtime low-end downgrade stays active for the browser session', () => {
