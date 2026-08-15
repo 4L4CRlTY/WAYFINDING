@@ -241,8 +241,14 @@
             .then(async snapshot => {
                 if (!snapshot) return null;
 
+                const searchIndexUrl = snapshot.search_index_url || '/data/destination-keywords.json';
+                const cacheVersion = Number(snapshot.cache_version || 0);
+                const versionedSearchIndexUrl = cacheVersion > 0
+                    ? `${searchIndexUrl}${searchIndexUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheVersion)}`
+                    : searchIndexUrl;
+
                 const response = await fetch(
-                    snapshot.search_index_url || '/data/destination-keywords.json',
+                    versionedSearchIndexUrl,
                     {
                         cache: 'force-cache',
                         headers: {
@@ -330,7 +336,7 @@
 
         indoorDataLoaderPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = '/js/wayfinding-indoor-data.js';
+            script.src = '/js/wayfinding-indoor-data.js?v=20260815.1';
             script.async = true;
             script.dataset.wayfindingIndoorData = 'true';
             script.addEventListener('load', () => {

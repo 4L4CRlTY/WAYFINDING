@@ -131,7 +131,8 @@ test('mobile route glow and tile churn are disabled only during interaction', ()
     assert.doesNotMatch(outdoorRouting, /map\.on\('moveend zoomend'/);
     assert.match(mapCore, /updateWhenIdle:\s*IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /updateWhenZooming:\s*!IS_MOBILE_OUTDOOR_VIEW/);
-    assert.match(mapCore, /keepBuffer:\s*5/);
+    assert.match(mapCore, /const MOBILE_TILE_KEEP_BUFFER[\s\S]*?\? 2[\s\S]*?: 3/);
+    assert.match(mapCore, /keepBuffer:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*MOBILE_TILE_KEEP_BUFFER\s*:\s*5/);
     assert.match(
         mapCore,
         /const MOBILE_ZOOM_SNAP\s*=\s*0/,
@@ -367,7 +368,7 @@ test('indoor graph and styles stay deferred until a building is opened', () => {
     assert.doesNotMatch(coreCss, /04-indoor-navigation\.css/);
     assert.match(indoorRouting, /function ensureIndoorStyles\(\)/);
     assert.match(indoorRouting, /ensureIndoorBuildingData\(normalizedBuildingId\)/);
-    assert.match(indoorRouting, /stylesheet\.href = '\/css\/wayfinding\/04-indoor-navigation\.css'/);
+    assert.match(indoorRouting, /stylesheet\.href = '\/css\/wayfinding\/04-indoor-navigation\.css\?v=/);
     assert.doesNotMatch(dataLoader, /fetchDataset\('\/api\/indoor-paths'/);
     assert.doesNotMatch(dataLoader, /fetchDataset\('\/api\/indoor-entrances'/);
     assert.doesNotMatch(dataLoader, /fetchDataset\('\/api\/indoor-stairs-links'/);
@@ -379,6 +380,51 @@ test('indoor graph and styles stay deferred until a building is opened', () => {
     );
     assert.match(indoorDataTransport, /WayfindingIndoorDataLoader/);
     assert.match(indoorDataTransport, /\/data\/indoor\/\{building\}\.json/);
+});
+
+test('indoor opening responds immediately and caches versioned building data', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const mapUi = readFileSync(
+        new URL('../../public/js/wayfinding/02-map-data-ui.js', import.meta.url),
+        'utf8',
+    );
+    const searchVoice = readFileSync(
+        new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
+        'utf8',
+    );
+    const indoorDataTransport = readFileSync(
+        new URL('../../public/js/wayfinding-indoor-data.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(
+        indoorRouting,
+        /openIndoorPanelModal\(\);[\s\S]{0,160}setIndoorLoading\(true\);[\s\S]{0,260}await Promise\.all/,
+    );
+    assert.match(indoorRouting, /latestIndoorOpenRequestId/);
+    assert.match(indoorRouting, /Loading rooms and indoor map/);
+    assert.match(mapUi, /wayfinding:indoor-panel-closed/);
+    assert.match(searchVoice, /wayfinding-indoor-data\.js\?v=/);
+    assert.match(indoorDataTransport, /cacheVersion/);
+    assert.match(indoorDataTransport, /cache: 'force-cache'/);
+    assert.doesNotMatch(indoorDataTransport, /cache: 'no-cache'/);
+});
+
+test('a runtime low-end downgrade stays active for the browser session', () => {
+    const mapCore = readFileSync(
+        new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
+        'utf8',
+    );
+    const responsivePerformance = readFileSync(
+        new URL('../../public/js/wayfinding/10-responsive-performance.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(mapCore, /sessionStorage\.getItem\('wayfinding-render-quality'\)/);
+    assert.match(responsivePerformance, /sessionStorage\.setItem\('wayfinding-render-quality', 'low'\)/);
 });
 
 test('outdoor route worker rejects stale results and keeps synchronous fallback', () => {

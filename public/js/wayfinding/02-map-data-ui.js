@@ -1482,6 +1482,8 @@ function formatCoordKey(lng, lat) {
         if (indoorBackdrop) indoorBackdrop.classList.remove('active');
         if (indoorPanel) indoorPanel.classList.remove('active');
         document.body.classList.remove('indoor-open');
+        setIndoorLoading(false);
+        window.dispatchEvent(new CustomEvent('wayfinding:indoor-panel-closed'));
     }
 
     function getHazardsForPath(pathId) {

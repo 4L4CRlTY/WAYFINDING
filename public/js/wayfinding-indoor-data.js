@@ -14,10 +14,14 @@
         const snapshot = await loadSnapshot();
         const template = snapshot?.indoor_data_url_template || '/data/indoor/{building}.json';
         const staticUrl = template.replace('{building}', String(normalizedBuildingId));
+        const cacheVersion = Number(snapshot?.cache_version || 0);
+        const versionedStaticUrl = cacheVersion > 0
+            ? `${staticUrl}${staticUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheVersion)}`
+            : staticUrl;
 
         try {
-            const response = await fetch(staticUrl, {
-                cache: 'no-cache',
+            const response = await fetch(versionedStaticUrl, {
+                cache: 'force-cache',
                 headers: { Accept: 'application/json' }
             });
             if (!response.ok) throw new Error('Indoor snapshot unavailable.');

@@ -256,7 +256,8 @@ test('mobile outdoor map keeps a buffered render area during panning', () => {
     assert.match(mapCore, /updateWhenIdle:\s*IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /updateWhenZooming:\s*!IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /updateInterval:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*180\s*:\s*120/);
-    assert.match(mapCore, /keepBuffer:\s*5/);
+    assert.match(mapCore, /const MOBILE_TILE_KEEP_BUFFER[\s\S]*?\? 2[\s\S]*?: 3/);
+    assert.match(mapCore, /keepBuffer:\s*IS_MOBILE_OUTDOOR_VIEW\s*\?\s*MOBILE_TILE_KEEP_BUFFER\s*:\s*5/);
     assert.match(theme, /#map \.leaflet-tile-pane\s*\{\s*filter:\s*none !important;/);
 });
 

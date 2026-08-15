@@ -207,6 +207,35 @@ body.render-quality-low .live-gps-pulse {
     animation: none !important;
 }
 
+/*
+| Low-end phones keep every essential shape and control, but avoid large
+| full-surface GPU effects. These are visual-only reductions: route geometry,
+| GPS samples, hit targets, and building coordinates are untouched.
+*/
+body.render-quality-low .hazard-pin,
+body.render-quality-low .route-line-live,
+body.render-quality-low .route-line-live-indoor,
+body.render-quality-low .route-line-outline,
+body.render-quality-low .live-gps-heading-arrow,
+body.render-quality-low .live-gps-dot,
+body.render-quality-low .gps-route-start-pin {
+    filter: none !important;
+}
+
+body.render-quality-low .floating-main-pin,
+body.render-quality-low .pin-disc {
+    box-shadow: 0 8px 20px rgba(3, 29, 48, 0.22) !important;
+}
+
+body.render-quality-low .leaflet-popup-content-wrapper,
+body.render-quality-low .route-building-map-popup,
+body.render-quality-low .campus-brand-wrap,
+body.render-quality-low .campus-event-notification-btn,
+body.render-quality-low .floating-start-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
 body.render-quality-low.map-moving .building-depth-solid-near,
 body.render-quality-low.map-zooming .building-depth-solid-near {
     display: block !important;

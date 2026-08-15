@@ -428,6 +428,11 @@
     }
 
     let indoorStylesPromise = null;
+    let latestIndoorOpenRequestId = 0;
+
+    window.addEventListener('wayfinding:indoor-panel-closed', () => {
+        latestIndoorOpenRequestId += 1;
+    });
 
     function ensureIndoorStyles() {
         if (document.querySelector('link[data-wayfinding-indoor-styles]')) {
@@ -439,7 +444,7 @@
         indoorStylesPromise = new Promise((resolve, reject) => {
             const stylesheet = document.createElement('link');
             stylesheet.rel = 'stylesheet';
-            stylesheet.href = '/css/wayfinding/04-indoor-navigation.css';
+            stylesheet.href = '/css/wayfinding/04-indoor-navigation.css?v=20260815.1';
             stylesheet.dataset.wayfindingIndoorStyles = 'true';
             stylesheet.addEventListener('load', resolve, { once: true });
             stylesheet.addEventListener('error', () => {
@@ -473,10 +478,43 @@
         const normalizedBuildingId = Number(buildingId);
         if (!normalizedBuildingId) return;
 
-        await Promise.all([
-            ensureIndoorStyles(),
-            ensureIndoorBuildingData(normalizedBuildingId)
-        ]);
+        const requestId = ++latestIndoorOpenRequestId;
+        const buildingName = getBuildingNameById(normalizedBuildingId);
+
+        /*
+        | Show useful feedback before any network or CSS request. On a slow
+        | campus connection the old flow appeared frozen because the modal was
+        | opened only after the indoor stylesheet and JSON had both arrived.
+        */
+        indoorTitle.textContent = `${buildingName} Indoor Navigation`;
+        indoorSubtitle.textContent = 'Loading rooms and indoor map...';
+        indoorFloorSelect.innerHTML = '<option value="">Loading floors...</option>';
+        indoorFloorSelect.disabled = true;
+        openIndoorPanelModal();
+        setIndoorLoading(true);
+
+        try {
+            await Promise.all([
+                ensureIndoorStyles(),
+                ensureIndoorBuildingData(normalizedBuildingId)
+            ]);
+        } catch (error) {
+            if (requestId !== latestIndoorOpenRequestId) return false;
+
+            console.error('Indoor resources failed to load:', error);
+            setIndoorLoading(false);
+            closeIndoorPanelFn();
+            window.showWayfindingToast?.(
+                'Indoor map could not load. Check your connection and try again.',
+                { kind: 'error' }
+            );
+            return false;
+        }
+
+        if (requestId !== latestIndoorOpenRequestId || !isIndoorPanelVisible()) {
+            return false;
+        }
+
         const buildingMaps = getIndoorBuildingMaps(normalizedBuildingId)
             .filter(mapItem => Boolean(String(mapItem?.floorplan_image || '').trim()));
 
@@ -489,6 +527,7 @@
         */
         if (!buildingMaps.length) {
             setIndoorLoading(false);
+            closeIndoorPanelFn();
             return false;
         }
 
@@ -497,14 +536,13 @@
         currentIndoorBuildingId = normalizedBuildingId;
         selectedDestinationBuildingId = normalizedBuildingId;
 
-        const buildingName = getBuildingNameById(normalizedBuildingId);
-
         pendingIndoorOpenForBuildingId = normalizedBuildingId;
 
         indoorTitle.textContent = `${buildingName} Indoor Navigation`;
         indoorSubtitle.textContent = 'Choose room or office to compute full route';
 
         indoorFloorSelect.innerHTML = '<option value="">Select Floor</option>';
+        indoorFloorSelect.disabled = false;
 
         buildingMaps.forEach(mapItem => {
             const option = document.createElement('option');
@@ -527,10 +565,11 @@
 
         indoorFloorSelect.value = String(currentIndoorFloor);
 
-        openIndoorPanelModal();
-        setIndoorLoading(true);
-
         requestAnimationFrame(() => {
+            if (requestId !== latestIndoorOpenRequestId || !isIndoorPanelVisible()) {
+                return;
+            }
+
             try {
                 renderIndoorFloor();
                 renderIndoorRoomList();

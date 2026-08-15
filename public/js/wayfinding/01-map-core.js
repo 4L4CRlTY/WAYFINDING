@@ -25,6 +25,14 @@
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let score = 0;
 
+        try {
+            if (window.sessionStorage.getItem('wayfinding-render-quality') === 'low') {
+                score += 3;
+            }
+        } catch (error) {
+            // Storage may be disabled in private/restricted browsers.
+        }
+
         if (memory > 0 && memory <= 2) {
             score += 3;
         } else if (memory > 0 && memory <= 4) {
@@ -96,6 +104,14 @@
     const MOBILE_STATIC_PATH_WIDTH_SCALE = WAYFINDING_RENDER_PROFILE.mode === 'low'
         ? 0.36
         : 0.42;
+    /*
+    | Retaining five tile rings can keep well over a hundred raster tiles alive
+    | on a portrait phone. Two rings are enough for low-end devices and three
+    | keep balanced phones protected from white edges during a normal swipe.
+    */
+    const MOBILE_TILE_KEEP_BUFFER = WAYFINDING_RENDER_PROFILE.mode === 'low'
+        ? 2
+        : 3;
 
     window.detectWayfindingRenderProfile = detectWayfindingRenderProfile;
     window.applyWayfindingRenderProfile = applyWayfindingRenderProfile;
@@ -270,7 +286,7 @@
         updateWhenIdle: IS_MOBILE_OUTDOOR_VIEW,
         updateWhenZooming: !IS_MOBILE_OUTDOOR_VIEW,
         updateInterval: IS_MOBILE_OUTDOOR_VIEW ? 180 : 120,
-        keepBuffer: 5
+        keepBuffer: IS_MOBILE_OUTDOOR_VIEW ? MOBILE_TILE_KEEP_BUFFER : 5
     }).addTo(map);
 
     function createWayfindingInteractionController(mapInstance) {

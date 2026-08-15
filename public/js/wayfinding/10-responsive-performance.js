@@ -125,6 +125,13 @@ window.routeToCampusEvent = routeToCampusEvent;
 
     function downgradeToLow(reason) {
         if (window.wayfindingRenderProfile?.mode !== 'balanced') return;
+
+        try {
+            window.sessionStorage.setItem('wayfinding-render-quality', 'low');
+        } catch (error) {
+            // Restricted browsers may block storage; the current session still downgrades.
+        }
+
         window.applyWayfindingRenderProfile({
             ...(window.wayfindingRenderProfile || {}),
             mode: 'low',
