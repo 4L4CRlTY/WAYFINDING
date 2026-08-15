@@ -249,13 +249,7 @@
                     Type a building, room, office, or phrase. Default start is used automatically if no GPS/Pick Path is selected.
                 </div>
 
-                <div class="ai-text-result-card" id="ai-text-result-card" style="display:none;">
-                    <div class="ai-text-result-label">Search result</div>
-                    <div class="ai-text-result-text" id="ai-text-result-text">-</div>
-                    <div class="ai-text-result-note">
-                        Search completed. This panel will stay open until you close it.
-                    </div>
-                </div>
+                <div class="ai-search-progress" id="ai-search-progress" role="status" aria-live="polite" hidden></div>
 
             </div>
 
@@ -286,14 +280,6 @@
                     Heard: <span id="voice-heard-value">-</span>
                 </div>
 
-                <div class="ai-voice-result-card" id="ai-voice-result-card" style="display:none;">
-                    <div class="ai-voice-result-label">Detected speech</div>
-                    <div class="ai-voice-result-text" id="ai-voice-result-text">-</div>
-                    <div class="ai-voice-result-note">
-                        Recording stopped. Review the detected text, then close this panel when you are done.
-                    </div>
-                </div>
-
                 <div class="ai-voice-button-row">
                     <button type="button" class="ai-stop-voice" onclick="stopInlineVoiceSearch()">
                         Stop Recording
@@ -303,6 +289,18 @@
                         🎙️ Record Again
                     </button>
                 </div>
+            </div>
+
+            <div class="ai-route-confirmation"
+                 id="ai-route-confirmation"
+                 role="status"
+                 aria-live="polite"
+                 hidden>
+                <span class="ai-route-confirmation-icon" aria-hidden="true">✓</span>
+                <span>
+                    <strong>Route ready</strong>
+                    <span id="ai-route-confirmation-text">Destination selected</span>
+                </span>
             </div>
         </div>
 

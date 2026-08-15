@@ -42,6 +42,7 @@ const cssComponents = [
     '15-pwa-offline.css',
     '16-user-friendly.css',
     '17-cr-navigation.css',
+    '17-mobile-gpu-budget.css',
 ];
 
 test('all wayfinding JavaScript modules have valid syntax', () => {

@@ -109,13 +109,24 @@ if (!guestMode) {
         const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
         const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
         const constrainedConnection = connection?.saveData === true
-            || /(^|-)2g$/.test(String(connection?.effectiveType || ''));
+            || /(^|-)2g$|^3g$/.test(String(connection?.effectiveType || ''));
 
-        // The generated search index is intentionally not background-loaded
-        // on phones. Parsing it while Leaflet is settling was a measurable
-        // source of delayed first drag/pinch on real devices. Search remains
-        // available and begins loading as soon as its button is opened.
-        if (isMobileViewport || constrainedConnection) return;
+        // Save-data and slower connections use the small server response on
+        // demand. On normal phones, wait until the map has fully settled and
+        // then warm the assistant/index during browser idle time. This avoids
+        // both startup contention and the first-search pause.
+        if (constrainedConnection) return;
+
+        if (isMobileViewport) {
+            window.setTimeout(() => {
+                if (typeof window.requestIdleCallback === 'function') {
+                    window.requestIdleCallback(idlePreloadSearch, { timeout: 6000 });
+                } else {
+                    idlePreloadSearch();
+                }
+            }, 3000);
+            return;
+        }
 
         if (typeof window.requestIdleCallback === 'function') {
             window.requestIdleCallback(idlePreloadSearch, { timeout: 2500 });

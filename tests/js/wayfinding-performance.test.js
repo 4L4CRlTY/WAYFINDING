@@ -63,7 +63,8 @@ test('wayfinding core preserves routing order and account features are lazy chun
     assert.match(entry, /window\.selectGpsMode = lazyGpsMode/);
     assert.match(entry, /\['openInlineTextSearch', 'openInlineVoiceSearch'\]/);
     assert.match(entry, /window\.preloadWayfindingSearchIndex\?\.\(\)/);
-    assert.match(entry, /if \(isMobileViewport \|\| constrainedConnection\) return/);
+    assert.match(entry, /if \(constrainedConnection\) return/);
+    assert.match(entry, /if \(isMobileViewport\)[\s\S]*setTimeout[\s\S]*requestIdleCallback/);
     assert.doesNotMatch(
         entry,
         /const assistantFunctions[\s\S]*searchTextDestination/,
@@ -79,6 +80,48 @@ test('wayfinding core preserves routing order and account features are lazy chun
     );
     assert.match(coreData, /loadAllData\(\)\.catch/);
     assert.doesNotMatch(assistant, /loadAllData\(\)\.catch/);
+});
+
+test('mobile assistant has one search wrapper and dismisses completed searches', () => {
+    const assistant = readFileSync(
+        new URL('../../public/js/wayfinding/08-assistant-ui.js', import.meta.url),
+        'utf8',
+    );
+    const dashboard = readFileSync(
+        new URL('../../resources/views/user/dashboard.blade.php', import.meta.url),
+        'utf8',
+    );
+
+    assert.equal((assistant.match(/searchTextDestination\s*=\s*async function/g) || []).length, 1);
+    assert.equal((assistant.match(/initVoiceRecognition\(\);/g) || []).length, 1);
+    assert.doesNotMatch(assistant, /initVoiceRecognition\s*=\s*function/);
+    assert.doesNotMatch(assistant, /keepTextPanelOpen|keepVoicePanelOpen|voice-finished|search-finished/);
+    assert.match(assistant, /assistantSearchRunning/);
+    assert.match(assistant, /showRouteReadyConfirmation/);
+    assert.match(dashboard, /id="ai-route-confirmation"/);
+    assert.match(dashboard, /id="ai-search-progress"/);
+    assert.doesNotMatch(dashboard, /id="ai-(?:text|voice)-result-card"/);
+});
+
+test('final mobile GPU budget overrides theme blur and dormant animations', () => {
+    const css = readFileSync(
+        new URL('../../public/css/wayfinding/17-mobile-gpu-budget.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(css, /\.ai-transform-panel,[\s\S]*backdrop-filter:\s*none\s*!important/);
+    assert.match(css, /\.floating-main-pin \.pin-disc,[\s\S]*animation:\s*none\s*!important/);
+    assert.match(css, /\.ai-voice-orb span[\s\S]*animation:\s*none\s*!important/);
+    assert.match(css, /#ai-voice-panel\.is-listening \.ai-voice-orb span[\s\S]*voiceWave/);
+
+    const entryCss = readFileSync(
+        new URL('../../resources/css/wayfinding.css', import.meta.url),
+        'utf8',
+    );
+    assert.ok(
+        entryCss.trimEnd().endsWith('@import "../../public/css/wayfinding/17-mobile-gpu-budget.css";'),
+        'mobile GPU budget must stay last so theme rules cannot restore expensive effects',
+    );
 });
 
 test('mobile dragging uses one lightweight map interaction controller', () => {

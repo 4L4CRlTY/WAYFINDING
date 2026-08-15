@@ -1134,126 +1134,10 @@
 }
 
 
-/* =========================================================
-   VOICE PANEL PERSIST RESULT FIX
-   Voice panel stays open after recording and displays result.
-========================================================= */
-
-.ai-voice-panel.voice-finished .ai-voice-orb span {
-    animation: none !important;
-    background: linear-gradient(180deg, #93c5fd, #10a37f) !important;
-    box-shadow: 0 0 18px rgba(16, 163, 127, 0.22) !important;
-}
-
-.ai-voice-panel.voice-finished .ai-voice-title::after {
-    content: " · Done";
-    color: #7ef3d7;
-    font-weight: 900;
-}
-
-.ai-voice-result-card {
-    margin-top: 12px;
-    padding: 12px 14px;
-    border-radius: 18px;
-    background:
-        radial-gradient(circle at top right, rgba(16, 163, 127, 0.12), transparent 32%),
-        rgba(255, 255, 255, 0.055);
-    border: 1px solid rgba(16, 163, 127, 0.18);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.ai-voice-result-label {
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: #7ef3d7;
-    margin-bottom: 6px;
-}
-
-.ai-voice-result-text {
-    color: #eef6ff;
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1.5;
-    word-break: break-word;
-}
-
-.ai-voice-result-note {
-    margin-top: 7px;
-    color: #9fb2c8;
-    font-size: 11px;
-    line-height: 1.5;
-}
-
-.ai-voice-panel.voice-finished .ai-stop-voice {
-    background: linear-gradient(180deg, #334155, #1e293b) !important;
-    box-shadow: 0 14px 26px rgba(2, 8, 23, 0.18) !important;
-}
-
-.ai-voice-panel.voice-finished .ai-stop-voice::after {
-    content: " / Close";
-}
-
-
-/* =========================================================
-   TEXT + VOICE PANEL PERSIST FIX
-   Text and voice panels stay open until user closes them.
-========================================================= */
-
-.ai-search-panel.search-finished .ai-transform-kicker::after {
-    content: " · Done";
-    color: #7ef3d7;
-    font-weight: 900;
-}
-
-.ai-text-result-card,
-.ai-voice-result-card {
-    margin-top: 12px;
-    padding: 12px 14px;
-    border-radius: 18px;
-    background:
-        radial-gradient(circle at top right, rgba(16, 163, 127, 0.12), transparent 32%),
-        rgba(255, 255, 255, 0.055);
-    border: 1px solid rgba(16, 163, 127, 0.18);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.ai-text-result-label,
-.ai-voice-result-label {
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: #7ef3d7;
-    margin-bottom: 6px;
-}
-
-.ai-text-result-text,
-.ai-voice-result-text {
-    color: #eef6ff;
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1.5;
-    word-break: break-word;
-}
-
-.ai-text-result-note,
-.ai-voice-result-note {
-    margin-top: 7px;
-    color: #9fb2c8;
-    font-size: 11px;
-    line-height: 1.5;
-}
-
-
-/* =========================================================
-   RECORD AGAIN BUTTON ADD-ON
-   Adds record button beside Search and keeps AI panels open.
-========================================================= */
-
+/* Lightweight assistant controls. The result is shown as a short-lived route
+   confirmation instead of retaining a large panel over the map. */
 .ai-search-row {
-    grid-template-columns: 1fr auto auto !important;
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
 }
 
 .ai-record-inline-btn,
@@ -1270,20 +1154,9 @@
     font-size: 13px;
     font-weight: 900;
     cursor: pointer;
-    box-shadow:
-        0 14px 26px rgba(79, 70, 229, 0.20),
-        inset 0 1px 0 rgba(255,255,255,0.14);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
+    transition: background-color 0.12s ease;
     white-space: nowrap;
-}
-
-.ai-record-inline-btn:hover,
-.ai-record-again-btn:hover {
-    transform: translateY(-1px);
-    box-shadow:
-        0 18px 34px rgba(79, 70, 229, 0.26),
-        0 0 24px rgba(124, 58, 237, 0.18),
-        inset 0 1px 0 rgba(255,255,255,0.16);
 }
 
 .ai-voice-button-row {
@@ -1299,27 +1172,121 @@
     margin-top: 0 !important;
 }
 
-.ai-voice-panel:not(.voice-finished) .ai-record-again-btn {
-    opacity: 0.78;
+.ai-search-progress {
+    margin-top: 10px;
+    color: #c9f7ff;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
 }
 
-.ai-search-panel.search-finished .ai-record-inline-btn {
-    background:
-        radial-gradient(circle at top left, rgba(34, 211, 238, 0.24), transparent 38%),
-        linear-gradient(180deg, #8b5cf6, #2563eb);
+.ai-route-confirmation {
+    position: fixed;
+    left: 50%;
+    bottom: 94px;
+    transform: translateX(-50%);
+    width: min(330px, calc(100vw - 44px));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 13px;
+    border: 1px solid rgba(77, 221, 194, 0.42);
+    border-radius: 16px;
+    color: #eefcff;
+    background: rgba(5, 42, 67, 0.96);
+    box-shadow: 0 8px 22px rgba(2, 8, 23, 0.22);
+    z-index: 25000;
+    pointer-events: none;
+}
+
+.ai-route-confirmation[hidden] {
+    display: none !important;
+}
+
+.ai-route-confirmation-icon {
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #042f2e;
+    background: #69e6c3;
+    font-weight: 1000;
+}
+
+.ai-route-confirmation strong,
+.ai-route-confirmation #ai-route-confirmation-text {
+    display: block;
+}
+
+.ai-route-confirmation strong {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.ai-route-confirmation #ai-route-confirmation-text {
+    max-width: 250px;
+    overflow: hidden;
+    color: #c6dced;
+    font-size: 11px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 768px) {
     .ai-search-row {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr 1fr !important;
     }
 
-    .ai-search-submit,
-    .ai-record-inline-btn {
-        width: 100%;
+    .ai-search-input {
+        grid-column: 1 / -1;
     }
 
     .ai-voice-button-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ai-transform-panel {
+        padding: 13px !important;
+        border-radius: 19px !important;
+        box-shadow: 0 8px 24px rgba(2, 8, 23, 0.24) !important;
+    }
+
+    .ai-transform-hint {
+        margin-top: 8px;
+        font-size: 10px;
+        line-height: 1.35;
+    }
+
+    .ai-search-input,
+    .ai-search-submit,
+    .ai-record-inline-btn,
+    .ai-stop-voice,
+    .ai-record-again-btn {
+        min-height: 42px !important;
+        border-radius: 14px !important;
+    }
+
+    .ai-voice-core {
+        gap: 10px;
+    }
+
+    .ai-voice-orb {
+        width: 48px;
+        height: 48px;
+    }
+
+    .floating-heard-text {
+        max-height: 52px;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 420px) {
+    .ai-transform-hint {
+        display: none;
     }
 }

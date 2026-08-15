@@ -1104,7 +1104,13 @@
         try {
             setRouteResultLabel('Checking destination keyword database...');
 
-            const snapshotResponse = await findSnapshotKeywordMatch(message);
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            const effectiveType = String(connection?.effectiveType || '');
+            const preferCompactServerSearch = connection?.saveData === true
+                || /(^|-)2g$|^3g$/.test(effectiveType);
+            const snapshotResponse = preferCompactServerSearch
+                ? null
+                : await findSnapshotKeywordMatch(message);
             if (searchRequestId !== latestDestinationSearchRequestId) return;
 
             const apiResponse = snapshotResponse || await fetchJson(

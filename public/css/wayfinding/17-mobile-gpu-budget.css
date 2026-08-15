@@ -1,0 +1,61 @@
+/*
+| Final mobile GPU budget
+| --------------------------------------------------------------------------
+| Loaded after the theme so mobile performance rules cannot be overwritten.
+| Opaque gradients, borders, and shadows retain the futuristic appearance
+| without recompositing backdrop blur on every map frame.
+*/
+
+@media (hover: none), (pointer: coarse), (max-width: 768px) {
+    .campus-brand-wrap,
+    .floating-ai-badge,
+    .floating-start-bar,
+    .floating-action-card,
+    .ai-transform-panel,
+    .floating-modal-backdrop,
+    .floating-modal-card,
+    .premium-legend,
+    .user-profile-menu,
+    .campus-event-panel-card,
+    .route-building-popup,
+    .pick-path-helper,
+    .live-gps-status-card,
+    .indoor-panel {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    /* Idle HUD motion steals frames from Leaflet gestures on slower phones. */
+    .ai-dot,
+    .floating-main-pin .pin-disc,
+    .floating-start-bar::before,
+    .ai-transform-panel::before,
+    .floating-action-card::before {
+        animation: none !important;
+    }
+
+    /* Voice feedback animates only while speech recognition is listening. */
+    .ai-voice-orb span {
+        animation: none !important;
+        transform: none !important;
+    }
+
+    #ai-voice-panel.is-listening .ai-voice-orb span {
+        animation: voiceWave 1.4s ease-out infinite !important;
+    }
+
+    .floating-action-card,
+    .ai-transform-panel {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+body.map-moving .campus-brand-wrap,
+body.map-moving .floating-ai-badge,
+body.map-moving .floating-start-bar,
+body.map-moving .floating-action-card,
+body.map-moving .ai-transform-panel,
+body.map-moving .floating-main-pin {
+    filter: none !important;
+}
