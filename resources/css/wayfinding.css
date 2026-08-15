@@ -1,7 +1,6 @@
 @import "leaflet/dist/leaflet.css";
 @import "../../public/css/wayfinding/01-foundation-map.css";
 @import "../../public/css/wayfinding/02-route-controls.css";
-@import "../../public/css/wayfinding/03-ai-search-voice.css";
 @import "../../public/css/wayfinding/05-route-popup-effects.css";
 @import "../../public/css/wayfinding/06-path-picker-events-profile.css";
 @import "../../public/css/wayfinding/07-campus-theme.css";

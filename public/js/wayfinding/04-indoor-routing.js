@@ -12,6 +12,9 @@
     function ensureIndoorMap() {
         if (indoorMap) return;
 
+        const mobileIndoorView = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 768px)').matches;
+        const lowEndIndoorView = window.wayfindingRenderProfile?.mode === 'low';
+
         indoorMap = L.map('indoorMap', {
             zoomControl: true,
             /*
@@ -22,8 +25,17 @@
             */
             minZoom: 15,
             maxZoom: 24,
-            preferCanvas: true
+            preferCanvas: true,
+            zoomSnap: mobileIndoorView ? 0 : 1,
+            zoomDelta: mobileIndoorView ? 0.5 : 1,
+            zoomAnimation: !mobileIndoorView,
+            fadeAnimation: false,
+            markerZoomAnimation: !mobileIndoorView,
+            bounceAtZoomLimits: false,
+            inertia: !lowEndIndoorView
         });
+
+        installIndoorInteractionController();
 
         indoorMap.setView([10.2925, 124.9985], 20);
 
@@ -163,6 +175,45 @@
     let indoorViewportObservedElement = null;
     let indoorViewportFitRequest = null;
     let indoorViewportLastSize = '';
+    const indoorInteractionFlags = new Set();
+    let indoorInteractionSettleFrame = null;
+    let indoorResizeFitPending = false;
+
+    function installIndoorInteractionController() {
+        if (!indoorMap || indoorMap.__wayfindingInteractionControllerInstalled) return;
+        indoorMap.__wayfindingInteractionControllerInstalled = true;
+
+        const begin = type => {
+            indoorInteractionFlags.add(type);
+            if (indoorInteractionSettleFrame) {
+                cancelAnimationFrame(indoorInteractionSettleFrame);
+                indoorInteractionSettleFrame = null;
+            }
+            document.body.classList.add('indoor-map-interacting');
+        };
+        const end = type => {
+            indoorInteractionFlags.delete(type);
+            if (indoorInteractionFlags.size) return;
+            if (indoorInteractionSettleFrame) cancelAnimationFrame(indoorInteractionSettleFrame);
+            indoorInteractionSettleFrame = requestAnimationFrame(() => {
+                indoorInteractionSettleFrame = null;
+                document.body.classList.remove('indoor-map-interacting');
+
+                if (indoorResizeFitPending) {
+                    indoorResizeFitPending = false;
+                    scheduleIndoorViewportFit({
+                        reason: 'settled-container-resize',
+                        preferRoute: Boolean(lastIndoorRoutePackage)
+                    });
+                }
+            });
+        };
+
+        indoorMap.on('dragstart', () => begin('drag'));
+        indoorMap.on('dragend', () => end('drag'));
+        indoorMap.on('zoomstart', () => begin('zoom'));
+        indoorMap.on('zoomend', () => end('zoom'));
+    }
 
     function isIndoorPanelVisible() {
         return Boolean(indoorPanel?.classList.contains('active'));
@@ -209,6 +260,8 @@
             return false;
         }
 
+        if (indoorInteractionFlags.size) return false;
+
         const container = indoorMap.getContainer?.();
         if (!container || container.clientWidth < 2 || container.clientHeight < 2) {
             return false;
@@ -235,6 +288,11 @@
     }
 
     function scheduleIndoorViewportFit(options = {}) {
+        if (indoorInteractionFlags.size) {
+            if (options?.reason === 'container-resize') indoorResizeFitPending = true;
+            return;
+        }
+
         indoorViewportFitRequest = {
             ...(indoorViewportFitRequest || {}),
             ...(options || {})
@@ -263,6 +321,10 @@
             const nextSize = `${Math.round(rect.width)}x${Math.round(rect.height)}`;
             if (nextSize === indoorViewportLastSize) return;
             indoorViewportLastSize = nextSize;
+            if (indoorInteractionFlags.size) {
+                indoorResizeFitPending = true;
+                return;
+            }
             scheduleIndoorViewportFit({
                 reason: 'container-resize',
                 preferRoute: Boolean(lastIndoorRoutePackage)
@@ -449,7 +511,7 @@
         indoorStylesPromise = new Promise((resolve, reject) => {
             const stylesheet = document.createElement('link');
             stylesheet.rel = 'stylesheet';
-            stylesheet.href = '/css/wayfinding/04-indoor-navigation.css?v=20260815.1';
+            stylesheet.href = '/css/wayfinding/04-indoor-navigation.css?v=20260815.2';
             stylesheet.dataset.wayfindingIndoorStyles = 'true';
             stylesheet.addEventListener('load', resolve, { once: true });
             stylesheet.addEventListener('error', () => {

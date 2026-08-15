@@ -233,7 +233,32 @@ body.indoor-open .indoor-panel .leaflet-control-container {
     }
 
     body.indoor-open #map {
-        filter: blur(1px) brightness(0.96);
+        /* The outdoor map is fully covered. A live blur here forces the GPU to
+           recomposite it during every indoor pinch/drag frame. */
+        filter: none !important;
+    }
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 768px) {
+    .indoor-backdrop {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .indoor-panel.active {
+        animation: none !important;
+    }
+
+    #indoorMap .leaflet-map-pane,
+    #indoorMap .leaflet-zoom-animated {
+        will-change: transform;
+    }
+
+    body.indoor-map-interacting .indoor-floor-btn,
+    body.indoor-map-interacting .indoor-footer,
+    body.indoor-map-interacting .leaflet-control-container {
+        transition: none !important;
+        animation: none !important;
     }
 }
 

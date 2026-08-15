@@ -507,6 +507,23 @@ test('a runtime low-end downgrade stays active for the browser session', () => {
     assert.match(responsivePerformance, /sessionStorage\.setItem\('wayfinding-render-quality', 'low'\)/);
 });
 
+test('campus event cards hydrate only when the notification bell is opened', () => {
+    const campusEvents = readFileSync(
+        new URL('../../public/js/wayfinding/07-campus-events-data.js', import.meta.url),
+        'utf8',
+    );
+    const responsivePerformance = readFileSync(
+        new URL('../../public/js/wayfinding/10-responsive-performance.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(campusEvents, /ensureCampusEventPanelContents/);
+    assert.match(campusEvents, /panel\.dataset\.hydrated === 'true'/);
+    assert.match(campusEvents, /if \(shouldOpen\) \{/);
+    assert.doesNotMatch(responsivePerformance, /setTimeout\(syncBell/);
+    assert.doesNotMatch(responsivePerformance, /restoreCampusEventNotificationBell/);
+});
+
 test('outdoor route worker rejects stale results and keeps synchronous fallback', () => {
     const outdoorRouting = readFileSync(
         new URL('../../public/js/wayfinding/03-outdoor-routing.js', import.meta.url),

@@ -234,12 +234,18 @@
         return wayfindingSnapshotPromise;
     }
 
-    function expandCompactWayfindingSearchIndex(document) {
+    function createWayfindingSearchStore(document) {
         if (
             Number(document?.schema_version) === 1 &&
             Array.isArray(document?.search_index)
         ) {
-            return document.search_index;
+            return {
+                compact: false,
+                entries: document.search_index,
+                rows: document.search_index,
+                document: null,
+                decodedEntries: new Map()
+            };
         }
 
         if (
@@ -251,46 +257,61 @@
             return null;
         }
 
+        /*
+         * Keep the compact rows compact on the main browser thread. Only the
+         * handful of winning matches are decoded after the Worker ranks them.
+         * This avoids allocating thousands of duplicate result objects when a
+         * slower phone opens Search for the first time.
+         */
+        return {
+            compact: true,
+            entries: null,
+            rows: document.search_index,
+            document,
+            decodedEntries: new Map()
+        };
+    }
+
+    function getWayfindingSearchEntry(searchStore, index) {
+        if (!searchStore || !Number.isInteger(index) || index < 0) return null;
+        if (!searchStore.compact) return searchStore.entries?.[index] || null;
+        if (searchStore.decodedEntries.has(index)) {
+            return searchStore.decodedEntries.get(index);
+        }
+
+        const row = searchStore.rows?.[index];
+        const destination = searchStore.document?.destinations?.[Number(row?.[2])];
         const destinationTypes = ['building', 'room', 'landuse'];
-        const destinations = document.destinations.map(row => {
-            if (!Array.isArray(row)) return null;
+        const destinationType = Array.isArray(destination)
+            ? destinationTypes[Number(destination[0])]
+            : null;
+        const destinationId = Number(destination?.[1] || 0);
+        if (!Array.isArray(row) || !destinationType || !destinationId) return null;
 
-            const destinationType = destinationTypes[Number(row[0])];
-            const destinationId = Number(row[1] || 0);
-            if (!destinationType || !destinationId) return null;
+        const result = {
+            destination_type: destinationType,
+            destination_id: destinationId,
+            label: String(destination[2] || '')
+        };
 
-            const result = {
-                destination_type: destinationType,
-                destination_id: destinationId,
-                label: String(row[2] || '')
-            };
+        if (destinationType === 'room') {
+            result.room_code = destination[3] ?? null;
+            result.building_id = Number(destination[4] || 0) || null;
+            result.building_name = destination[5] ?? null;
+            result.floor_number = destination[6] === null ? null : Number(destination[6]);
+            result.floor_label = destination[7] ?? null;
+        }
 
-            if (destinationType === 'room') {
-                result.room_code = row[3] ?? null;
-                result.building_id = Number(row[4] || 0) || null;
-                result.building_name = row[5] ?? null;
-                result.floor_number = row[6] === null ? null : Number(row[6]);
-                result.floor_label = row[7] ?? null;
-            }
-
-            return result;
-        });
-
-        return document.search_index.map(row => {
-            if (!Array.isArray(row)) return null;
-
-            const result = destinations[Number(row[2])];
-            if (!result) return null;
-
-            return {
-                id: Number(row[0] || 0),
-                keyword: String(row[1] || ''),
-                destination_type: result.destination_type,
-                destination_id: result.destination_id,
-                priority: Number(row[3] || 0),
-                result
-            };
-        }).filter(entry => entry && entry.keyword);
+        const entry = {
+            id: Number(row[0] || 0),
+            keyword: String(row[1] || ''),
+            destination_type: destinationType,
+            destination_id: destinationId,
+            priority: Number(row[3] || 0),
+            result
+        };
+        searchStore.decodedEntries.set(index, entry);
+        return entry;
     }
 
     async function loadWayfindingSearchIndex() {
@@ -320,19 +341,19 @@
                 if (!response.ok) return null;
 
                 const document = await response.json();
-                const searchIndex = expandCompactWayfindingSearchIndex(document);
+                const searchStore = createWayfindingSearchStore(document);
                 if (
-                    !Array.isArray(searchIndex) ||
+                    !searchStore ||
                     Number(document?.cache_version) !== Number(snapshot.cache_version)
                 ) {
                     return null;
                 }
 
                 initializeWayfindingSearchWorker(
-                    searchIndex,
+                    searchStore,
                     Number(document.cache_version)
                 );
-                return searchIndex;
+                return searchStore;
             })
             .catch(() => {
                 // A temporary slow/offline failure must not permanently disable
@@ -566,7 +587,7 @@
         wayfindingSearchWorkerPending.clear();
     }
 
-    function initializeWayfindingSearchWorker(entries, version) {
+    function initializeWayfindingSearchWorker(searchStore, version) {
         if (typeof Worker !== 'function') return Promise.resolve(false);
         if (
             wayfindingSearchWorker
@@ -627,7 +648,8 @@
         wayfindingSearchWorker.postMessage({
             type: 'init',
             version,
-            entries
+            entries: searchStore?.compact ? undefined : searchStore?.entries,
+            document: searchStore?.compact ? searchStore.document : undefined
         });
 
         return wayfindingSearchWorkerReady;
@@ -697,16 +719,31 @@
         return commonWords.length ? (commonWords.length * 120) + candidate.length : -1;
     }
 
-    function rankSearchIndexSynchronously(searchIndex, normalized) {
+    function rankSearchIndexSynchronously(searchStore, normalized) {
         const queryWords = normalized.split(' ').filter(Boolean);
         const matches = [];
 
-        searchIndex.forEach((entry, index) => {
-            let score = snapshotKeywordScore(entry?.keyword, normalized, queryWords);
-            if (score < 100 || !entry?.result) return;
-            if (entry.destination_type === 'room') score += 350;
-            if (entry.destination_type === 'building') score += 120;
-            matches.push({ entry, score, index });
+        (searchStore?.rows || []).forEach((row, index) => {
+            const entry = searchStore.compact
+                ? null
+                : searchStore.entries?.[index];
+            const destination = searchStore.compact
+                ? searchStore.document?.destinations?.[Number(row?.[2])]
+                : null;
+            const destinationType = searchStore.compact
+                ? ['building', 'room', 'landuse'][Number(destination?.[0])]
+                : entry?.destination_type;
+            const keyword = searchStore.compact ? row?.[1] : entry?.keyword;
+            const hasResult = searchStore.compact
+                ? Boolean(destinationType && Number(destination?.[1] || 0))
+                : Boolean(entry?.result);
+            let score = snapshotKeywordScore(keyword, normalized, queryWords);
+            if (score < 100 || !hasResult) return;
+            if (destinationType === 'room') score += 350;
+            if (destinationType === 'building') score += 120;
+            const decodedEntry = getWayfindingSearchEntry(searchStore, index);
+            if (!decodedEntry) return;
+            matches.push({ entry: decodedEntry, score, index });
         });
 
         return matches.sort((left, right) =>
@@ -716,13 +753,13 @@
         );
     }
 
-    async function rankSearchIndex(searchIndex, normalized) {
+    async function rankSearchIndex(searchStore, normalized) {
         const workerReady = await initializeWayfindingSearchWorker(
-            searchIndex,
+            searchStore,
             wayfindingSearchWorkerVersion ?? 'runtime'
         );
         if (!workerReady || !wayfindingSearchWorker) {
-            return rankSearchIndexSynchronously(searchIndex, normalized);
+            return rankSearchIndexSynchronously(searchStore, normalized);
         }
 
         const requestId = ++wayfindingSearchWorkerRequestId;
@@ -741,14 +778,14 @@
             if (response.stale) return [];
             return response.matches
                 .map(match => ({
-                    entry: searchIndex[Number(match.index)],
+                    entry: getWayfindingSearchEntry(searchStore, Number(match.index)),
                     score: Number(match.score || 0),
                     index: Number(match.index)
                 }))
                 .filter(match => Boolean(match.entry));
         } catch (error) {
             failWayfindingSearchWorker(error);
-            return rankSearchIndexSynchronously(searchIndex, normalized);
+            return rankSearchIndexSynchronously(searchStore, normalized);
         }
     }
 
@@ -770,7 +807,7 @@
 
         const snapshot = await loadWayfindingSnapshot();
         const searchIndex = await loadWayfindingSearchIndex();
-        if (!snapshot || !Array.isArray(searchIndex)) return null;
+        if (!snapshot || !searchIndex?.rows?.length) return null;
 
         const matches = await rankSearchIndex(searchIndex, normalized);
 

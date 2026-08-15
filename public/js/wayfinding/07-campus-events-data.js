@@ -175,36 +175,7 @@
                 <span class="campus-event-bell-count is-zero" id="campus-event-bell-count">0</span>
             </button>
 
-            <div class="campus-event-panel" id="campus-event-panel">
-                <div class="campus-event-panel-card">
-                    <div class="campus-event-panel-head">
-                        <div>
-                            <div class="campus-event-panel-kicker">
-                                <span class="campus-event-mini-dot upcoming-dot"></span>
-                                Campus Events
-                            </div>
-                            <div class="campus-event-panel-title">Current & Upcoming</div>
-                            <div class="campus-event-panel-subtitle">
-                                Tap an event to route. Panel stays hidden until you open it.
-                            </div>
-                        </div>
-
-                        <button type="button"
-                                class="campus-event-panel-close"
-                                onclick="closeCampusEventPanel()"
-                                aria-label="Close campus events">
-                            ×
-                        </button>
-                    </div>
-
-                    <div class="campus-event-list" id="campus-event-list"></div>
-
-                    <div class="campus-event-empty" id="campus-event-empty" style="display:none;">
-                        <span class="campus-event-empty-icon">🔕</span>
-                        No current or upcoming campus events.
-                    </div>
-                </div>
-            </div>
+            <div class="campus-event-panel" id="campus-event-panel"></div>
         `;
 
         document.body.appendChild(wrap);
@@ -222,11 +193,71 @@
         return wrap;
     }
 
+    function ensureCampusEventPanelContents() {
+        const panel = document.getElementById('campus-event-panel');
+        if (!panel || panel.dataset.hydrated === 'true') return panel;
+
+        panel.innerHTML = `
+            <div class="campus-event-panel-card">
+                <div class="campus-event-panel-head">
+                    <div>
+                        <div class="campus-event-panel-kicker">
+                            <span class="campus-event-mini-dot upcoming-dot"></span>
+                            Campus Events
+                        </div>
+                        <div class="campus-event-panel-title">Current & Upcoming</div>
+                        <div class="campus-event-panel-subtitle">
+                            Tap an event to route. Panel stays hidden until you open it.
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            class="campus-event-panel-close"
+                            onclick="closeCampusEventPanel()"
+                            aria-label="Close campus events">
+                        ×
+                    </button>
+                </div>
+
+                <div class="campus-event-list" id="campus-event-list"></div>
+
+                <div class="campus-event-empty" id="campus-event-empty" style="display:none;">
+                    <span class="campus-event-empty-icon">🔕</span>
+                    No current or upcoming campus events.
+                </div>
+            </div>
+        `;
+        panel.dataset.hydrated = 'true';
+        return panel;
+    }
+
+    function renderCampusEventPanelContents(activeEvents) {
+        const panel = document.getElementById('campus-event-panel');
+        if (!panel || panel.dataset.hydrated !== 'true') return;
+
+        const list = document.getElementById('campus-event-list');
+        const empty = document.getElementById('campus-event-empty');
+        if (list) {
+            list.style.display = activeEvents.length ? 'block' : 'none';
+            list.innerHTML = activeEvents.length
+                ? activeEvents.map(event => createCampusEventCardHtml(event)).join('')
+                : '';
+        }
+        if (empty) empty.style.display = activeEvents.length ? 'none' : 'block';
+    }
+
     function toggleCampusEventPanel() {
         const panel = document.getElementById('campus-event-panel');
         if (!panel) return;
 
-        panel.classList.toggle('open');
+        const shouldOpen = !panel.classList.contains('open');
+        if (shouldOpen) {
+            ensureCampusEventPanelContents();
+            renderCampusEventPanelContents((campusEvents || []).filter(event => {
+                return event && event.id && event.route_type && event.route_id;
+            }));
+        }
+        panel.classList.toggle('open', shouldOpen);
     }
 
     function closeCampusEventPanel() {
@@ -257,8 +288,6 @@
         });
 
         const wrap = ensureCampusEventPanel();
-        const list = document.getElementById('campus-event-list');
-        const empty = document.getElementById('campus-event-empty');
         const count = document.getElementById('campus-event-bell-count');
         const pulse = document.getElementById('campus-event-bell-pulse');
         const bell = document.getElementById('campus-event-bell-btn');
@@ -287,16 +316,7 @@
                 : 'No current or upcoming campus events';
         }
 
-        if (list) {
-            list.style.display = activeEvents.length ? 'block' : 'none';
-            list.innerHTML = activeEvents.length
-                ? activeEvents.map(event => createCampusEventCardHtml(event)).join('')
-                : '';
-        }
-
-        if (empty) {
-            empty.style.display = activeEvents.length ? 'none' : 'block';
-        }
+        renderCampusEventPanelContents(activeEvents);
     }
 
     function routeToCampusEvent(eventId) {

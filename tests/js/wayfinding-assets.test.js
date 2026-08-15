@@ -138,6 +138,7 @@ test('the initial wayfinding stylesheet imports each core component exactly once
             '14-gps-diagnostics.css',
             '17-cr-navigation.css',
             '04-indoor-navigation.css',
+            '03-ai-search-voice.css',
         ].includes(filename),
     );
 
@@ -149,6 +150,12 @@ test('the initial wayfinding stylesheet imports each core component exactly once
         'utf8',
     );
     assert.match(indoorRouting, /04-indoor-navigation\.css/);
+
+    const assistantEntry = readFileSync(
+        new URL('../../resources/js/wayfinding-assistant-entry.js', import.meta.url),
+        'utf8',
+    );
+    assert.match(assistantEntry, /03-ai-search-voice\.css/);
 });
 
 test('GPS-only styles are bundled with their lazy feature entries', () => {

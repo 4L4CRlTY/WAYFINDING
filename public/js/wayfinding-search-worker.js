@@ -3,6 +3,8 @@
 let indexedEntries = [];
 let activeVersion = null;
 
+const destinationTypes = ['building', 'room', 'landuse'];
+
 const phrasesToRemove = [
     'i want to go to', 'i wanna go to', 'i need to go to', 'take me to',
     'route me to', 'bring me to', 'navigate to', 'go to', 'where is',
@@ -62,17 +64,48 @@ function rank(query) {
     return matches.map(({ index, score }) => ({ index, score }));
 }
 
+function indexLegacyEntries(entries) {
+    return entries.map(entry => ({
+        normalizedKeyword: normalize(entry?.keyword),
+        destinationType: String(entry?.destination_type || ''),
+        priority: Number(entry?.priority || 0),
+        hasResult: Boolean(entry?.result)
+    }));
+}
+
+function indexCompactDocument(document) {
+    const destinations = Array.isArray(document?.destinations)
+        ? document.destinations
+        : [];
+
+    return (Array.isArray(document?.search_index) ? document.search_index : [])
+        .map(row => {
+            if (!Array.isArray(row)) return null;
+
+            const destination = destinations[Number(row[2])];
+            const destinationType = Array.isArray(destination)
+                ? destinationTypes[Number(destination[0])]
+                : '';
+
+            return {
+                normalizedKeyword: normalize(row[1]),
+                destinationType: destinationType || '',
+                priority: Number(row[3] || 0),
+                hasResult: Boolean(destinationType && Number(destination?.[1] || 0))
+            };
+        })
+        .filter(Boolean);
+}
+
 self.addEventListener('message', event => {
     const message = event.data || {};
 
     if (message.type === 'init') {
         activeVersion = message.version ?? null;
-        indexedEntries = (Array.isArray(message.entries) ? message.entries : []).map(entry => ({
-            normalizedKeyword: normalize(entry?.keyword),
-            destinationType: String(entry?.destination_type || ''),
-            priority: Number(entry?.priority || 0),
-            hasResult: Boolean(entry?.result)
-        }));
+        indexedEntries = Number(message.document?.schema_version) === 2
+            && message.document?.format === 'compact-v1'
+            ? indexCompactDocument(message.document)
+            : indexLegacyEntries(Array.isArray(message.entries) ? message.entries : []);
         self.postMessage({ type: 'ready', version: activeVersion });
         return;
     }

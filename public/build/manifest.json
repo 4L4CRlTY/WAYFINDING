@@ -3,17 +3,17 @@
     "file": "assets/rolldown-runtime-hePW80VL.js",
     "name": "rolldown-runtime"
   },
-  "node_modules/leaflet/dist/images/layers-2x.png": {
+  "node_modules/.pnpm/leaflet@1.9.4/node_modules/leaflet/dist/images/layers-2x.png": {
     "file": "assets/layers-2x-Bpkbi35X.png",
-    "src": "node_modules/leaflet/dist/images/layers-2x.png"
+    "src": "node_modules/.pnpm/leaflet@1.9.4/node_modules/leaflet/dist/images/layers-2x.png"
   },
-  "node_modules/leaflet/dist/images/layers.png": {
+  "node_modules/.pnpm/leaflet@1.9.4/node_modules/leaflet/dist/images/layers.png": {
     "file": "assets/layers-BWBAp2CZ.png",
-    "src": "node_modules/leaflet/dist/images/layers.png"
+    "src": "node_modules/.pnpm/leaflet@1.9.4/node_modules/leaflet/dist/images/layers.png"
   },
-  "node_modules/leaflet/dist/images/marker-icon.png": {
+  "node_modules/.pnpm/leaflet@1.9.4/node_modules/leaflet/dist/images/marker-icon.png": {
     "file": "assets/marker-icon-hN30_KVU.png",
-    "src": "node_modules/leaflet/dist/images/marker-icon.png"
+    "src": "node_modules/.pnpm/leaflet@1.9.4/node_modules/leaflet/dist/images/marker-icon.png"
   },
   "resources/css/app.css": {
     "file": "assets/app-B91d3e3B.css",
@@ -25,7 +25,7 @@
     "isEntry": true
   },
   "resources/css/wayfinding.css": {
-    "file": "assets/wayfinding-CtrHLn86.css",
+    "file": "assets/wayfinding-DFkGLka3.css",
     "name": "wayfinding",
     "names": [
       "wayfinding.css"
@@ -39,7 +39,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-hhXQ5EyI.js",
+    "file": "assets/app-VHEnToqu.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -48,13 +48,16 @@
     ]
   },
   "resources/js/wayfinding-assistant-entry.js": {
-    "file": "assets/wayfinding-assistant-entry-C5TK38Lk.js",
+    "file": "assets/wayfinding-assistant-entry-BB4bsFKi.js",
     "name": "wayfinding-assistant-entry",
     "src": "resources/js/wayfinding-assistant-entry.js",
-    "isDynamicEntry": true
+    "isDynamicEntry": true,
+    "css": [
+      "assets/wayfinding-assistant-entry-CJFgo-WM.css"
+    ]
   },
   "resources/js/wayfinding-entry.js": {
-    "file": "assets/wayfinding-entry-DNmQoUjl.js",
+    "file": "assets/wayfinding-entry-p_tn9kcs.js",
     "name": "wayfinding-entry",
     "src": "resources/js/wayfinding-entry.js",
     "isEntry": true,

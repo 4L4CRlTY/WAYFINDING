@@ -83,6 +83,34 @@ test('search worker preserves exact, room, priority, and inactive matching rules
     assert.deepEqual(JSON.parse(JSON.stringify(inactiveResult.matches)), []);
 });
 
+test('search worker ranks compact rows without expanding destination results', () => {
+    const worker = createSearchWorker();
+    worker.send({
+        type: 'init',
+        version: 78,
+        document: {
+            schema_version: 2,
+            format: 'compact-v1',
+            destinations: [
+                [0, 1, 'Information Technology'],
+                [1, 10, 'Laboratory 1', 'LAB-1', 1, 'Information Technology', 1, '1F'],
+            ],
+            search_index: [
+                [1, 'information technology', 0, 2],
+                [2, 'it', 0, 5],
+                [3, 'laboratory one', 1, 3],
+            ],
+        },
+    });
+    worker.send({ type: 'search', requestId: 12, query: 'laboratory one' });
+
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(worker.postedMessages[0])),
+        { type: 'ready', version: 78 },
+    );
+    assert.equal(worker.postedMessages[1].matches[0].index, 2);
+});
+
 test('search UI rejects stale results and falls back when Worker is unavailable', () => {
     const source = readFileSync(
         new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
@@ -97,16 +125,16 @@ test('search UI rejects stale results and falls back when Worker is unavailable'
     assert.match(source, /searchRequestId !== latestDestinationSearchRequestId/);
 });
 
-test('search UI expands compact cached destinations and keeps legacy rollout compatibility', () => {
+test('search UI keeps compact cached destinations compressed and preserves legacy compatibility', () => {
     const source = readFileSync(
         new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
         'utf8',
     );
 
-    assert.match(source, /function expandCompactWayfindingSearchIndex\(document\)/);
+    assert.match(source, /function createWayfindingSearchStore\(document\)/);
     assert.match(source, /document\?\.format !== 'compact-v1'/);
-    assert.match(source, /const destinationTypes = \['building', 'room', 'landuse'\]/);
-    assert.match(source, /const result = destinations\[Number\(row\[2\]\)\]/);
+    assert.match(source, /function getWayfindingSearchEntry\(searchStore, index\)/);
+    assert.match(source, /document: searchStore\?\.compact \? searchStore\.document/);
     assert.match(source, /Number\(document\?\.schema_version\) === 1/);
     assert.match(source, /searchProgress\.textContent = 'Preparing search…'/);
     assert.doesNotMatch(source, /preferCompactServerSearch/);
