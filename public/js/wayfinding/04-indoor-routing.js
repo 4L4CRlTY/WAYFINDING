@@ -106,10 +106,33 @@
         const bounds = getIndoorMapBoundsFromGeometry(mapItem.geometry);
         if (!bounds) return;
 
-        indoorImageLayer = L.imageOverlay(mapItem.floorplan_image, bounds, {
+        const originalFloorplanUrl = mapItem.floorplan_image;
+        let floorplanUrl = originalFloorplanUrl;
+        const mobileFloorplan = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+
+        if (mobileFloorplan && /^\/floorplan_image\//.test(originalFloorplanUrl)) {
+            try {
+                const originalName = decodeURIComponent(originalFloorplanUrl.split('/').pop() || '');
+                const optimizedName = originalName.replace(/\.[^.]+$/, '') + '.webp';
+                floorplanUrl = `/floorplan_image/mobile/${encodeURIComponent(optimizedName)}`;
+            } catch (_) {
+                floorplanUrl = originalFloorplanUrl;
+            }
+        }
+
+        indoorImageLayer = L.imageOverlay(floorplanUrl, bounds, {
             opacity: 1,
             interactive: false
         }).addTo(indoorMap);
+
+        if (floorplanUrl !== originalFloorplanUrl) {
+            const image = indoorImageLayer.getElement?.();
+            image?.addEventListener('error', () => {
+                if (indoorImageLayer?.getElement?.() === image) {
+                    indoorImageLayer.setUrl(originalFloorplanUrl);
+                }
+            }, { once: true });
+        }
 
         indoorImageLayer.bringToBack();
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Building;
 use App\Models\IndoorMap;
 use App\Rules\ValidGeoJson;
+use App\Services\FloorplanImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -155,6 +156,7 @@ class IndoorMapController extends Controller
                 $building,
                 $floorLabel,
             );
+            app(FloorplanImageOptimizer::class)->optimize($fileName);
 
             return back()->with('success', 'Indoor map uploaded successfully.');
         } catch (\Exception $e) {
@@ -190,6 +192,8 @@ class IndoorMapController extends Controller
                 $map->backup_floorplan_image = $current;
                 $map->save();
             });
+
+            app(FloorplanImageOptimizer::class)->optimize($map->floorplan_image);
 
             return back()->with('success', 'Previous indoor map restored successfully.');
         } catch (\Exception $e) {
@@ -262,6 +266,7 @@ class IndoorMapController extends Controller
                 $map->width = $imageInfo[0] ?? null;
                 $map->height = $imageInfo[1] ?? null;
                 $map->floorplan_image = $fileName;
+                app(FloorplanImageOptimizer::class)->optimize($fileName);
             }
 
             $map->save();

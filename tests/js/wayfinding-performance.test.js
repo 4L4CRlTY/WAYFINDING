@@ -107,6 +107,8 @@ test('mobile assistant has one search wrapper and dismisses completed searches',
     assert.match(assistant, /assistant-keyboard-open/);
     assert.match(assistant, /const keyboardIsOpen = mobileInput && \([\s\S]*inputFocused/);
     assert.match(assistant, /const safeTop = visibleTop \+ 8/);
+    assert.match(assistant, /mountAssistantPanelsAtViewportRoot/);
+    assert.match(assistant, /document\.body\.appendChild\(panel\)/);
     assert.match(assistant, /input\?\.blur\(\)/);
     assert.match(dashboard, /id="ai-route-confirmation"/);
     assert.match(dashboard, /id="ai-search-progress"/);
@@ -126,6 +128,7 @@ test('final mobile GPU budget overrides theme blur and dormant animations', () =
     assert.match(css, /body\.assistant-keyboard-open #ai-search-panel[\s\S]*--assistant-keyboard-top/);
     assert.match(css, /#floating-route-ui\s*\{[\s\S]*position:\s*fixed\s*!important[\s\S]*top:\s*auto\s*!important[\s\S]*bottom:\s*max\(8px,/);
     assert.match(css, /#floating-route-ui \.floating-start-bar[\s\S]*grid-template-columns:\s*repeat\(3,/);
+    assert.match(css, /body\.assistant-keyboard-open #ai-search-panel[\s\S]*left:\s*10px\s*!important[\s\S]*transform:\s*none\s*!important/);
 
     const entryCss = readFileSync(
         new URL('../../resources/css/wayfinding.css', import.meta.url),

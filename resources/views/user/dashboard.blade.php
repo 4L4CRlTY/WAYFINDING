@@ -156,7 +156,8 @@
     @endif
 
     <!-- FLOATING MAIN CONTROLS -->
-    <div id="floating-route-ui" class="ai-floating-dock">
+    <div id="floating-route-ui" class="ai-floating-dock"
+        style="position:fixed;top:auto;right:auto;bottom:max(8px, env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);">
         <div class="floating-ai-badge">
             <span class="ai-dot"></span>
             Campus Navigator

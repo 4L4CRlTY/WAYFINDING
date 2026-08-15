@@ -14,6 +14,15 @@ function getAssistantElement(id) {
     return document.getElementById(id);
 }
 
+function mountAssistantPanelsAtViewportRoot() {
+    ['ai-search-panel', 'ai-voice-panel'].forEach(id => {
+        const panel = getAssistantElement(id);
+        if (panel && panel.parentElement !== document.body) {
+            document.body.appendChild(panel);
+        }
+    });
+}
+
 function setAssistantDockMode(mode = '') {
     const dock = getAssistantElement('floating-route-ui');
     if (!dock) return;
@@ -118,6 +127,7 @@ function closeAiTransformPanel() {
 function openInlineTextSearch() {
     closeFloatingActionCard();
     resetAssistantPanels();
+    mountAssistantPanelsAtViewportRoot();
 
     const panel = getAssistantElement('ai-search-panel');
     if (panel) panel.style.display = 'block';
@@ -138,6 +148,7 @@ function openInlineVoiceSearch() {
 
     closeFloatingActionCard();
     resetAssistantPanels();
+    mountAssistantPanelsAtViewportRoot();
 
     const panel = getAssistantElement('ai-voice-panel');
     const heard = getAssistantElement('voice-heard-text');
@@ -237,6 +248,7 @@ setVoiceStatus(voiceSupported ? 'Ready to listen' : 'Not supported in this brows
 setHeardText('');
 
 const assistantSearchInput = getAssistantElement('destination-search-input');
+mountAssistantPanelsAtViewportRoot();
 assistantSearchInput?.addEventListener('focus', updateAssistantKeyboardPosition, { passive: true });
 assistantSearchInput?.addEventListener('blur', updateAssistantKeyboardPosition, { passive: true });
 window.visualViewport?.addEventListener('resize', updateAssistantKeyboardPosition, { passive: true });
@@ -249,7 +261,8 @@ document.addEventListener('keydown', event => {
 document.addEventListener('pointerdown', event => {
     const dock = getAssistantElement('floating-route-ui');
     const browseModal = getAssistantElement('browseOptionsModal');
-    if (dock?.contains(event.target) || browseModal?.contains(event.target)) return;
+    const assistantPanel = event.target?.closest?.('#ai-search-panel, #ai-voice-panel');
+    if (dock?.contains(event.target) || browseModal?.contains(event.target) || assistantPanel) return;
 
     const searchOpen = getAssistantElement('ai-search-panel')?.style.display === 'block';
     const voiceOpen = getAssistantElement('ai-voice-panel')?.style.display === 'block';

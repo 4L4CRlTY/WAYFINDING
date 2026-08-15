@@ -82,11 +82,20 @@
 
     /* Keep the search field and actions above any Android/iOS soft keyboard. */
     body.assistant-keyboard-open #ai-search-panel {
+        position: fixed !important;
         top: var(--assistant-keyboard-top, 8px) !important;
+        right: 10px !important;
         bottom: auto !important;
-        max-height: calc(var(--assistant-visible-height, 100dvh) - 16px) !important;
+        left: 10px !important;
+        width: auto !important;
+        max-width: none !important;
+        max-height: calc(var(--assistant-visible-height, 100vh) - 16px) !important;
+        margin: 0 !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
+        transform: none !important;
+        z-index: 300000 !important;
+        pointer-events: auto !important;
     }
 
     /* Preserve keyboard space for the query and primary actions. */
