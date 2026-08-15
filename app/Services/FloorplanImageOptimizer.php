@@ -10,7 +10,7 @@ class FloorplanImageOptimizer
 
     private const WEBP_QUALITY = 78;
 
-    private const MAX_LOW_END_EDGE = 960;
+    private const MAX_LOW_END_EDGE = 768;
 
     private const LOW_END_WEBP_QUALITY = 72;
 
@@ -58,7 +58,12 @@ class FloorplanImageOptimizer
         File::ensureDirectoryExists($targetDirectory, 0755, true);
         $targetPath = $targetDirectory.DIRECTORY_SEPARATOR.$targetName;
         if (is_file($targetPath) && filemtime($targetPath) >= filemtime($sourcePath)) {
-            return true;
+            $existingInfo = @getimagesize($targetPath);
+            $existingWidth = (int) ($existingInfo[0] ?? 0);
+            $existingHeight = (int) ($existingInfo[1] ?? 0);
+            if ($existingWidth > 0 && $existingHeight > 0 && max($existingWidth, $existingHeight) <= $maxEdge) {
+                return true;
+            }
         }
 
         $info = @getimagesize($sourcePath);

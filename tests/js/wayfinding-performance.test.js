@@ -257,6 +257,7 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
     assert.match(mapCore, /function detectWayfindingRenderProfile\(\)/);
     assert.match(mapCore, /navigator\.deviceMemory/);
     assert.match(mapCore, /navigator\.hardwareConcurrency/);
+    assert.match(mapCore, /androidMajor\s*>\s*0\s*&&\s*androidMajor\s*<=\s*11\)\s*score\s*\+=\s*2/);
     assert.match(
         mapCore,
         /const SHOULD_RENDER_FAR_BUILDING_DEPTH\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*!==\s*'low'/,
@@ -500,13 +501,15 @@ test('indoor opening responds immediately and caches versioned building data', (
     assert.doesNotMatch(indoorDataTransport, /cache: 'no-cache'/);
 });
 
-test('indoor vectors share one canvas and room selection does not rebuild the floor', () => {
+test('indoor vectors use one adaptive renderer and room selection does not rebuild the floor', () => {
     const indoorRouting = readFileSync(
         new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
         'utf8',
     );
 
-    assert.match(indoorRouting, /__wayfindingVectorRenderer\s*=\s*L\.canvas\(/);
+    assert.match(indoorRouting, /lowEndIndoorView[\s\S]{0,100}L\.svg\(/);
+    assert.match(indoorRouting, /L\.canvas\(\{\s*padding:\s*0\.1/);
+    assert.match(indoorRouting, /__wayfindingVectorRendererMode\s*=\s*lowEndIndoorView/);
     assert.match(indoorRouting, /renderer:\s*indoorMap\.__wayfindingVectorRenderer/);
     assert.match(indoorRouting, /interactive:\s*false/);
     assert.match(indoorRouting, /indoorRoomsLayer\?\.eachLayer/);

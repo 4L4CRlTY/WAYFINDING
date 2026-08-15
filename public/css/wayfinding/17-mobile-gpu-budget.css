@@ -143,6 +143,28 @@
         image-rendering: auto;
         will-change: auto !important;
     }
+
+    /* Avoid keeping several full-screen indoor panes in dedicated GPU memory
+       on older Android devices. Leaflet still applies the live gesture
+       transform; the browser promotes it only while that transform is active. */
+    body.render-quality-low #indoorMap {
+        contain: layout paint style;
+    }
+
+    body.render-quality-low #indoorMap .leaflet-map-pane,
+    body.render-quality-low #indoorMap .leaflet-zoom-animated {
+        will-change: auto !important;
+    }
+
+    body.render-quality-low.indoor-map-interacting .indoor-panel,
+    body.render-quality-low.indoor-map-interacting .indoor-map-wrap,
+    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-pane,
+    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-control-container {
+        animation: none !important;
+        transition: none !important;
+        filter: none !important;
+        box-shadow: none !important;
+    }
 }
 
 body.map-moving .campus-brand-wrap,

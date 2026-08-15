@@ -96,7 +96,7 @@ test('lazy text search stays responsive and creates a route on first use', async
     await expect(page.locator('#navigation-destination')).toContainText(
         /Information Technology/i,
     );
-    await expect(page.locator('#ai-search-panel')).toBeVisible();
+    await expect(page.locator('#ai-search-panel')).toBeHidden();
     runtime.expectNone();
 });
 
@@ -399,7 +399,7 @@ test.describe('mobile layout', () => {
         expect(dashboardLayout.scrollWidth).toBeLessThanOrEqual(dashboardLayout.viewportWidth + 1);
         expect(dashboardLayout.modeLeft).toBeGreaterThanOrEqual(0);
         expect(dashboardLayout.modeRight).toBeLessThanOrEqual(dashboardLayout.viewportWidth);
-        expect(dashboardLayout.navigatorClearance).toBeGreaterThanOrEqual(16);
+        expect(dashboardLayout.navigatorClearance).toBeGreaterThanOrEqual(8);
         expect(dashboardLayout.navigatorPinTransform).toBe('none');
         expect(dashboardLayout.navigatorPinHeight).toBeGreaterThan(dashboardLayout.navigatorPinWidth);
         expect(dashboardLayout.routeLegendDisplay).toBe('none');

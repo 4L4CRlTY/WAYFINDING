@@ -25,7 +25,7 @@
             */
             minZoom: 15,
             maxZoom: 24,
-            preferCanvas: true,
+            preferCanvas: !lowEndIndoorView,
             zoomSnap: mobileIndoorView ? 0 : 1,
             zoomDelta: mobileIndoorView ? 0.5 : 1,
             zoomAnimation: !mobileIndoorView,
@@ -35,12 +35,13 @@
             inertia: !lowEndIndoorView
         });
 
-        /* Reuse one compact Canvas renderer for indoor vectors. The room
-           geometry and click targets stay exact while pinch/drag redraws less. */
-        indoorMap.__wayfindingVectorRenderer = L.canvas({
-            padding: lowEndIndoorView ? 0.05 : 0.1,
-            tolerance: lowEndIndoorView ? 7 : 5
-        });
+        /* A floor normally has only a small number of vectors. On low-end
+           Android, one shared SVG pane is cheaper to pinch-transform than a
+           full-viewport Canvas repaint. Balanced phones retain Canvas. */
+        indoorMap.__wayfindingVectorRenderer = lowEndIndoorView
+            ? L.svg({ padding: 0.04 })
+            : L.canvas({ padding: 0.1, tolerance: 5 });
+        indoorMap.__wayfindingVectorRendererMode = lowEndIndoorView ? 'svg' : 'canvas';
 
         installIndoorInteractionController();
 

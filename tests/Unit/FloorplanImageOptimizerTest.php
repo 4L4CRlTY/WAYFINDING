@@ -37,7 +37,7 @@ class FloorplanImageOptimizerTest extends TestCase
             $this->assertLessThanOrEqual(1400, max($width, $height));
 
             [$lowWidth, $lowHeight] = getimagesize($lowEndPath);
-            $this->assertLessThanOrEqual(960, max($lowWidth, $lowHeight));
+            $this->assertLessThanOrEqual(768, max($lowWidth, $lowHeight));
         } finally {
             @unlink($sourcePath);
             @unlink($mobilePath);

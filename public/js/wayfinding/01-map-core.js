@@ -56,7 +56,11 @@
         if (reducedMotion) score += 1;
         if (window.innerWidth <= 390) score += 1;
         if (knownLowEndPhone) score += 3;
-        if (androidMajor > 0 && androidMajor <= 11 && memory > 0 && memory <= 4) score += 2;
+        /* Chrome may omit both the phone model and deviceMemory. Android 11
+           itself is therefore a useful conservative signal. Together with a
+           narrow phone viewport it selects the low profile immediately,
+           before the first indoor map is created. */
+        if (androidMajor > 0 && androidMajor <= 11) score += 2;
 
         return {
             mode: score >= 3 ? 'low' : 'balanced',
