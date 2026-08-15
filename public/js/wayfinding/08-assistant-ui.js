@@ -7,6 +7,8 @@
 let assistantSearchRunning = false;
 let assistantVoiceStarting = false;
 let assistantConfirmationTimer = null;
+let assistantViewportFrame = null;
+let assistantLargestViewportHeight = window.innerHeight;
 
 function getAssistantElement(id) {
     return document.getElementById(id);
@@ -19,6 +21,41 @@ function setAssistantDockMode(mode = '') {
     dock.classList.toggle('transforming', Boolean(mode));
     dock.classList.toggle('search-mode', mode === 'search');
     dock.classList.toggle('voice-mode', mode === 'voice');
+}
+
+function updateAssistantKeyboardPosition() {
+    window.cancelAnimationFrame(assistantViewportFrame);
+    assistantViewportFrame = window.requestAnimationFrame(() => {
+        const input = getAssistantElement('destination-search-input');
+        const panel = getAssistantElement('ai-search-panel');
+        const viewport = window.visualViewport;
+        const visibleHeight = viewport?.height || window.innerHeight;
+        const visibleTop = viewport?.offsetTop || 0;
+        const inputFocused = document.activeElement === input;
+
+        if (!inputFocused || !panel || panel.style.display !== 'block') {
+            document.body.classList.remove('assistant-keyboard-open');
+            document.body.style.removeProperty('--assistant-keyboard-top');
+            document.body.style.removeProperty('--assistant-visible-height');
+            return;
+        }
+
+        const keyboardIsOpen = visibleHeight < assistantLargestViewportHeight - 80;
+        document.body.classList.toggle('assistant-keyboard-open', keyboardIsOpen);
+
+        if (!keyboardIsOpen) return;
+
+        const panelHeight = Math.min(panel.offsetHeight || 156, Math.max(120, visibleHeight - 16));
+        const centeredTop = visibleTop + Math.max(8, (visibleHeight - panelHeight) / 2);
+        document.body.style.setProperty('--assistant-keyboard-top', `${Math.round(centeredTop)}px`);
+        document.body.style.setProperty('--assistant-visible-height', `${Math.round(visibleHeight)}px`);
+    });
+}
+
+function releaseAssistantKeyboard() {
+    const input = getAssistantElement('destination-search-input');
+    if (document.activeElement === input) input.blur();
+    updateAssistantKeyboardPosition();
 }
 
 function resetAssistantPanels() {
@@ -39,6 +76,7 @@ function resetAssistantPanels() {
         searchProgress.textContent = '';
     }
 
+    releaseAssistantKeyboard();
     setAssistantDockMode('');
 }
 
@@ -84,7 +122,9 @@ function openInlineTextSearch() {
     window.preloadWayfindingSearchIndex?.();
 
     window.requestAnimationFrame(() => {
+        assistantLargestViewportHeight = Math.max(assistantLargestViewportHeight, window.innerHeight);
         getAssistantElement('destination-search-input')?.focus({ preventScroll: true });
+        updateAssistantKeyboardPosition();
     });
 }
 
@@ -135,10 +175,13 @@ searchTextDestination = async function lightweightSearchTextDestination() {
     if (assistantSearchRunning) return;
 
     const panel = getAssistantElement('ai-search-panel');
+    const input = getAssistantElement('destination-search-input');
     const submit = panel?.querySelector('.ai-search-submit');
     const progress = getAssistantElement('ai-search-progress');
 
     assistantSearchRunning = true;
+    input?.blur();
+    updateAssistantKeyboardPosition();
     panel?.classList.add('is-searching');
     if (submit) {
         submit.disabled = true;
@@ -187,6 +230,12 @@ initVoiceRecognition();
 updateVoiceButtonUi();
 setVoiceStatus(voiceSupported ? 'Ready to listen' : 'Not supported in this browser');
 setHeardText('');
+
+const assistantSearchInput = getAssistantElement('destination-search-input');
+assistantSearchInput?.addEventListener('focus', updateAssistantKeyboardPosition, { passive: true });
+assistantSearchInput?.addEventListener('blur', updateAssistantKeyboardPosition, { passive: true });
+window.visualViewport?.addEventListener('resize', updateAssistantKeyboardPosition, { passive: true });
+window.visualViewport?.addEventListener('scroll', updateAssistantKeyboardPosition, { passive: true });
 
 document.addEventListener('keydown', event => {
     if (event.key === 'Escape') closeAiTransformPanel();

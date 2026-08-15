@@ -98,6 +98,9 @@ test('mobile assistant has one search wrapper and dismisses completed searches',
     assert.doesNotMatch(assistant, /keepTextPanelOpen|keepVoicePanelOpen|voice-finished|search-finished/);
     assert.match(assistant, /assistantSearchRunning/);
     assert.match(assistant, /showRouteReadyConfirmation/);
+    assert.match(assistant, /window\.visualViewport\?\.addEventListener\('resize', updateAssistantKeyboardPosition/);
+    assert.match(assistant, /assistant-keyboard-open/);
+    assert.match(assistant, /input\?\.blur\(\)/);
     assert.match(dashboard, /id="ai-route-confirmation"/);
     assert.match(dashboard, /id="ai-search-progress"/);
     assert.doesNotMatch(dashboard, /id="ai-(?:text|voice)-result-card"/);
@@ -113,6 +116,7 @@ test('final mobile GPU budget overrides theme blur and dormant animations', () =
     assert.match(css, /\.floating-main-pin \.pin-disc,[\s\S]*animation:\s*none\s*!important/);
     assert.match(css, /\.ai-voice-orb span[\s\S]*animation:\s*none\s*!important/);
     assert.match(css, /#ai-voice-panel\.is-listening \.ai-voice-orb span[\s\S]*voiceWave/);
+    assert.match(css, /body\.assistant-keyboard-open #ai-search-panel[\s\S]*--assistant-keyboard-top/);
 
     const entryCss = readFileSync(
         new URL('../../resources/css/wayfinding.css', import.meta.url),
@@ -329,6 +333,17 @@ test('mobile route legend stays hidden before indoor resources load', () => {
         /@media \(hover:\s*none\), \(pointer:\s*coarse\), \(max-width:\s*768px\)/,
     );
     assert.match(indoorRouting, /insertBefore\([\s\S]*stylesheet,[\s\S]*mainWayfindingStylesheet/);
+});
+
+test('indoor graph diagnostics stay silent unless explicit debug mode is enabled', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /window\.WAYFINDING_DEBUG !== true/);
+    assert.match(indoorRouting, /debugIndoorGraphWarning\('\[IndoorGraph\]/);
+    assert.equal((indoorRouting.match(/console\.warn\(/g) || []).length, 1);
 });
 
 test('building depth has one post-interaction update owner', () => {

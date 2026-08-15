@@ -4,6 +4,11 @@
        Outdoor routing and indoor Dijkstra routing below were not changed.
     ========================================================= */
 
+    function debugIndoorGraphWarning(message, details) {
+        if (window.WAYFINDING_DEBUG !== true) return;
+        console.warn(message, details);
+    }
+
     function ensureIndoorMap() {
         if (indoorMap) return;
 
@@ -961,7 +966,7 @@
                     }
                 });
             } else {
-                console.warn('[IndoorGraph] Room has no usable door entrance, route disabled for this room:', {
+                debugIndoorGraphWarning('[IndoorGraph] Room has no usable door entrance, route disabled for this room:', {
                     room_id: p.id,
                     room_name: p.name,
                     room_code: p.room_code,

@@ -49,6 +49,15 @@
         animation: none !important;
         transition: none !important;
     }
+
+    /* Keep the search field and actions above any Android/iOS soft keyboard. */
+    body.assistant-keyboard-open #ai-search-panel {
+        top: var(--assistant-keyboard-top, 8px) !important;
+        bottom: auto !important;
+        max-height: calc(var(--assistant-visible-height, 100dvh) - 16px) !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+    }
 }
 
 body.map-moving .campus-brand-wrap,
