@@ -234,6 +234,65 @@
         return wayfindingSnapshotPromise;
     }
 
+    function expandCompactWayfindingSearchIndex(document) {
+        if (
+            Number(document?.schema_version) === 1 &&
+            Array.isArray(document?.search_index)
+        ) {
+            return document.search_index;
+        }
+
+        if (
+            Number(document?.schema_version) !== 2 ||
+            document?.format !== 'compact-v1' ||
+            !Array.isArray(document?.destinations) ||
+            !Array.isArray(document?.search_index)
+        ) {
+            return null;
+        }
+
+        const destinationTypes = ['building', 'room', 'landuse'];
+        const destinations = document.destinations.map(row => {
+            if (!Array.isArray(row)) return null;
+
+            const destinationType = destinationTypes[Number(row[0])];
+            const destinationId = Number(row[1] || 0);
+            if (!destinationType || !destinationId) return null;
+
+            const result = {
+                destination_type: destinationType,
+                destination_id: destinationId,
+                label: String(row[2] || '')
+            };
+
+            if (destinationType === 'room') {
+                result.room_code = row[3] ?? null;
+                result.building_id = Number(row[4] || 0) || null;
+                result.building_name = row[5] ?? null;
+                result.floor_number = row[6] === null ? null : Number(row[6]);
+                result.floor_label = row[7] ?? null;
+            }
+
+            return result;
+        });
+
+        return document.search_index.map(row => {
+            if (!Array.isArray(row)) return null;
+
+            const result = destinations[Number(row[2])];
+            if (!result) return null;
+
+            return {
+                id: Number(row[0] || 0),
+                keyword: String(row[1] || ''),
+                destination_type: result.destination_type,
+                destination_id: result.destination_id,
+                priority: Number(row[3] || 0),
+                result
+            };
+        }).filter(entry => entry && entry.keyword);
+    }
+
     async function loadWayfindingSearchIndex() {
         if (wayfindingSearchIndexPromise) return wayfindingSearchIndexPromise;
 
@@ -243,9 +302,11 @@
 
                 const searchIndexUrl = snapshot.search_index_url || '/data/destination-keywords.json';
                 const cacheVersion = Number(snapshot.cache_version || 0);
-                const versionedSearchIndexUrl = cacheVersion > 0
-                    ? `${searchIndexUrl}${searchIndexUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheVersion)}`
-                    : searchIndexUrl;
+                const searchIndexParams = new URLSearchParams({ format: '2' });
+                if (cacheVersion > 0) {
+                    searchIndexParams.set('v', String(cacheVersion));
+                }
+                const versionedSearchIndexUrl = `${searchIndexUrl}${searchIndexUrl.includes('?') ? '&' : '?'}${searchIndexParams}`;
 
                 const response = await fetch(
                     versionedSearchIndexUrl,
@@ -259,21 +320,26 @@
                 if (!response.ok) return null;
 
                 const document = await response.json();
+                const searchIndex = expandCompactWayfindingSearchIndex(document);
                 if (
-                    Number(document?.schema_version) !== 1 ||
-                    !Array.isArray(document?.search_index) ||
+                    !Array.isArray(searchIndex) ||
                     Number(document?.cache_version) !== Number(snapshot.cache_version)
                 ) {
                     return null;
                 }
 
                 initializeWayfindingSearchWorker(
-                    document.search_index,
+                    searchIndex,
                     Number(document.cache_version)
                 );
-                return document.search_index;
+                return searchIndex;
             })
-            .catch(() => null);
+            .catch(() => {
+                // A temporary slow/offline failure must not permanently disable
+                // the compact index for the rest of the browser session.
+                wayfindingSearchIndexPromise = null;
+                return null;
+            });
 
         return wayfindingSearchIndexPromise;
     }
@@ -1102,16 +1168,20 @@
             : null;
 
         try {
-            setRouteResultLabel('Checking destination keyword database...');
+            setRouteResultLabel('Preparing search...');
+            const searchProgress = document.getElementById('ai-search-progress');
+            if (searchProgress && !searchProgress.hidden) {
+                searchProgress.textContent = 'Preparing search…';
+            }
 
-            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            const effectiveType = String(connection?.effectiveType || '');
-            const preferCompactServerSearch = connection?.saveData === true
-                || /(^|-)2g$|^3g$/.test(effectiveType);
-            const snapshotResponse = preferCompactServerSearch
-                ? null
-                : await findSnapshotKeywordMatch(message);
+            // The compact static index is CDN/browser cacheable and avoids a
+            // PHP/database request on every search, including slow connections.
+            const snapshotResponse = await findSnapshotKeywordMatch(message);
             if (searchRequestId !== latestDestinationSearchRequestId) return;
+
+            if (searchProgress && !searchProgress.hidden) {
+                searchProgress.textContent = 'Finding the best route…';
+            }
 
             const apiResponse = snapshotResponse || await fetchJson(
                 `/api/search-destination?q=${encodeURIComponent(message)}`,

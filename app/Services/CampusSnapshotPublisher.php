@@ -69,6 +69,7 @@ class CampusSnapshotPublisher
         }
 
         $searchIndex = $this->buildSearchIndex();
+        $compactSearchIndex = $this->compactSearchIndex($searchIndex);
         $generatedAt = now()->toIso8601String();
         $cacheVersion = $this->cache->version();
         $indoorDocuments = $this->buildIndoorDocuments($datasets, $cacheVersion, $generatedAt);
@@ -89,10 +90,12 @@ class CampusSnapshotPublisher
             'indoor_data_url_template' => '/data/indoor/{building}.json',
         ];
         $searchIndexDocument = [
-            'schema_version' => 1,
+            'schema_version' => 2,
+            'format' => 'compact-v1',
             'cache_version' => $cacheVersion,
             'generated_at' => $generatedAt,
-            'search_index' => $searchIndex,
+            'destinations' => $compactSearchIndex['destinations'],
+            'search_index' => $compactSearchIndex['keywords'],
         ];
 
         $json = json_encode(
@@ -274,6 +277,65 @@ class CampusSnapshotPublisher
             ->filter(fn ($entry) => $entry !== null && $this->normalizeKeyword($entry['keyword']) !== '')
             ->values()
             ->all();
+    }
+
+    /**
+     * Store each destination once and let every keyword reference it by array
+     * index. Short positional rows keep the public payload small while the
+     * browser expands them to the existing runtime shape after download.
+     * No keyword, priority, or destination metadata is discarded.
+     *
+     * Destination row:
+     * [type, id, label, room_code, building_id, building_name, floor, floor_label]
+     * Type: 0 = building, 1 = room, 2 = landuse.
+     *
+     * Keyword row: [keyword_id, keyword, destination_index, priority]
+     *
+     * @return array{destinations: array<int, array<int, mixed>>, keywords: array<int, array<int, mixed>>}
+     */
+    private function compactSearchIndex(array $searchIndex): array
+    {
+        $destinations = [];
+        $destinationIndexes = [];
+        $keywords = [];
+        $typeCodes = [
+            'building' => 0,
+            'room' => 1,
+            'landuse' => 2,
+        ];
+
+        foreach ($searchIndex as $entry) {
+            $result = $entry['result'];
+            $type = (string) $entry['destination_type'];
+            $destinationId = (int) $entry['destination_id'];
+            $destinationKey = $type.':'.$destinationId;
+
+            if (! array_key_exists($destinationKey, $destinationIndexes)) {
+                $destinationIndexes[$destinationKey] = count($destinations);
+                $destinations[] = [
+                    $typeCodes[$type],
+                    $destinationId,
+                    $result['label'] ?? '',
+                    $result['room_code'] ?? null,
+                    isset($result['building_id']) ? (int) $result['building_id'] : null,
+                    $result['building_name'] ?? null,
+                    isset($result['floor_number']) ? (int) $result['floor_number'] : null,
+                    $result['floor_label'] ?? null,
+                ];
+            }
+
+            $keywords[] = [
+                (int) $entry['id'],
+                $entry['keyword'],
+                $destinationIndexes[$destinationKey],
+                (int) $entry['priority'],
+            ];
+        }
+
+        return [
+            'destinations' => $destinations,
+            'keywords' => $keywords,
+        ];
     }
 
     private function buildingSearchResult(?Building $building): ?array

@@ -57,6 +57,13 @@ class CampusSnapshotTest extends TestCase
             'priority' => 10,
             'is_active' => true,
         ]);
+        DestinationKeyword::create([
+            'keyword' => 'Computer Building',
+            'destination_type' => 'building',
+            'destination_id' => $building->id,
+            'priority' => 5,
+            'is_active' => true,
+        ]);
         $indoorMap = IndoorMap::create([
             'building_id' => $building->id,
             'name' => 'IT First Floor',
@@ -137,13 +144,17 @@ class CampusSnapshotTest extends TestCase
         $this->assertCount(1, $indoorSnapshot['datasets']['/api/indoor-paths']['features']);
         $this->assertCount(1, $indoorSnapshot['datasets']['/api/indoor-entrances']['features']);
         $this->assertArrayNotHasKey('search_index', $snapshot);
-        $this->assertSame('IT', $searchIndex['search_index'][0]['keyword']);
-        $this->assertSame('building', $searchIndex['search_index'][0]['destination_type']);
-        $this->assertSame($building->id, $searchIndex['search_index'][0]['destination_id']);
-        $this->assertSame(10, $searchIndex['search_index'][0]['priority']);
-        $this->assertSame('Information Technology Building', $searchIndex['search_index'][0]['result']['label']);
-        $this->assertArrayNotHasKey('normalized_keyword', $searchIndex['search_index'][0]);
-        $this->assertArrayNotHasKey('response', $searchIndex['search_index'][0]);
+        $this->assertSame(2, $searchIndex['schema_version']);
+        $this->assertSame('compact-v1', $searchIndex['format']);
+        $this->assertCount(1, $searchIndex['destinations']);
+        $this->assertCount(2, $searchIndex['search_index']);
+        $this->assertSame([0, $building->id, 'Information Technology Building', null, null, null, null, null], $searchIndex['destinations'][0]);
+        $this->assertSame('IT', $searchIndex['search_index'][0][1]);
+        $this->assertSame(0, $searchIndex['search_index'][0][2]);
+        $this->assertSame(10, $searchIndex['search_index'][0][3]);
+        $this->assertSame('Computer Building', $searchIndex['search_index'][1][1]);
+        $this->assertSame(0, $searchIndex['search_index'][1][2]);
+        $this->assertSame(5, $searchIndex['search_index'][1][3]);
         $this->assertArrayNotHasKey('users', $snapshot);
     }
 
@@ -170,6 +181,7 @@ class CampusSnapshotTest extends TestCase
         $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame([], $searchIndex['search_index']);
+        $this->assertSame([], $searchIndex['destinations']);
     }
 
     public function test_republishing_reflects_keyword_edits_deletes_and_event_deactivation(): void
@@ -212,7 +224,7 @@ class CampusSnapshotTest extends TestCase
         $snapshot = json_decode(File::get($this->snapshotPath), true, flags: JSON_THROW_ON_ERROR);
         $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
 
-        $this->assertSame('Registrar', $searchIndex['search_index'][0]['keyword']);
+        $this->assertSame('Registrar', $searchIndex['search_index'][0][1]);
         $this->assertSame([], $snapshot['datasets']['/api/campus-events']);
 
         $keyword->delete();
@@ -221,5 +233,6 @@ class CampusSnapshotTest extends TestCase
 
         $searchIndex = json_decode(File::get($this->searchIndexPath), true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame([], $searchIndex['search_index']);
+        $this->assertSame([], $searchIndex['destinations']);
     }
 }

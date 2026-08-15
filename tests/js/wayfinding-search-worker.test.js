@@ -96,3 +96,18 @@ test('search UI rejects stale results and falls back when Worker is unavailable'
     assert.match(source, /activeDestinationSearchController\?\.abort/);
     assert.match(source, /searchRequestId !== latestDestinationSearchRequestId/);
 });
+
+test('search UI expands compact cached destinations and keeps legacy rollout compatibility', () => {
+    const source = readFileSync(
+        new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(source, /function expandCompactWayfindingSearchIndex\(document\)/);
+    assert.match(source, /document\?\.format !== 'compact-v1'/);
+    assert.match(source, /const destinationTypes = \['building', 'room', 'landuse'\]/);
+    assert.match(source, /const result = destinations\[Number\(row\[2\]\)\]/);
+    assert.match(source, /Number\(document\?\.schema_version\) === 1/);
+    assert.match(source, /searchProgress\.textContent = 'Preparing search…'/);
+    assert.doesNotMatch(source, /preferCompactServerSearch/);
+});

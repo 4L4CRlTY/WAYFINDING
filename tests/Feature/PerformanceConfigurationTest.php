@@ -14,6 +14,7 @@ class PerformanceConfigurationTest extends TestCase
             base_path('deploy/hostinger/.env.hostinger.example')
         );
         $hostingerRewrite = file_get_contents(base_path('.htaccess'));
+        $publicRewrite = file_get_contents(public_path('.htaccess'));
         $deploymentScript = file_get_contents(
             base_path('deploy/hostinger/deploy-hostinger.sh')
         );
@@ -34,6 +35,10 @@ class PerformanceConfigurationTest extends TestCase
             $hostingerRewrite,
         );
         $this->assertStringNotContainsString('publicc/', $hostingerRewrite);
+        $this->assertStringContainsString('AddOutputFilterByType DEFLATE application/json', $publicRewrite);
+        $this->assertStringContainsString('AddOutputFilterByType BROTLI_COMPRESS application/json', $publicRewrite);
+        $this->assertStringContainsString('destination-keywords', $publicRewrite);
+        $this->assertStringContainsString('stale-while-revalidate=86400', $publicRewrite);
         $this->assertStringContainsString(
             'php artisan wayfinding:snapshot',
             $deploymentScript,

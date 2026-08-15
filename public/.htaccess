@@ -30,6 +30,12 @@
     AddOutputFilterByType DEFLATE image/svg+xml application/manifest+json
 </IfModule>
 
+<IfModule mod_brotli.c>
+    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/javascript application/javascript
+    AddOutputFilterByType BROTLI_COMPRESS application/json
+    AddOutputFilterByType BROTLI_COMPRESS image/svg+xml application/manifest+json
+</IfModule>
+
 <IfModule mod_headers.c>
     <FilesMatch "^(campus-snapshot|destination-keywords)\.json$">
         Header set Cache-Control "public, max-age=300, stale-while-revalidate=86400"
