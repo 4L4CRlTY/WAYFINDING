@@ -58,9 +58,18 @@ function updateAssistantKeyboardPosition() {
 
         if (!keyboardIsOpen) return;
 
-        /* Dock to the top of the visible viewport. Android browsers may pan
-           rather than resize, which made a vertically centered field vanish. */
-        const safeTop = visibleTop + 8;
+        /* Anchor immediately above the Android keyboard. The visual viewport
+           bottom keeps the input visible without pinning the panel beneath
+           the browser toolbar. */
+        document.body.classList.add('assistant-keyboard-open');
+        const panelHeight = Math.min(
+            Math.max(1, panel.getBoundingClientRect().height),
+            Math.max(1, visibleHeight - 16)
+        );
+        const safeTop = Math.max(
+            visibleTop + 8,
+            visibleTop + visibleHeight - panelHeight - 8
+        );
         document.body.style.setProperty('--assistant-keyboard-top', `${Math.round(safeTop)}px`);
         document.body.style.setProperty('--assistant-visible-height', `${Math.round(visibleHeight)}px`);
     });

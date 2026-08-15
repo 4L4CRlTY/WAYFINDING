@@ -10,6 +10,10 @@ class FloorplanImageOptimizer
 
     private const WEBP_QUALITY = 78;
 
+    private const MAX_LOW_END_EDGE = 960;
+
+    private const LOW_END_WEBP_QUALITY = 72;
+
     public function optimize(string $fileName): ?string
     {
         if (! function_exists('imagewebp')) {
@@ -22,13 +26,39 @@ class FloorplanImageOptimizer
             return null;
         }
 
-        $targetDirectory = public_path('floorplan_image/mobile');
-        File::ensureDirectoryExists($targetDirectory, 0755, true);
-
         $targetName = pathinfo($safeName, PATHINFO_FILENAME).'.webp';
+        $mobileSaved = $this->createVariant(
+            $sourcePath,
+            public_path('floorplan_image/mobile'),
+            $targetName,
+            self::MAX_MOBILE_EDGE,
+            self::WEBP_QUALITY,
+        );
+
+        /* A smaller decoded bitmap reduces pinch/drag work on low-memory
+           phones. The original and the normal mobile image remain intact. */
+        $this->createVariant(
+            $sourcePath,
+            public_path('floorplan_image/mobile-low'),
+            $targetName,
+            self::MAX_LOW_END_EDGE,
+            self::LOW_END_WEBP_QUALITY,
+        );
+
+        return $mobileSaved ? $targetName : null;
+    }
+
+    private function createVariant(
+        string $sourcePath,
+        string $targetDirectory,
+        string $targetName,
+        int $maxEdge,
+        int $quality,
+    ): bool {
+        File::ensureDirectoryExists($targetDirectory, 0755, true);
         $targetPath = $targetDirectory.DIRECTORY_SEPARATOR.$targetName;
         if (is_file($targetPath) && filemtime($targetPath) >= filemtime($sourcePath)) {
-            return $targetName;
+            return true;
         }
 
         $info = @getimagesize($sourcePath);
@@ -36,7 +66,7 @@ class FloorplanImageOptimizer
         $height = (int) ($info[1] ?? 0);
         $mime = (string) ($info['mime'] ?? '');
         if ($width < 1 || $height < 1) {
-            return null;
+            return false;
         }
 
         $source = match ($mime) {
@@ -46,10 +76,10 @@ class FloorplanImageOptimizer
             default => false,
         };
         if (! $source) {
-            return null;
+            return false;
         }
 
-        $scale = min(1, self::MAX_MOBILE_EDGE / max($width, $height));
+        $scale = min(1, $maxEdge / max($width, $height));
         $targetWidth = max(1, (int) round($width * $scale));
         $targetHeight = max(1, (int) round($height * $scale));
         $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
@@ -70,10 +100,10 @@ class FloorplanImageOptimizer
             $height,
         );
 
-        $saved = imagewebp($canvas, $targetPath, self::WEBP_QUALITY);
+        $saved = imagewebp($canvas, $targetPath, $quality);
         imagedestroy($canvas);
         imagedestroy($source);
 
-        return $saved ? $targetName : null;
+        return $saved;
     }
 }

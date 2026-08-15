@@ -106,7 +106,7 @@ test('mobile assistant has one search wrapper and dismisses completed searches',
     assert.match(assistant, /window\.visualViewport\?\.addEventListener\('resize', updateAssistantKeyboardPosition/);
     assert.match(assistant, /assistant-keyboard-open/);
     assert.match(assistant, /const keyboardIsOpen = mobileInput && \([\s\S]*inputFocused/);
-    assert.match(assistant, /const safeTop = visibleTop \+ 8/);
+    assert.match(assistant, /visibleTop \+ visibleHeight - panelHeight - 8/);
     assert.match(assistant, /mountAssistantPanelsAtViewportRoot/);
     assert.match(assistant, /document\.body\.appendChild\(panel\)/);
     assert.match(assistant, /input\?\.blur\(\)/);

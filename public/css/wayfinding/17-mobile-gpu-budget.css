@@ -123,6 +123,26 @@
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
     }
+
+    /* Low-end only: the tested Vivo stays balanced, while Oppo-class phones
+       avoid full-screen filtered tile/grid surfaces during gestures. */
+    body.render-quality-low #map .leaflet-tile-pane {
+        filter: none !important;
+    }
+
+    body.render-quality-low #map::after {
+        display: none !important;
+    }
+
+    body.render-quality-low .floating-main-pin,
+    body.render-quality-low .floating-main-pin .pin-disc {
+        filter: none !important;
+    }
+
+    body.render-quality-low #indoorMap .leaflet-image-layer {
+        image-rendering: auto;
+        will-change: auto !important;
+    }
 }
 
 body.map-moving .campus-brand-wrap,

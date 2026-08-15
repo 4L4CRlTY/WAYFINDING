@@ -108,13 +108,17 @@
 
         const originalFloorplanUrl = mapItem.floorplan_image;
         let floorplanUrl = originalFloorplanUrl;
+        let balancedMobileFloorplanUrl = null;
         const mobileFloorplan = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
 
         if (mobileFloorplan && /^\/floorplan_image\//.test(originalFloorplanUrl)) {
             try {
                 const originalName = decodeURIComponent(originalFloorplanUrl.split('/').pop() || '');
                 const optimizedName = originalName.replace(/\.[^.]+$/, '') + '.webp';
-                floorplanUrl = `/floorplan_image/mobile/${encodeURIComponent(optimizedName)}`;
+                balancedMobileFloorplanUrl = `/floorplan_image/mobile/${encodeURIComponent(optimizedName)}`;
+                floorplanUrl = window.wayfindingRenderProfile?.mode === 'low'
+                    ? `/floorplan_image/mobile-low/${encodeURIComponent(optimizedName)}`
+                    : balancedMobileFloorplanUrl;
             } catch (_) {
                 floorplanUrl = originalFloorplanUrl;
             }
@@ -129,7 +133,10 @@
             const image = indoorImageLayer.getElement?.();
             image?.addEventListener('error', () => {
                 if (indoorImageLayer?.getElement?.() === image) {
-                    indoorImageLayer.setUrl(originalFloorplanUrl);
+                    const fallbackUrl = floorplanUrl !== balancedMobileFloorplanUrl
+                        ? balancedMobileFloorplanUrl
+                        : originalFloorplanUrl;
+                    indoorImageLayer.setUrl(fallbackUrl || originalFloorplanUrl);
                 }
             }, { once: true });
         }

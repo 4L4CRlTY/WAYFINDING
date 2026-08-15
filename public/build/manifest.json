@@ -25,7 +25,7 @@
     "isEntry": true
   },
   "resources/css/wayfinding.css": {
-    "file": "assets/wayfinding-BXm-xNa7.css",
+    "file": "assets/wayfinding-DCHHO6Ln.css",
     "name": "wayfinding",
     "names": [
       "wayfinding.css"
@@ -48,7 +48,7 @@
     ]
   },
   "resources/js/wayfinding-assistant-entry.js": {
-    "file": "assets/wayfinding-assistant-entry-Cwc2WwMp.js",
+    "file": "assets/wayfinding-assistant-entry-NVaHp6xg.js",
     "name": "wayfinding-assistant-entry",
     "src": "resources/js/wayfinding-assistant-entry.js",
     "isDynamicEntry": true,
@@ -57,7 +57,7 @@
     ]
   },
   "resources/js/wayfinding-entry.js": {
-    "file": "assets/wayfinding-entry-CTtmzUB7.js",
+    "file": "assets/wayfinding-entry-K14bv2uA.js",
     "name": "wayfinding-entry",
     "src": "resources/js/wayfinding-entry.js",
     "isEntry": true,

@@ -169,11 +169,11 @@ window.renderCampusEventMarkers = renderCampusEventMarkers;
         if (document.hidden || duration < 350 || gestureFrames < 2) return;
 
         const fps = (gestureFrames * 1000) / duration;
-        sustainedLowFpsGestures = fps < 40
+        sustainedLowFpsGestures = fps < 44
             ? sustainedLowFpsGestures + 1
             : Math.max(0, sustainedLowFpsGestures - 1);
 
-        if (sustainedLowFpsGestures >= 2) {
+        if (sustainedLowFpsGestures >= 1) {
             downgradeToLow('sustained-low-fps');
         }
     }
@@ -209,7 +209,7 @@ window.renderCampusEventMarkers = renderCampusEventMarkers;
                     }
                 });
 
-                if (pressureDuration < 480) return;
+                if (pressureDuration < 260) return;
 
                 downgradeToLow('runtime-pressure');
 

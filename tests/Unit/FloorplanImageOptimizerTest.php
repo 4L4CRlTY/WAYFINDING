@@ -16,6 +16,7 @@ class FloorplanImageOptimizerTest extends TestCase
         $sourceName = 'optimizer_test_floorplan.png';
         $sourcePath = public_path('floorplan_image/'.$sourceName);
         $mobilePath = public_path('floorplan_image/mobile/optimizer_test_floorplan.webp');
+        $lowEndPath = public_path('floorplan_image/mobile-low/optimizer_test_floorplan.webp');
         $image = imagecreatetruecolor(1800, 900);
         $background = imagecolorallocate($image, 238, 246, 255);
         imagefilledrectangle($image, 0, 0, 1799, 899, $background);
@@ -29,13 +30,18 @@ class FloorplanImageOptimizerTest extends TestCase
 
             $this->assertSame('optimizer_test_floorplan.webp', $result);
             $this->assertFileExists($mobilePath);
+            $this->assertFileExists($lowEndPath);
             $this->assertSame($originalHash, hash_file('sha256', $sourcePath));
 
             [$width, $height] = getimagesize($mobilePath);
             $this->assertLessThanOrEqual(1400, max($width, $height));
+
+            [$lowWidth, $lowHeight] = getimagesize($lowEndPath);
+            $this->assertLessThanOrEqual(960, max($lowWidth, $lowHeight));
         } finally {
             @unlink($sourcePath);
             @unlink($mobilePath);
+            @unlink($lowEndPath);
         }
     }
 }

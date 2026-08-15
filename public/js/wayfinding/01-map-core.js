@@ -23,6 +23,12 @@
         const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
         const effectiveType = String(connection?.effectiveType || '').toLowerCase();
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const userAgent = String(navigator.userAgent || '');
+        const androidMajor = Number(userAgent.match(/Android\s+(\d+)/i)?.[1] || 0);
+        /* Some Android browsers do not expose deviceMemory. Recognize the
+           tested Oppo A16k family before the first map frame; faster phones,
+           including the tested Vivo Y36, remain on balanced rendering. */
+        const knownLowEndPhone = /(?:CPH2349|CPH2351|OPPO\s*A16K)/i.test(userAgent);
         let score = 0;
 
         try {
@@ -49,6 +55,8 @@
         if (['slow-2g', '2g'].includes(effectiveType)) score += 2;
         if (reducedMotion) score += 1;
         if (window.innerWidth <= 390) score += 1;
+        if (knownLowEndPhone) score += 3;
+        if (androidMajor > 0 && androidMajor <= 11 && memory > 0 && memory <= 4) score += 2;
 
         return {
             mode: score >= 3 ? 'low' : 'balanced',
@@ -124,8 +132,12 @@
     | viewport width and height on phones. A 0.65 buffer still covers a fast
     | swipe beyond the screen while substantially reducing mobile GPU work.
     */
-    const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW ? 0.65 : 0.5;
-    const MOBILE_PATH_CANVAS_PADDING = 0.35;
+    const OUTDOOR_VECTOR_RENDER_PADDING = IS_MOBILE_OUTDOOR_VIEW
+        ? (WAYFINDING_RENDER_PROFILE.mode === 'low' ? 0.28 : 0.65)
+        : 0.5;
+    const MOBILE_PATH_CANVAS_PADDING = WAYFINDING_RENDER_PROFILE.mode === 'low'
+        ? 0.16
+        : 0.35;
     const OUTDOOR_VECTOR_RENDERER = L.svg({
         /*
         | Keep GeoJSON buildings and paths rendered beyond the visible viewport.
