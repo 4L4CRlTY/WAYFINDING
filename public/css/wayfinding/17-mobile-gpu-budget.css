@@ -206,7 +206,8 @@
     #cr-navigation-toggle {
         position: fixed !important;
         top: auto !important;
-        bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+        /* Leave a visible touch-safe gap above the three main route actions. */
+        bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
         transition: none !important;
     }
 

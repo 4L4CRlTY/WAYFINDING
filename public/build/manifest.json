@@ -25,7 +25,7 @@
     "isEntry": true
   },
   "resources/css/wayfinding.css": {
-    "file": "assets/wayfinding-BRojD7Dx.css",
+    "file": "assets/wayfinding-DMvtwab6.css",
     "name": "wayfinding",
     "names": [
       "wayfinding.css"
@@ -57,7 +57,7 @@
     ]
   },
   "resources/js/wayfinding-entry.js": {
-    "file": "assets/wayfinding-entry-DH32y8Kf.js",
+    "file": "assets/wayfinding-entry-CHY50563.js",
     "name": "wayfinding-entry",
     "src": "resources/js/wayfinding-entry.js",
     "isEntry": true,

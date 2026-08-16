@@ -470,6 +470,7 @@
                 allIndoorStairsLinks,
                 datasets['/api/indoor-stairs-links']
             );
+            window.clearWayfindingIndoorGraphCache?.(normalizedBuildingId);
             loadedIndoorBuildingIds.add(normalizedBuildingId);
             return true;
         })().finally(() => {
@@ -1266,6 +1267,18 @@
             ].filter(Boolean);
 
             closeTextSearchModal();
+
+            /* Let the browser hide the assistant panel, dismiss the software
+               keyboard, and paint the map before route work starts. Running
+               both transitions in one task looked like a frozen Search/Voice
+               button on slower phones even though routing was correct. */
+            if (window.matchMedia('(hover: none), (pointer: coarse), (max-width: 768px)').matches) {
+                await new Promise(resolve => {
+                    window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
+                });
+                if (searchRequestId !== latestDestinationSearchRequestId) return;
+            }
+
             applyTextSearchDestination(apiResponse.result, matchedText.length ? [...new Set(matchedText)].join(' + ') : '');
         } catch (error) {
             if (error?.name === 'AbortError' || searchRequestId !== latestDestinationSearchRequestId) {

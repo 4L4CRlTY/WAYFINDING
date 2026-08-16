@@ -132,7 +132,7 @@ test('final mobile GPU budget overrides theme blur and dormant animations', () =
     assert.match(css, /#map \.leaflet-control-container,[\s\S]*#indoorMap \.leaflet-control-container[\s\S]*contain:\s*none\s*!important[\s\S]*transform:\s*none\s*!important/);
     assert.doesNotMatch(css, /map-moving #map \.leaflet-control-container[\s\S]*contain:\s*layout/);
     assert.match(css, /#cr-navigation-toggle\s*\{[\s\S]*right:\s*max\(7px,[\s\S]*left:\s*auto\s*!important/);
-    assert.match(css, /#navigation-details-toggle,[\s\S]*#cr-navigation-toggle\s*\{[\s\S]*position:\s*fixed\s*!important[\s\S]*bottom:\s*calc\(76px/);
+    assert.match(css, /#navigation-details-toggle,[\s\S]*#cr-navigation-toggle\s*\{[\s\S]*position:\s*fixed\s*!important[\s\S]*bottom:\s*calc\(92px/);
     assert.match(css, /body:not\(\.indoor-open\) #map \.leaflet-control-zoom[\s\S]*visibility:\s*visible\s*!important/);
 
     const entryCss = readFileSync(
@@ -170,6 +170,29 @@ test('mobile dragging uses one lightweight map interaction controller', () => {
     assert.doesNotMatch(responsivePerformance, /leaflet-buildingsPane-pane/);
     assert.doesNotMatch(mapDataUi, /mapInstance\.on\('zoom move', this\._queueUpdate\)/);
     assert.doesNotMatch(responsivePerformance, /map\.on\('(?:move|zoom|drag)/);
+});
+
+test('low-end indoor map uses a one-pixel canvas budget without changing geometry', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /function createIndoorVectorRenderer\(lowEndIndoorView\)/);
+    assert.match(indoorRouting, /container\.width\s*=\s*Math\.max\(1, Math\.ceil\(size\.x\)\)/);
+    assert.match(indoorRouting, /container\.height\s*=\s*Math\.max\(1, Math\.ceil\(size\.y\)\)/);
+    assert.match(indoorRouting, /__wayfindingVectorPixelRatio\s*=\s*lowEndIndoorView \? 1/);
+    assert.match(indoorRouting, /const indoorGraphCache = new Map\(\)/);
+});
+
+test('mobile search releases its panel before starting route work', () => {
+    const searchVoice = readFileSync(
+        new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(searchVoice, /closeTextSearchModal\(\);[\s\S]*requestAnimationFrame\(\(\) => window\.setTimeout\(resolve, 0\)\)[\s\S]*applyTextSearchDestination/);
+    assert.match(searchVoice, /clearWayfindingIndoorGraphCache\?\.\(normalizedBuildingId\)/);
 });
 
 test('mobile route glow and tile churn are disabled only during interaction', () => {
@@ -520,8 +543,9 @@ test('indoor vectors use one shared Canvas renderer and room selection does not 
     );
 
     assert.match(indoorRouting, /preferCanvas:\s*true/);
-    assert.match(indoorRouting, /__wayfindingVectorRenderer\s*=\s*L\.canvas\(\{/);
-    assert.match(indoorRouting, /padding:\s*lowEndIndoorView\s*\?\s*0\.04\s*:\s*0\.1/);
+    assert.match(indoorRouting, /__wayfindingVectorRenderer\s*=\s*createIndoorVectorRenderer\(lowEndIndoorView\)/);
+    assert.match(indoorRouting, /padding:\s*lowEndIndoorView\s*\?\s*0\.02\s*:\s*0\.1/);
+    assert.match(indoorRouting, /return L\.canvas\(options\)/);
     assert.match(indoorRouting, /__wayfindingVectorRendererMode\s*=\s*['"]canvas['"]/);
     assert.doesNotMatch(indoorRouting, /lowEndIndoorView[\s\S]{0,160}L\.svg\(/);
     assert.match(indoorRouting, /renderer:\s*indoorMap\.__wayfindingVectorRenderer/);

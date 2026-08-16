@@ -36,15 +36,15 @@
         });
 
         /* Keep rooms, paths, and entrances in one Canvas surface on every
-           phone. Older Android GPUs struggle when a full-floor SVG tree is
-           transformed on every pinch frame. Low-end phones use a smaller
-           off-screen padding while preserving Leaflet's interactive Canvas
-           hit detection for room polygons and entrance markers. */
-        indoorMap.__wayfindingVectorRenderer = L.canvas({
-            padding: lowEndIndoorView ? 0.04 : 0.1,
-            tolerance: 5
-        });
+           phone. On low-end/high-DPR Android devices Leaflet normally creates
+           a 2x backing store (four times as many pixels) for that full-floor
+           canvas. The Oppo A16K does not have enough GPU bandwidth to transform
+           that surface smoothly during every pinch frame, so use a 1x backing
+           store only for the already-detected low profile. Geometry, hit
+           testing, coordinates, routes, and GPS are unchanged. */
+        indoorMap.__wayfindingVectorRenderer = createIndoorVectorRenderer(lowEndIndoorView);
         indoorMap.__wayfindingVectorRendererMode = 'canvas';
+        indoorMap.__wayfindingVectorPixelRatio = lowEndIndoorView ? 1 : Math.min(2, window.devicePixelRatio || 1);
 
         installIndoorInteractionController();
 
@@ -53,6 +53,44 @@
         requestAnimationFrame(() => {
             scheduleIndoorViewportFit({ reason: 'map-created' });
         });
+    }
+
+    function createIndoorVectorRenderer(lowEndIndoorView) {
+        const options = {
+            padding: lowEndIndoorView ? 0.02 : 0.1,
+            tolerance: lowEndIndoorView ? 7 : 5
+        };
+
+        if (!lowEndIndoorView || !L.Canvas || !L.Renderer) {
+            return L.canvas(options);
+        }
+
+        const LowResolutionIndoorCanvas = L.Canvas.extend({
+            _update: function() {
+                if (this._map._animatingZoom && this._bounds) return;
+
+                L.Renderer.prototype._update.call(this);
+
+                const bounds = this._bounds;
+                const container = this._container;
+                const size = bounds.getSize();
+
+                L.DomUtil.setPosition(container, bounds.min);
+
+                /* Deliberately keep CSS pixels and backing pixels 1:1. The
+                   regular renderer remains retina-sharp on balanced/desktop
+                   devices; only the low-end session receives this budget. */
+                container.width = Math.max(1, Math.ceil(size.x));
+                container.height = Math.max(1, Math.ceil(size.y));
+                container.style.width = `${size.x}px`;
+                container.style.height = `${size.y}px`;
+
+                this._ctx.translate(-bounds.min.x, -bounds.min.y);
+                this.fire('update');
+            }
+        });
+
+        return new LowResolutionIndoorCanvas(options);
     }
 
     function getIndoorBuildingMaps(buildingId) {
@@ -739,7 +777,22 @@
         return true;
     }
 
+    const indoorGraphCache = new Map();
+
+    window.clearWayfindingIndoorGraphCache = function(buildingId = null) {
+        if (buildingId === null || buildingId === undefined) {
+            indoorGraphCache.clear();
+            return;
+        }
+
+        indoorGraphCache.delete(Number(buildingId));
+    };
+
     function buildIndoorGraph(buildingId) {
+        const normalizedBuildingId = Number(buildingId);
+        const cachedGraph = indoorGraphCache.get(normalizedBuildingId);
+        if (cachedGraph) return cachedGraph;
+
         const graph = {};
         const coords = {};
         const entranceNodeById = {};
@@ -1137,12 +1190,15 @@
                 }
             });
 
-        return {
+        const graphData = {
             graph,
             coords,
             entranceNodeById,
             roomNodeById
         };
+
+        indoorGraphCache.set(normalizedBuildingId, graphData);
+        return graphData;
     }
 
     function dijkstraIndoor(graph, startKey, endKey) {
