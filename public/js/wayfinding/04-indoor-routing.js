@@ -25,7 +25,7 @@
             */
             minZoom: 15,
             maxZoom: 24,
-            preferCanvas: !lowEndIndoorView,
+            preferCanvas: true,
             zoomSnap: mobileIndoorView ? 0 : 1,
             zoomDelta: mobileIndoorView ? 0.5 : 1,
             zoomAnimation: !mobileIndoorView,
@@ -35,13 +35,16 @@
             inertia: !lowEndIndoorView
         });
 
-        /* A floor normally has only a small number of vectors. On low-end
-           Android, one shared SVG pane is cheaper to pinch-transform than a
-           full-viewport Canvas repaint. Balanced phones retain Canvas. */
-        indoorMap.__wayfindingVectorRenderer = lowEndIndoorView
-            ? L.svg({ padding: 0.04 })
-            : L.canvas({ padding: 0.1, tolerance: 5 });
-        indoorMap.__wayfindingVectorRendererMode = lowEndIndoorView ? 'svg' : 'canvas';
+        /* Keep rooms, paths, and entrances in one Canvas surface on every
+           phone. Older Android GPUs struggle when a full-floor SVG tree is
+           transformed on every pinch frame. Low-end phones use a smaller
+           off-screen padding while preserving Leaflet's interactive Canvas
+           hit detection for room polygons and entrance markers. */
+        indoorMap.__wayfindingVectorRenderer = L.canvas({
+            padding: lowEndIndoorView ? 0.04 : 0.1,
+            tolerance: 5
+        });
+        indoorMap.__wayfindingVectorRendererMode = 'canvas';
 
         installIndoorInteractionController();
 
