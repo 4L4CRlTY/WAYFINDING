@@ -142,6 +142,25 @@
     const MOBILE_PATH_CANVAS_PADDING = WAYFINDING_RENDER_PROFILE.mode === 'low'
         ? 0.16
         : 0.35;
+    const WayfindingLowResolutionCanvas = L.Canvas.extend({
+        _update: function() {
+            if (this._map._animatingZoom && this._bounds) return;
+            L.Renderer.prototype._update.call(this);
+            const bounds = this._bounds;
+            const container = this._container;
+            const size = bounds.getSize();
+            L.DomUtil.setPosition(container, bounds.min);
+            container.width = Math.max(1, Math.ceil(size.x));
+            container.height = Math.max(1, Math.ceil(size.y));
+            container.style.width = `${size.x}px`;
+            container.style.height = `${size.y}px`;
+            this._ctx.translate(-bounds.min.x, -bounds.min.y);
+            this.fire('update');
+        }
+    });
+    const createOutdoorCanvasRenderer = options => WAYFINDING_RENDER_PROFILE.mode === 'low'
+        ? new WayfindingLowResolutionCanvas(options)
+        : L.canvas(options);
     const OUTDOOR_VECTOR_RENDERER = L.svg({
         /*
         | Keep GeoJSON buildings and paths rendered beyond the visible viewport.
@@ -156,7 +175,7 @@
     | keeps its own SVG renderer below so its color and outline remain crisp.
     */
     const OUTDOOR_PATHS_RENDERER = IS_MOBILE_OUTDOOR_VIEW
-        ? L.canvas({
+        ? createOutdoorCanvasRenderer({
             pane: 'pathsPane',
             padding: MOBILE_PATH_CANVAS_PADDING,
             tolerance: 0
@@ -176,7 +195,10 @@
     | preserves the two-layer futuristic silhouette without CSS filters or a
     | large SVG DOM, and the apparent depth stays stable after every zoom.
     */
-    const WayfindingBuildingDepthCanvas = L.Canvas.extend({
+    const WayfindingBuildingDepthCanvasBase = WAYFINDING_RENDER_PROFILE.mode === 'low'
+        ? WayfindingLowResolutionCanvas
+        : L.Canvas;
+    const WayfindingBuildingDepthCanvas = WayfindingBuildingDepthCanvasBase.extend({
         _updatePoly(layer, closed) {
             if (!this._drawing) return;
 
@@ -233,7 +255,7 @@
        tree on every pinch frame. Low-end phones keep the exact polygons and
        Leaflet hit detection in one Canvas; balanced phones retain crisp SVG. */
     const OUTDOOR_BUILDINGS_RENDERER = WAYFINDING_RENDER_PROFILE.mode === 'low'
-        ? L.canvas({
+        ? createOutdoorCanvasRenderer({
             pane: 'buildingsPane',
             padding: MOBILE_PATH_CANVAS_PADDING,
             tolerance: 5

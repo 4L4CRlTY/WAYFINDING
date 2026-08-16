@@ -248,7 +248,7 @@ test('low-powered phones avoid path hit-testing and GPS redraws during manual dr
     );
     assert.match(mapRendering, /interactive:\s*!IS_MOBILE_OUTDOOR_VIEW/);
     assert.match(mapCore, /OUTDOOR_PATHS_RENDERER\s*=\s*IS_MOBILE_OUTDOOR_VIEW/);
-    assert.match(mapCore, /L\.canvas\(\{[\s\S]*?pane:\s*'pathsPane'/);
+    assert.match(mapCore, /createOutdoorCanvasRenderer\(\{[\s\S]*?pane:\s*'pathsPane'/);
     assert.match(mapCore, /const OUTDOOR_ROUTE_RENDERER\s*=\s*L\.svg/);
     assert.match(gpsTracking, /WayfindingInteraction\?\.registerLifecycle\('gps-manual-drag'/);
     assert.doesNotMatch(gpsTracking, /map\.on\('dragstart'/);
@@ -311,7 +311,7 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
         mapCore,
         /const OUTDOOR_BUILDINGS_RENDERER\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*===\s*'low'/,
     );
-    assert.match(mapCore, /L\.canvas\(\{[\s\S]{0,140}pane:\s*'buildingsPane'/);
+    assert.match(mapCore, /createOutdoorCanvasRenderer\(\{[\s\S]{0,140}pane:\s*'buildingsPane'/);
     assert.match(mapCore, /:\s*L\.svg\(\{[\s\S]{0,140}pane:\s*'buildingsPane'/);
     assert.match(mapRendering, /buildingFarDepthLayerGroup/);
     assert.match(mapRendering, /buildingNearDepthLayerGroup/);
@@ -355,7 +355,7 @@ test('mobile Canvas building depth keeps two fixed-pixel visual layers', () => {
         'utf8',
     );
 
-    assert.match(mapCore, /WayfindingBuildingDepthCanvas = L\.Canvas\.extend/);
+    assert.match(mapCore, /WayfindingBuildingDepthCanvas = WayfindingBuildingDepthCanvasBase\.extend/);
     assert.match(mapCore, /point\.x \+ offset/);
     assert.match(mapCore, /point\.y \+ offset/);
     assert.match(mapCore, /const offset = baseOffset \* \(0\.45 \+ \(0\.55 \* zoomProgress\)\)/);
@@ -552,6 +552,38 @@ test('indoor vectors use one shared Canvas renderer and room selection does not 
     assert.match(indoorRouting, /interactive:\s*false/);
     assert.match(indoorRouting, /indoorRoomsLayer\?\.eachLayer/);
     assert.doesNotMatch(indoorRouting, /selectedIndoorRoomFeature = feature;[\s\S]{0,180}renderIndoorFloor\(\)/);
+});
+
+test('low-end indoor gestures transform one cached surface while room geometry stays interactive', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const searchVoice = readFileSync(
+        new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /indoorLowEndSurfaceCache\s*=\s*new Map/);
+    assert.match(indoorRouting, /createLowEndIndoorSurface/);
+    assert.match(indoorRouting, /canvas\.toBlob\(resolve, 'image\/webp'/);
+    assert.match(indoorRouting, /if \(!lowEndSurfaceMode\) \{/);
+    assert.match(indoorRouting, /indoorFeatureContainsLatLng/);
+    assert.match(indoorRouting, /window\.routeToIndoorRoom/);
+    assert.match(searchVoice, /prefetchWayfindingIndoorBuilding/);
+    assert.match(searchVoice, /await indoorDataReady/);
+});
+
+test('low-end outdoor static layers use one-pixel Canvas backing stores', () => {
+    const mapCore = readFileSync(
+        new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(mapCore, /WayfindingLowResolutionCanvas\s*=\s*L\.Canvas\.extend/);
+    assert.match(mapCore, /createOutdoorCanvasRenderer/);
+    assert.match(mapCore, /container\.width\s*=\s*Math\.max\(1, Math\.ceil\(size\.x\)\)/);
+    assert.match(mapCore, /WayfindingBuildingDepthCanvasBase/);
 });
 
 test('indoor entrance scoring runs off-thread and stale room routes cannot redraw the map', () => {

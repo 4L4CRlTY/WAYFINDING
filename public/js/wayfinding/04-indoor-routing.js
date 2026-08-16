@@ -9,6 +9,80 @@
         console.warn(message, details);
     }
 
+    /*
+    | Low-end phones should only have to transform one static floor surface
+    | while a finger is moving. The normal renderer remains unchanged, while
+    | Oppo-class sessions cache a floorplan with its rooms, paths, and entrance
+    | dots already painted into it. Routing still uses the original GeoJSON.
+    */
+    const indoorLowEndSurfaceCache = new Map();
+    let indoorLowEndSurfaceRequest = 0;
+    let indoorLowEndRoomTapInstalled = false;
+    let indoorLowEndFloorRooms = [];
+
+    function isLowEndIndoorSurfaceMode() {
+        return window.wayfindingRenderProfile?.mode === 'low';
+    }
+
+    function indoorPointInRing(lng, lat, ring) {
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const xi = Number(ring[i]?.[0]);
+            const yi = Number(ring[i]?.[1]);
+            const xj = Number(ring[j]?.[0]);
+            const yj = Number(ring[j]?.[1]);
+            if (![xi, yi, xj, yj].every(Number.isFinite)) continue;
+            const intersects = ((yi > lat) !== (yj > lat))
+                && (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+            if (intersects) inside = !inside;
+        }
+        return inside;
+    }
+
+    function indoorFeatureContainsLatLng(feature, latlng) {
+        const geometry = feature?.geometry;
+        if (!geometry || !latlng) return false;
+        const polygons = geometry.type === 'Polygon'
+            ? [geometry.coordinates]
+            : (geometry.type === 'MultiPolygon' ? geometry.coordinates : []);
+
+        return polygons.some(polygon => {
+            if (!Array.isArray(polygon?.[0]) || !indoorPointInRing(latlng.lng, latlng.lat, polygon[0])) return false;
+            return !polygon.slice(1).some(hole => indoorPointInRing(latlng.lng, latlng.lat, hole));
+        });
+    }
+
+    function installIndoorLowEndRoomTap() {
+        if (!indoorMap || indoorLowEndRoomTapInstalled) return;
+        indoorLowEndRoomTapInstalled = true;
+        indoorMap.on('click', event => {
+            if (!isLowEndIndoorSurfaceMode() || indoorInteractionFlags.size) return;
+            const room = indoorLowEndFloorRooms.find(feature => indoorFeatureContainsLatLng(feature, event.latlng));
+            if (!room) return;
+
+            selectedIndoorRoomFeature = room;
+            renderIndoorRoomList();
+            const p = room.properties || {};
+            const safeName = String(p.name || 'Room').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            })[character]);
+            const safeCode = String(p.room_code || 'N/A').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            })[character]);
+            L.popup({ autoPan: false })
+                .setLatLng(event.latlng)
+                .setContent(`<div style="min-width:150px">
+                    <strong>${safeName}</strong>
+                    <div>Code: ${safeCode}</div>
+                    <button type="button" onclick="window.routeToIndoorRoom(${Number(p.id)})"
+                        style="margin-top:8px;padding:7px 10px;">
+                        Route to this room
+                    </button>
+                </div>`)
+                .openOn(indoorMap);
+        });
+    }
+
     function ensureIndoorMap() {
         if (indoorMap) return;
 
@@ -130,7 +204,139 @@
         return (allIndoorEntrances.features || []).find(f => Number(f.properties?.id) === Number(id)) || null;
     }
 
-    function loadIndoorFloorImage() {
+    function drawIndoorGeometryPath(context, geometry, project) {
+        const type = String(geometry?.type || '');
+        const coordinates = geometry?.coordinates;
+        if (!Array.isArray(coordinates)) return;
+
+        context.beginPath();
+        const drawLine = (line, closePath = false) => {
+            if (!Array.isArray(line) || !line.length) return;
+            line.forEach((coordinate, index) => {
+                const point = project(coordinate);
+                if (!point) return;
+                context[index ? 'lineTo' : 'moveTo'](point.x, point.y);
+            });
+            if (closePath) context.closePath();
+        };
+
+        if (type === 'LineString') drawLine(coordinates);
+        else if (type === 'MultiLineString') coordinates.forEach(line => drawLine(line));
+        else if (type === 'Polygon') coordinates.forEach(ring => drawLine(ring, true));
+        else if (type === 'MultiPolygon') coordinates.forEach(polygon => polygon.forEach(ring => drawLine(ring, true)));
+    }
+
+    function loadIndoorSurfaceImage(url) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.decoding = 'async';
+            image.addEventListener('load', () => resolve(image), { once: true });
+            image.addEventListener('error', reject, { once: true });
+            image.src = url;
+        });
+    }
+
+    async function createLowEndIndoorSurface({ mapItem, floorplanUrl, bounds, rooms, paths, entrances }) {
+        const cacheKey = [
+            Number(mapItem.id || mapItem.building_id || 0),
+            Number(mapItem.floor_number || 0),
+            floorplanUrl,
+            rooms.length,
+            paths.length,
+            entrances.length
+        ].join('|');
+        if (indoorLowEndSurfaceCache.has(cacheKey)) return indoorLowEndSurfaceCache.get(cacheKey);
+
+        const surfacePromise = (async () => {
+            const image = await loadIndoorSurfaceImage(floorplanUrl);
+            const naturalWidth = Math.max(1, image.naturalWidth || image.width || 900);
+            const naturalHeight = Math.max(1, image.naturalHeight || image.height || 600);
+            const maxDimension = 1000;
+            const scale = Math.min(1, maxDimension / Math.max(naturalWidth, naturalHeight));
+            const width = Math.max(1, Math.round(naturalWidth * scale));
+            const height = Math.max(1, Math.round(naturalHeight * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext('2d', { alpha: false, desynchronized: true });
+            if (!context) throw new Error('Indoor surface canvas is unavailable.');
+            context.drawImage(image, 0, 0, width, height);
+
+            const west = bounds.getWest();
+            const east = bounds.getEast();
+            const south = bounds.getSouth();
+            const north = bounds.getNorth();
+            const project = coordinate => {
+                const lng = Number(coordinate?.[0]);
+                const lat = Number(coordinate?.[1]);
+                if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+                return {
+                    x: ((lng - west) / Math.max(Number.EPSILON, east - west)) * width,
+                    y: ((north - lat) / Math.max(Number.EPSILON, north - south)) * height
+                };
+            };
+            const widthScale = Math.max(0.75, width / 900);
+
+            paths.forEach(feature => {
+                const type = String(feature.properties?.path_type || 'hallway').toLowerCase();
+                context.save();
+                context.strokeStyle = type.includes('stairs') ? '#f59e0b' : '#334155';
+                context.lineWidth = (type.includes('stairs') ? 5 : 6) * widthScale;
+                context.globalAlpha = 0.95;
+                context.lineCap = 'round';
+                context.lineJoin = 'round';
+                if (type.includes('stairs')) context.setLineDash([6 * widthScale, 6 * widthScale]);
+                drawIndoorGeometryPath(context, feature.geometry, project);
+                context.stroke();
+                context.restore();
+            });
+
+            rooms.forEach(feature => {
+                const style = getIndoorRoomLayerStyle(feature);
+                context.save();
+                context.fillStyle = style.fillColor;
+                context.strokeStyle = style.color;
+                context.lineWidth = Math.max(1.5, style.weight * widthScale);
+                context.globalAlpha = 1;
+                drawIndoorGeometryPath(context, feature.geometry, project);
+                context.globalAlpha = style.fillOpacity;
+                context.fill('evenodd');
+                context.globalAlpha = 1;
+                context.stroke();
+                context.restore();
+            });
+
+            entrances.forEach(feature => {
+                const coordinate = feature.geometry?.coordinates;
+                const point = project(coordinate);
+                if (!point) return;
+                const type = String(feature.properties?.ent_type || '').toLowerCase();
+                let color = '#ef4444';
+                if (type.includes('main')) color = '#16a34a';
+                else if (type.includes('stairs')) color = '#f59e0b';
+                else if (type.includes('door')) color = '#7c3aed';
+                else if (type.includes('side')) color = '#0ea5e9';
+                context.beginPath();
+                context.arc(point.x, point.y, 6 * widthScale, 0, Math.PI * 2);
+                context.fillStyle = color;
+                context.fill();
+                context.strokeStyle = '#ffffff';
+                context.lineWidth = 2 * widthScale;
+                context.stroke();
+            });
+
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.86));
+            return blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png');
+        })().catch(error => {
+            indoorLowEndSurfaceCache.delete(cacheKey);
+            throw error;
+        });
+
+        indoorLowEndSurfaceCache.set(cacheKey, surfacePromise);
+        return surfacePromise;
+    }
+
+    function loadIndoorFloorImage({ rooms = [], paths = [], entrances = [] } = {}) {
         const mapItem = allIndoorMaps.find(m =>
             Number(m.building_id) === Number(currentIndoorBuildingId) &&
             Number(m.floor_number) === Number(currentIndoorFloor)
@@ -166,6 +372,7 @@
             }
         }
 
+        const requestId = ++indoorLowEndSurfaceRequest;
         indoorImageLayer = L.imageOverlay(floorplanUrl, bounds, {
             opacity: 1,
             interactive: false
@@ -184,6 +391,15 @@
         }
 
         indoorImageLayer.bringToBack();
+
+        if (isLowEndIndoorSurfaceMode()) {
+            createLowEndIndoorSurface({ mapItem, floorplanUrl, bounds, rooms, paths, entrances })
+                .then(surfaceUrl => {
+                    if (requestId !== indoorLowEndSurfaceRequest || !indoorImageLayer) return;
+                    indoorImageLayer.setUrl(surfaceUrl);
+                })
+                .catch(error => debugIndoorGraphWarning('Low-end indoor surface fallback was used.', error));
+        }
 
         // Optional debug outline, set fillOpacity 0
         indoorGeometryDebugLayer = getIndoorMapGeometryLayer(mapItem.geometry, {
@@ -457,12 +673,19 @@
         if (indoorRoomsLayer) indoorMap.removeLayer(indoorRoomsLayer);
         if (indoorPathsLayer) indoorMap.removeLayer(indoorPathsLayer);
         if (indoorEntrancesLayer) indoorMap.removeLayer(indoorEntrancesLayer);
+        indoorRoomsLayer = null;
+        indoorPathsLayer = null;
+        indoorEntrancesLayer = null;
         clearIndoorRoute();
 
         const floorRooms = getIndoorRoomsFor(currentIndoorBuildingId, currentIndoorFloor);
         const floorPaths = getIndoorPathsFor(currentIndoorBuildingId, currentIndoorFloor);
         const floorEntrances = getIndoorEntrancesFor(currentIndoorBuildingId, currentIndoorFloor);
+        const lowEndSurfaceMode = isLowEndIndoorSurfaceMode();
+        indoorLowEndFloorRooms = lowEndSurfaceMode ? floorRooms : [];
+        if (lowEndSurfaceMode) installIndoorLowEndRoomTap();
 
+        if (!lowEndSurfaceMode) {
         indoorPathsLayer = L.geoJSON({
             type: 'FeatureCollection',
             features: floorPaths
@@ -573,8 +796,9 @@
                 `);
             }
         }).addTo(indoorMap);
+        }
 
-        loadIndoorFloorImage();
+        loadIndoorFloorImage({ rooms: floorRooms, paths: floorPaths, entrances: floorEntrances });
 
         indoorFooter.innerHTML = `
             <span class="indoor-badge badge-blue">${getBuildingNameById(currentIndoorBuildingId)}</span>

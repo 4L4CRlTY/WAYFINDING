@@ -378,6 +378,7 @@
 
                         // Buildings without indoor maps should do nothing silently.
                         if (hasIndoorMapForBuilding(bId)) {
+                            window.prefetchWayfindingIndoorBuilding?.(bId);
                             openIndoorPanelForBuilding(bId);
                         }
                     });

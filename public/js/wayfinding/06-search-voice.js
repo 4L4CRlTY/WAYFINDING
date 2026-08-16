@@ -481,6 +481,10 @@
         return promise;
     }
 
+    window.prefetchWayfindingIndoorBuilding = function(buildingId) {
+        return ensureIndoorBuildingData(buildingId).catch(() => false);
+    };
+
     function normalizeSnapshotCampusEvents(events) {
         if (!Array.isArray(events)) return [];
 
@@ -1266,6 +1270,17 @@
                 apiResponse.matched_keyword || ''
             ].filter(Boolean);
 
+            /* Start the selected building's small graph request before the
+               keyboard/panel transition. Search and Voice therefore overlap
+               network time with UI cleanup instead of beginning it afterwards. */
+            const destinationBuildingId = Number(
+                apiResponse.result?.building_id
+                || (apiResponse.result?.destination_type === 'building' ? apiResponse.result?.destination_id : 0)
+            );
+            const indoorDataReady = apiResponse.result?.destination_type === 'room' && destinationBuildingId
+                ? ensureIndoorBuildingData(destinationBuildingId).catch(() => false)
+                : Promise.resolve(true);
+
             closeTextSearchModal();
 
             /* Let the browser hide the assistant panel, dismiss the software
@@ -1278,6 +1293,9 @@
                 });
                 if (searchRequestId !== latestDestinationSearchRequestId) return;
             }
+
+            await indoorDataReady;
+            if (searchRequestId !== latestDestinationSearchRequestId) return;
 
             applyTextSearchDestination(apiResponse.result, matchedText.length ? [...new Set(matchedText)].join(' + ') : '');
         } catch (error) {
