@@ -148,7 +148,9 @@
        on older Android devices. Leaflet still applies the live gesture
        transform; the browser promotes it only while that transform is active. */
     body.render-quality-low #indoorMap {
-        contain: layout paint style;
+        contain: layout paint;
+        transform: none !important;
+        backface-visibility: visible !important;
     }
 
     body.render-quality-low #indoorMap .leaflet-map-pane,
@@ -166,27 +168,76 @@
         backface-visibility: hidden;
     }
 
-    body.render-quality-low.map-moving #map .leaflet-control-container,
-    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-control-container {
-        contain: layout paint style;
+    /* Controls are outside Leaflet's moving map pane. Painting/containing the
+       control container during a gesture clips it on old Chromium builds
+       (observed as the + / - control disappearing on the Oppo A16K). */
+    #map .leaflet-control-container,
+    #indoorMap .leaflet-control-container {
+        contain: none !important;
+        transform: none !important;
+        backface-visibility: visible !important;
     }
 
-    body.render-quality-low.indoor-map-interacting .indoor-panel,
-    body.render-quality-low.indoor-map-interacting .indoor-map-wrap,
-    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-pane,
-    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-control-container {
+    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-popup-pane,
+    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-tooltip-pane {
+        visibility: hidden !important;
+    }
+
+    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-image-layer,
+    body.render-quality-low.indoor-map-interacting #indoorMap canvas {
         animation: none !important;
         transition: none !important;
         filter: none !important;
         box-shadow: none !important;
     }
+
+    /* Keep the small fixed HUD surfaces on stable compositor layers. This is
+       deliberately limited to controls, not the full map or every marker. */
+    .campus-brand-wrap,
+    .campus-event-notification-wrap,
+    .user-profile-wrap,
+    #navigation-details-toggle,
+    #cr-navigation-toggle {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    #navigation-details-toggle,
+    #cr-navigation-toggle {
+        position: fixed !important;
+        top: auto !important;
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+        transition: none !important;
+    }
+
+    #navigation-details-toggle {
+        right: auto !important;
+        left: max(7px, env(safe-area-inset-left, 0px)) !important;
+    }
+
+    #cr-navigation-toggle {
+        right: max(7px, env(safe-area-inset-right, 0px)) !important;
+        left: auto !important;
+    }
+
+    body:not(.indoor-open) #map .leaflet-control-zoom,
+    body:not(.indoor-open) #map .leaflet-control-zoom a {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
 }
 
-body.map-moving .campus-brand-wrap,
-body.map-moving .floating-ai-badge,
-body.map-moving .floating-start-bar,
-body.map-moving .floating-action-card,
-body.map-moving .ai-transform-panel,
-body.map-moving .floating-main-pin {
-    filter: none !important;
+/* Mobile HUD effects are already reduced permanently above. Do not change a
+   fixed element's filter at gesture start/end; that destroys and recreates its
+   compositor layer and was visible as controls jumping around the screen. */
+@media (hover: none), (pointer: coarse), (max-width: 768px) {
+    .campus-brand-wrap,
+    .floating-ai-badge,
+    .floating-start-bar,
+    .floating-action-card,
+    .ai-transform-panel,
+    .floating-main-pin {
+        filter: none !important;
+    }
 }

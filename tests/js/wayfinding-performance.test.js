@@ -129,6 +129,11 @@ test('final mobile GPU budget overrides theme blur and dormant animations', () =
     assert.match(css, /#floating-route-ui\s*\{[\s\S]*position:\s*fixed\s*!important[\s\S]*top:\s*auto\s*!important[\s\S]*bottom:\s*max\(8px,/);
     assert.match(css, /#floating-route-ui \.floating-start-bar[\s\S]*grid-template-columns:\s*repeat\(3,/);
     assert.match(css, /body\.assistant-keyboard-open #ai-search-panel[\s\S]*left:\s*10px\s*!important[\s\S]*transform:\s*none\s*!important/);
+    assert.match(css, /#map \.leaflet-control-container,[\s\S]*#indoorMap \.leaflet-control-container[\s\S]*contain:\s*none\s*!important[\s\S]*transform:\s*none\s*!important/);
+    assert.doesNotMatch(css, /map-moving #map \.leaflet-control-container[\s\S]*contain:\s*layout/);
+    assert.match(css, /#cr-navigation-toggle\s*\{[\s\S]*right:\s*max\(7px,[\s\S]*left:\s*auto\s*!important/);
+    assert.match(css, /#navigation-details-toggle,[\s\S]*#cr-navigation-toggle\s*\{[\s\S]*position:\s*fixed\s*!important[\s\S]*bottom:\s*calc\(76px/);
+    assert.match(css, /body:not\(\.indoor-open\) #map \.leaflet-control-zoom[\s\S]*visibility:\s*visible\s*!important/);
 
     const entryCss = readFileSync(
         new URL('../../resources/css/wayfinding.css', import.meta.url),

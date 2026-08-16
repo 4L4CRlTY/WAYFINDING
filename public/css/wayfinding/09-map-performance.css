@@ -4,17 +4,22 @@
 ========================================================= */
 
 /* Make map rendering/compositing steadier */
-#map,
-.leaflet-container {
+#map {
     transform: translateZ(0) !important;
     backface-visibility: hidden !important;
+}
+
+.leaflet-container {
     -webkit-font-smoothing: antialiased !important;
 }
 
-.leaflet-pane,
-.leaflet-tile,
-.leaflet-marker-icon,
-.leaflet-overlay-pane svg {
+/*
+| Do not force every Leaflet pane, marker, and full-map SVG into a separate
+| compositor layer. Older Android GPUs have a small layer budget; exhausting
+| it made fixed controls disappear and made the indoor image/canvas gesture
+| surface stutter. Leaflet already promotes the pane it is actively moving.
+*/
+.leaflet-tile {
     backface-visibility: hidden !important;
 }
 
