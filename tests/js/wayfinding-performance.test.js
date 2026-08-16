@@ -563,15 +563,24 @@ test('low-end indoor gestures transform one cached surface while room geometry s
         new URL('../../public/js/wayfinding/06-search-voice.js', import.meta.url),
         'utf8',
     );
+    const gpuBudget = readFileSync(
+        new URL('../../public/css/wayfinding/17-mobile-gpu-budget.css', import.meta.url),
+        'utf8',
+    );
 
     assert.match(indoorRouting, /indoorLowEndSurfaceCache\s*=\s*new Map/);
     assert.match(indoorRouting, /createLowEndIndoorSurface/);
     assert.match(indoorRouting, /canvas\.toBlob\(resolve, 'image\/webp'/);
+    assert.match(indoorRouting, /const maxDimension = 800/);
+    assert.match(indoorRouting, /classList\.add\('indoor-map-zooming'\)/);
+    assert.match(indoorRouting, /classList\.remove\('indoor-map-zooming'\)/);
     assert.match(indoorRouting, /if \(!lowEndSurfaceMode\) \{/);
     assert.match(indoorRouting, /indoorFeatureContainsLatLng/);
     assert.match(indoorRouting, /window\.routeToIndoorRoom/);
     assert.match(searchVoice, /prefetchWayfindingIndoorBuilding/);
     assert.match(searchVoice, /await indoorDataReady/);
+    assert.match(gpuBudget, /render-quality-low\.indoor-map-zooming[\s\S]*?leaflet-overlay-pane > canvas/);
+    assert.match(gpuBudget, /render-quality-low\.indoor-map-zooming[\s\S]*?leaflet-marker-pane/);
 });
 
 test('low-end outdoor static layers use one-pixel Canvas backing stores', () => {

@@ -191,6 +191,18 @@
         box-shadow: none !important;
     }
 
+    /* On Oppo-class hardware the composited floorplan is the complete visual
+       floor during a pinch. Temporarily skip route/marker repaints while both
+       fingers are down, then restore them on zoomend. Their data and Leaflet
+       layers remain intact, so the route cannot change or disappear after the
+       gesture. The floorplan itself never hides. */
+    body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-overlay-pane > canvas,
+    body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-overlay-pane > svg,
+    body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-marker-pane,
+    body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-shadow-pane {
+        visibility: hidden !important;
+    }
+
     /* Keep the small fixed HUD surfaces on stable compositor layers. This is
        deliberately limited to controls, not the full map or every marker. */
     .campus-brand-wrap,

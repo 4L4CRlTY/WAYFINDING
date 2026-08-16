@@ -251,14 +251,19 @@
             const image = await loadIndoorSurfaceImage(floorplanUrl);
             const naturalWidth = Math.max(1, image.naturalWidth || image.width || 900);
             const naturalHeight = Math.max(1, image.naturalHeight || image.height || 600);
-            const maxDimension = 1000;
+            /* Oppo-class phones have limited texture-upload bandwidth. An
+               800px surface keeps room labels readable at the normal indoor
+               camera while cutting the texture area by 36% versus 1000px.
+               GeoJSON remains full precision and is still used for taps and
+               routing; only the painted display surface is downsampled. */
+            const maxDimension = 800;
             const scale = Math.min(1, maxDimension / Math.max(naturalWidth, naturalHeight));
             const width = Math.max(1, Math.round(naturalWidth * scale));
             const height = Math.max(1, Math.round(naturalHeight * scale));
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
-            const context = canvas.getContext('2d', { alpha: false, desynchronized: true });
+            const context = canvas.getContext('2d');
             if (!context) throw new Error('Indoor surface canvas is unavailable.');
             context.drawImage(image, 0, 0, width, height);
 
@@ -271,8 +276,8 @@
                 const lat = Number(coordinate?.[1]);
                 if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
                 return {
-                    x: ((lng - west) / Math.max(Number.EPSILON, east - west)) * width,
-                    y: ((north - lat) / Math.max(Number.EPSILON, north - south)) * height
+                    x: ((lng - west) / (east - west)) * width,
+                    y: ((north - lat) / (north - south)) * height
                 };
             };
             const widthScale = Math.max(0.75, width / 900);
@@ -297,7 +302,6 @@
                 context.fillStyle = style.fillColor;
                 context.strokeStyle = style.color;
                 context.lineWidth = Math.max(1.5, style.weight * widthScale);
-                context.globalAlpha = 1;
                 drawIndoorGeometryPath(context, feature.geometry, project);
                 context.globalAlpha = style.fillOpacity;
                 context.fill('evenodd');
@@ -512,9 +516,13 @@
                 indoorInteractionSettleFrame = null;
             }
             document.body.classList.add('indoor-map-interacting');
+            if (type === 'zoom' && isLowEndIndoorSurfaceMode()) {
+                document.body.classList.add('indoor-map-zooming');
+            }
         };
         const end = type => {
             indoorInteractionFlags.delete(type);
+            if (type === 'zoom') document.body.classList.remove('indoor-map-zooming');
             if (indoorInteractionFlags.size) return;
             if (indoorInteractionSettleFrame) cancelAnimationFrame(indoorInteractionSettleFrame);
             indoorInteractionSettleFrame = requestAnimationFrame(() => {
