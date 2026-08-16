@@ -279,7 +279,12 @@ test('adaptive low-end rendering keeps one solid building depth layer', () => {
     assert.doesNotMatch(responsivePerformance, /applyMobileOutdoorDefaultZoomFinal\(\d+\)/);
     assert.match(mapRendering, /if \(SHOULD_RENDER_FAR_BUILDING_DEPTH\)/);
     assert.match(mapCore, /const OUTDOOR_BUILDING_DEPTH_RENDERER\s*=\s*IS_MOBILE_OUTDOOR_VIEW[\s\S]*?new WayfindingBuildingDepthCanvas/);
-    assert.match(mapCore, /const OUTDOOR_BUILDINGS_RENDERER\s*=\s*L\.svg/);
+    assert.match(
+        mapCore,
+        /const OUTDOOR_BUILDINGS_RENDERER\s*=\s*WAYFINDING_RENDER_PROFILE\.mode\s*===\s*'low'/,
+    );
+    assert.match(mapCore, /L\.canvas\(\{[\s\S]{0,140}pane:\s*'buildingsPane'/);
+    assert.match(mapCore, /:\s*L\.svg\(\{[\s\S]{0,140}pane:\s*'buildingsPane'/);
     assert.match(mapRendering, /buildingFarDepthLayerGroup/);
     assert.match(mapRendering, /buildingNearDepthLayerGroup/);
     assert.match(mapRendering, /wayfinding:render-profile/);
@@ -413,7 +418,9 @@ test('mobile camera has one explicit route fit and one ResizeObserver indoor fit
     assert.match(indoorRouting, /function scheduleIndoorViewportFit\(/);
     assert.match(indoorRouting, /indoorMap\.fitBounds\(paddedBounds/);
     assert.doesNotMatch(indoorRouting, /setTimeout\([\s\S]{0,180}(?:fitBounds|invalidateSize)/);
-    assert.match(outdoorRouting, /map\.fitBounds\(L\.latLngBounds\(latlngs\)/);
+    assert.match(outdoorRouting, /const routeAlreadyVisible\s*=\s*IS_MOBILE_OUTDOOR_VIEW/);
+    assert.match(outdoorRouting, /map\.getBounds\?\.\(\)\.contains\(routeBounds\)/);
+    assert.match(outdoorRouting, /map\.fitBounds\(routeBounds/);
     assert.match(outdoorRouting, /animate:\s*!IS_MOBILE_OUTDOOR_VIEW/);
     assert.doesNotMatch(responsivePerformance, /map\.fitBounds\s*=/);
     assert.doesNotMatch(buildingUi, /keepRouteBuildingPopupOnScreen/);
@@ -516,6 +523,26 @@ test('indoor vectors use one shared Canvas renderer and room selection does not 
     assert.match(indoorRouting, /interactive:\s*false/);
     assert.match(indoorRouting, /indoorRoomsLayer\?\.eachLayer/);
     assert.doesNotMatch(indoorRouting, /selectedIndoorRoomFeature = feature;[\s\S]{0,180}renderIndoorFloor\(\)/);
+});
+
+test('indoor entrance scoring runs off-thread and stale room routes cannot redraw the map', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /async function findBestEntranceLinkForRoom\(/);
+    assert.match(indoorRouting, /Promise\.all\(candidateLinks\.map\(async link/);
+    assert.match(
+        indoorRouting,
+        /dijkstraAsync\(startNodeKey,\s*outdoorNodeKey,\s*\{\s*latestOnly:\s*false\s*\}\)/,
+    );
+    assert.match(indoorRouting, /const bestRoute\s*=\s*await findBestEntranceLinkForRoom/);
+    assert.match(indoorRouting, /const routeRequestId\s*=\s*\+\+completeRoomRouteRequestSequence/);
+    assert.match(
+        indoorRouting,
+        /if \(routeRequestId !== completeRoomRouteRequestSequence\) return;/,
+    );
 });
 
 test('a runtime low-end downgrade stays active for the browser session', () => {

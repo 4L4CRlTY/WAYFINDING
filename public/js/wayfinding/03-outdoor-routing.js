@@ -743,7 +743,16 @@
         outdoorRouteAnimationTimer = staticRoute.timer;
 
         if (options.fitBounds !== false) {
-            map.fitBounds(L.latLngBounds(latlngs), {
+            const routeBounds = L.latLngBounds(latlngs);
+            const routeAlreadyVisible = IS_MOBILE_OUTDOOR_VIEW
+                && map.getBounds?.().contains(routeBounds);
+
+            /* Most phone users already have the whole campus in view. Avoid a
+               redundant camera reset in that case: the route paints at once
+               and manual pinch/drag remains untouched. */
+            if (routeAlreadyVisible) return;
+
+            map.fitBounds(routeBounds, {
                 padding: IS_MOBILE_OUTDOOR_VIEW ? [80, 80] : [60, 60],
                 maxZoom: IS_MOBILE_OUTDOOR_VIEW
                     ? MOBILE_OUTDOOR_ROUTE_ZOOM_VALUE

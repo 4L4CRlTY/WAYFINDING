@@ -344,6 +344,18 @@
             ? viewport.bounds
             : viewport.bounds.pad(mobile ? 0.03 : 0.12);
 
+        /* Drawing a route often happens while its complete floor segment is
+           already visible. Re-fitting the same bounds forces a full Canvas and
+           image-overlay reprojection on low-end Android, so keep the current
+           camera when no movement is necessary. */
+        if (
+            viewport.route
+            && mobile
+            && indoorMap.getBounds?.().contains(viewport.bounds)
+        ) {
+            return true;
+        }
+
         indoorMap.fitBounds(paddedBounds, {
             animate: false,
             padding: viewport.route
@@ -1325,7 +1337,15 @@
         return buildingEntrances.find(e => Number(e.building_id) === Number(buildingId)) || null;
     }
 
+    let completeRoomRouteRequestSequence = 0;
+
+    function cancelPendingCompleteRoomRoute() {
+        completeRoomRouteRequestSequence += 1;
+    }
+
     async function findRouteToLanduse(landuseId) {
+        cancelPendingCompleteRoomRoute();
+
         if (!startNodeKey) {
             alert('Please choose your starting point first.');
             return;
@@ -1403,6 +1423,8 @@
     }
 
     async function findRouteToBuilding(buildingId) {
+        cancelPendingCompleteRoomRoute();
+
         if (!startNodeKey) {
             alert('Please choose your start point first.');
             return;
@@ -1476,7 +1498,7 @@
         }
     }
 
-    function findBestEntranceLinkForRoom(roomFeature) {
+    async function findBestEntranceLinkForRoom(roomFeature) {
         if (!roomFeature || !startNodeKey) return null;
 
         const roomProps = roomFeature.properties || {};
@@ -1606,9 +1628,7 @@
         }
 
         const startLatLng = getStartLatLngFromNode();
-        const validCandidates = [];
-
-        candidateLinks.forEach(link => {
+        const candidateResults = await Promise.all(candidateLinks.map(async link => {
             const outdoorEntrance = buildingEntrances.find(
                 be => Number(be.id) === Number(link.building_entrance_id || link.building_entrance?.id)
             );
@@ -1616,7 +1636,7 @@
             const indoorEntranceId = Number(link.indoor_entrance_id || link.indoor_entrance?.id);
             const indoorEntranceFeature = findIndoorEntranceFeatureById(indoorEntranceId);
 
-            if (!outdoorEntrance || !indoorEntranceFeature) return;
+            if (!outdoorEntrance || !indoorEntranceFeature) return null;
 
             const indoorEntranceFloor = Number(indoorEntranceFeature.properties?.floor_number || 0);
             const floorDiff = Math.abs(Number(roomFloor) - Number(indoorEntranceFloor));
@@ -1626,20 +1646,25 @@
                 Number(outdoorEntrance.longitude)
             );
 
-            if (!outdoorNodeKey) return;
+            if (!outdoorNodeKey) return null;
 
             const indoorStartNodeKey = indoorGraphData.entranceNodeById[indoorEntranceId];
-            if (!indoorStartNodeKey) return;
+            if (!indoorStartNodeKey) return null;
 
-            const outdoorResult = dijkstra(startNodeKey, outdoorNodeKey);
-            if (!outdoorResult) return;
+            /* Entrance alternatives are independent. Let the existing route
+               Worker evaluate them away from the UI thread; latestOnly=false
+               prevents sibling candidates from cancelling one another. */
+            const outdoorResult = await dijkstraAsync(startNodeKey, outdoorNodeKey, {
+                latestOnly: false
+            });
+            if (!outdoorResult) return null;
 
             const indoorResult = dijkstraIndoor(
                 indoorGraphData.graph,
                 indoorStartNodeKey,
                 roomNodeKey
             );
-            if (!indoorResult) return;
+            if (!indoorResult) return null;
 
             const directDoorMeters = startLatLng ? map.distance(
                 [startLatLng.lat, startLatLng.lng],
@@ -1651,7 +1676,7 @@
             const isSameFloorEntrance = indoorEntranceFloor === roomFloor;
             const usesCoveredStairs = routeUsesCoveredStairs(outdoorResult);
 
-            validCandidates.push({
+            return {
                 link,
                 outdoorEntrance,
                 indoorEntranceFeature,
@@ -1669,8 +1694,9 @@
                 outdoorCost: Number(outdoorResult.totalCost || 0),
                 indoorCost: Number(indoorResult.totalCost || 0),
                 totalCost: Number(outdoorResult.totalCost || 0) + Number(indoorResult.totalCost || 0)
-            });
-        });
+            };
+        }));
+        const validCandidates = candidateResults.filter(Boolean);
 
         if (!validCandidates.length) {
             return null;
@@ -1822,12 +1848,16 @@
             return;
         }
 
+        const routeRequestId = ++completeRoomRouteRequestSequence;
+
         selectedIndoorRoomFeature = roomFeature;
         selectedDestinationBuildingId = Number(roomFeature.properties?.building_id);
 
         await ensureIndoorBuildingData(selectedDestinationBuildingId);
+        if (routeRequestId !== completeRoomRouteRequestSequence) return;
 
-        const bestRoute = findBestEntranceLinkForRoom(roomFeature);
+        const bestRoute = await findBestEntranceLinkForRoom(roomFeature);
+        if (routeRequestId !== completeRoomRouteRequestSequence) return;
 
         if (!bestRoute) {
             alert('No complete outdoor + indoor route found for this room.');

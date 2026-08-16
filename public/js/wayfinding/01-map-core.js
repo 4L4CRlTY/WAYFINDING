@@ -228,10 +228,20 @@
             pane: 'buildingDepthPane',
             padding: OUTDOOR_VECTOR_RENDER_PADDING
         });
-    const OUTDOOR_BUILDINGS_RENDERER = L.svg({
-        pane: 'buildingsPane',
-        padding: OUTDOOR_VECTOR_RENDER_PADDING
-    });
+    /* The clickable top polygons used to remain SVG on every phone. That is
+       useful on desktop, but an Oppo-class GPU must transform the complete SVG
+       tree on every pinch frame. Low-end phones keep the exact polygons and
+       Leaflet hit detection in one Canvas; balanced phones retain crisp SVG. */
+    const OUTDOOR_BUILDINGS_RENDERER = WAYFINDING_RENDER_PROFILE.mode === 'low'
+        ? L.canvas({
+            pane: 'buildingsPane',
+            padding: MOBILE_PATH_CANVAS_PADDING,
+            tolerance: 5
+        })
+        : L.svg({
+            pane: 'buildingsPane',
+            padding: OUTDOOR_VECTOR_RENDER_PADDING
+        });
 
     const map = L.map('map', {
         zoomControl: true,

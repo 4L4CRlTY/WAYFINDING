@@ -167,8 +167,8 @@ function orderedWayfindingBundle() {
                         if (mode === 'path') return selectPickPathMode();
                         return selectDefaultMode();
                     },
-                    estimateRoom(room) {
-                        const result = findBestEntranceLinkForRoom(room);
+                    async estimateRoom(room) {
+                        const result = await findBestEntranceLinkForRoom(room);
                         return result ? {
                             totalCost: Number(result.totalCost || 0),
                             outdoorCost: Number(result.outdoorCost || 0),

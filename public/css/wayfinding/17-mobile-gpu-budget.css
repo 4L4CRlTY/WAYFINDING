@@ -156,6 +156,21 @@
         will-change: auto !important;
     }
 
+    /* Promote only for the duration of a real gesture. Permanent promotion of
+       several full-screen panes exhausts old-phone GPU memory; no promotion
+       makes the first pinch/drag frame sticky. This gives both maps one cheap
+       transform surface exactly while it is needed. */
+    body.render-quality-low.map-moving #map .leaflet-map-pane,
+    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-map-pane {
+        will-change: transform !important;
+        backface-visibility: hidden;
+    }
+
+    body.render-quality-low.map-moving #map .leaflet-control-container,
+    body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-control-container {
+        contain: layout paint style;
+    }
+
     body.render-quality-low.indoor-map-interacting .indoor-panel,
     body.render-quality-low.indoor-map-interacting .indoor-map-wrap,
     body.render-quality-low.indoor-map-interacting #indoorMap .leaflet-pane,

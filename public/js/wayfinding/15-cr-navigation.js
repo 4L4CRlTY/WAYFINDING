@@ -266,13 +266,20 @@ async function rankComfortRooms(currentOperation) {
 
     await bridge?.prepareRooms?.(rooms);
 
+    /* Entrance scoring uses the route Worker. Await all independent room
+       estimates without turning their Promises into zero-cost routes, while
+       keeping the expensive graph work away from the gesture/UI thread. */
+    const estimates = await Promise.all(
+        rooms.map(room => bridge?.estimateRoom?.(room))
+    );
+
     for (let index = 0; index < rooms.length; index += 1) {
         if (currentOperation !== operationId) {
             throw new DOMException('Cancelled', 'AbortError');
         }
 
         const room = rooms[index];
-        const estimate = bridge?.estimateRoom?.(room);
+        const estimate = estimates[index] || null;
         ranked.push({ room, estimate });
 
         if ((index + 1) % 3 === 0) await nextFrame();

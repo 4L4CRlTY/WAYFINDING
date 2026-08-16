@@ -504,7 +504,7 @@ test('CR navigator ranks reachable restrooms and supports every start mode', () 
     assert.match(module, /function isComfortRoom\(room\)/);
     assert.match(module, /roomType\.includes\('restroom'\)/);
     assert.match(module, /Type is authoritative\. Room codes are labels only/);
-    assert.match(module, /bridge\?\.estimateRoom\?\.\(room\)/);
+    assert.match(module, /await Promise\.all\([\s\S]{0,160}bridge\?\.estimateRoom\?\.\(room\)/);
     assert.match(module, /ranked\.push\(\{ room, estimate \}\)/);
     assert.match(module, /const CR_INDOOR_DISTANCE_SCALE = 0\.16/);
     assert.match(module, /const CR_CLOSEST_RANGE_METERS = 25/);
@@ -518,6 +518,7 @@ test('CR navigator ranks reachable restrooms and supports every start mode', () 
     assert.match(module, /Code \$\{roomCode\(item\.room\)\}/);
     assert.match(module, /bridge\?\.routeToRoom\?\.\(item\.room\)/);
     assert.match(vite, /window\.WayfindingCrBridge = Object\.freeze/);
+    assert.match(vite, /async estimateRoom\(room\)[\s\S]{0,100}await findBestEntranceLinkForRoom\(room\)/);
     assert.match(vite, /findBestEntranceLinkForRoom\(room\)/);
     assert.match(vite, /computeCompleteRouteToRoom\(room\)/);
     assert.match(indoorRouting, /MAIN_ENTRANCE_TIE_METERS = 15/);
