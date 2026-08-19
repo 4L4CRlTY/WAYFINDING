@@ -202,6 +202,35 @@ test('GPS simulator reaches the quality lock used by the real dashboard', async 
     runtime.expectNone();
 });
 
+test('Mobile Low keeps GPS routing active after acquiring a trusted fix', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loginAsUser(
+        page,
+        '/user/dashboard?gps_simulator=1&mobile_emulator=low',
+    );
+
+    await expect(page.locator('body')).toHaveAttribute('data-render-quality', 'low');
+    await page.locator('.floating-mode-btn.gps').click();
+    await page.locator('[data-gps-sim-speed]').selectOption('4');
+    await page.locator('[data-gps-sim-start]').click();
+    await expect(page.locator('body')).toHaveAttribute('data-gps-quality-lock', 'locked', {
+        timeout: 15_000,
+    });
+
+    await page.locator('[data-gps-sim-collapse]').click();
+    await openDestinationBrowser(page);
+    await page.locator('#destination-building-select').selectOption({ index: 1 });
+    await page.getByRole('button', { name: /Find Route/i }).click();
+    await expect(page.locator('#navigation-details-toggle')).toBeVisible({
+        timeout: 15_000,
+    });
+    const state = await page.evaluate(() => window.WayfindingGpsCalibration.getState());
+    expect(state.acceptedFix).toBe(true);
+    expect(state.routeActive).toBe(true);
+    runtime.expectNone();
+});
+
 test('GPS tracking revalidates degraded signal and rejects a false strong jump', async ({ page }) => {
     const runtime = monitorRuntimeErrors(page);
     await loginAsUser(page, '/user/dashboard?gps_simulator=1');
@@ -234,6 +263,113 @@ test('GPS tracking revalidates degraded signal and rejects a false strong jump',
         window.__gpsRegressionStatuses.includes('jump_rejected')
     )), { timeout: 8_000 }).toBe(true);
 
+    runtime.expectNone();
+});
+
+test('GPS ignores invalid device coordinates without breaking the dashboard', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await loginAsUser(page, '/user/dashboard?gps_simulator=1');
+
+    await page.evaluate(() => {
+        window.__gpsInvalidReadingSeen = false;
+        window.addEventListener('wayfinding:gps-diagnostic', event => {
+            if (event.detail?.status === 'invalid_coordinates') {
+                window.__gpsInvalidReadingSeen = true;
+            }
+        });
+        window.WayfindingGpsSimulator.geolocation.watchPosition = success => {
+            window.setTimeout(() => success({
+                coords: {
+                    latitude: Number.NaN,
+                    longitude: Number.NaN,
+                    accuracy: 5,
+                    heading: null,
+                    speed: null,
+                    altitude: null,
+                },
+                timestamp: Date.now(),
+            }), 0);
+            return 991;
+        };
+        window.WayfindingGpsSimulator.geolocation.clearWatch = () => {};
+    });
+
+    await page.locator('.floating-mode-btn.gps').click();
+    await expect.poll(() => page.evaluate(() => window.__gpsInvalidReadingSeen))
+        .toBe(true);
+    const state = await page.evaluate(() => window.WayfindingGpsCalibration.getState());
+    expect(state.tracking).toBe(true);
+    expect(state.acceptedFix).toBe(false);
+    runtime.expectNone();
+});
+
+test('GPS startup failure immediately switches to safe map placement', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await loginAsUser(page, '/user/dashboard?gps_simulator=1');
+
+    await page.evaluate(() => {
+        window.WayfindingGpsSimulator.geolocation.watchPosition = () => {
+            throw new Error('Simulated GPS startup failure');
+        };
+    });
+
+    await page.locator('.floating-mode-btn.gps').click();
+    await expect(page.locator('.floating-mode-btn.pick')).toHaveClass(/active/);
+    await expect(page.locator('#route-result-label')).toContainText(
+        'browser could not start location tracking',
+    );
+    const state = await page.evaluate(() => window.WayfindingGpsCalibration.getState());
+    expect(state.tracking).toBe(false);
+    expect(state.acceptedFix).toBe(false);
+    runtime.expectNone();
+});
+
+test('GPS outside campus starts safely at the nearest gateway', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await loginAsUser(page, '/user/dashboard?gps_simulator=1');
+
+    await page.evaluate(() => {
+        window.__gpsOutsideCampusAccepted = false;
+        window.__gpsOutsideTimers = new Map();
+        window.addEventListener('wayfinding:gps-diagnostic', event => {
+            if (event.detail?.status === 'accepted_outside_campus') {
+                window.__gpsOutsideCampusAccepted = true;
+            }
+        });
+        window.WayfindingGpsSimulator.geolocation.watchPosition = success => {
+            let emitted = 0;
+            const watchId = 992;
+            const timer = window.setInterval(() => {
+                emitted += 1;
+                success({
+                    coords: {
+                        latitude: 10.27,
+                        longitude: 124.98,
+                        accuracy: 5,
+                        heading: null,
+                        speed: 0,
+                        altitude: null,
+                    },
+                    timestamp: Date.now(),
+                });
+                if (emitted >= 5) window.clearInterval(timer);
+            }, 80);
+            window.__gpsOutsideTimers.set(watchId, timer);
+            return watchId;
+        };
+        window.WayfindingGpsSimulator.geolocation.clearWatch = watchId => {
+            window.clearInterval(window.__gpsOutsideTimers.get(watchId));
+            window.__gpsOutsideTimers.delete(watchId);
+        };
+    });
+
+    await page.locator('.floating-mode-btn.gps').click();
+    await expect.poll(() => page.evaluate(() => window.__gpsOutsideCampusAccepted))
+        .toBe(true);
+    await expect(page.locator('#map .gps-route-start-marker')).toHaveCount(1);
+    const state = await page.evaluate(() => window.WayfindingGpsCalibration.getState());
+    expect(state.acceptedFix).toBe(true);
+    expect(state.lastSnappedPosition).not.toEqual(state.lastRawPosition);
     runtime.expectNone();
 });
 

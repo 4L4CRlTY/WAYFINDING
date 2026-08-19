@@ -1039,9 +1039,27 @@
     }
 
     function collectGpsSample(position) {
+        const latitude = Number(position?.coords?.latitude);
+        const longitude = Number(position?.coords?.longitude);
+
+        if (
+            !Number.isFinite(latitude)
+            || !Number.isFinite(longitude)
+            || latitude < -90
+            || latitude > 90
+            || longitude < -180
+            || longitude > 180
+        ) {
+            return null;
+        }
+
+        const reportedAccuracy = Number(position.coords.accuracy);
+        const reportedTime = Number(position.timestamp);
         const sample = {
-            latLng: L.latLng(Number(position.coords.latitude), Number(position.coords.longitude)),
-            accuracy: Number(position.coords.accuracy || 999),
+            latLng: L.latLng(latitude, longitude),
+            accuracy: Number.isFinite(reportedAccuracy) && reportedAccuracy > 0
+                ? reportedAccuracy
+                : 999,
             heading: position.coords.heading === null
                 || position.coords.heading === undefined
                 ? null
@@ -1054,7 +1072,9 @@
                 || position.coords.altitude === undefined
                 ? null
                 : Number(position.coords.altitude),
-            time: Number(position.timestamp || Date.now())
+            time: Number.isFinite(reportedTime) && reportedTime > 0
+                ? reportedTime
+                : Date.now()
         };
 
         liveGpsSamples.push(sample);
@@ -1196,6 +1216,17 @@
 
             startNodeKey = nearestKey;
             startSourceType = 'gps_outside_campus';
+            const gatewayLatLng = L.latLng(gatewayLat, gatewayLng);
+            if (!startMarker) {
+                startMarker = L.marker(gatewayLatLng, {
+                    icon: makeGpsStartIcon(),
+                    zIndexOffset: 99990,
+                    interactive: false
+                }).addTo(map);
+            } else {
+                startMarker.setLatLng(gatewayLatLng);
+                startMarker.setIcon(makeGpsStartIcon());
+            }
             drawOutsideGuideLine(snappedLatLng.lat, snappedLatLng.lng, gatewayLat, gatewayLng);
             updateRouteLabels();
             return true;
@@ -1280,6 +1311,20 @@
         if (!position || !position.coords) return;
 
         const latestSample = collectGpsSample(position);
+        if (!latestSample) {
+            emitGpsDiagnostic('reading', {
+                status: 'invalid_coordinates',
+                accepted: false,
+                qualityLocked: gpsQualityLockAcquired,
+            });
+            setLiveGpsStatus(
+                'weak',
+                'Invalid GPS reading ignored',
+                'The device returned unusable coordinates. Tracking remains active for the next reading.'
+            );
+            return;
+        }
+
         const qualityLock = evaluateGpsQualityLock(latestSample);
         let rawLatLng = qualityLock.point || latestSample.latLng;
         let accuracy = Number(qualityLock.accuracy || latestSample.accuracy || 999);
@@ -1431,6 +1476,45 @@
         }
 
         if (!snapResult.snapped || !snappedLatLng) {
+            const outsideCampus = !isInsideGpsNavigationArea(rawLatLng);
+            const outsideStartReady = outsideCampus
+                ? updateGpsRouteStart(rawLatLng, 'live_gps_outside_campus')
+                : false;
+
+            if (outsideStartReady) {
+                const gatewayCoordinate = parseCoordKey(startNodeKey);
+                const gatewayLatLng = gatewayCoordinate
+                    ? L.latLng(Number(gatewayCoordinate[0]), Number(gatewayCoordinate[1]))
+                    : rawLatLng;
+
+                lastSmoothGpsLatLng = rawLatLng;
+                lastSnappedGpsLatLng = gatewayLatLng;
+                lastNavigationPosition = rawLatLng;
+                lastMovementHeading = movementHeading;
+                liveGpsHasAcceptedFix = true;
+                clearGpsQualityFallbackTimer();
+
+                updateLiveGpsVisual(rawLatLng, rawLatLng, accuracy, heading);
+                refreshActiveRouteFromGps(gatewayLatLng);
+                emitGpsReading('accepted_outside_campus', latestSample, qualityLock, {
+                    accepted: true,
+                    heading,
+                    snappedLat: Number(gatewayLatLng.lat),
+                    snappedLng: Number(gatewayLatLng.lng),
+                    snapSource: 'nearest_gateway',
+                });
+                setLiveGpsStatus(
+                    'weak',
+                    `GPS outside campus (${Math.round(accuracy)}m)`,
+                    'The route starts at the nearest campus entrance. Follow the guide line to that entrance.'
+                );
+
+                if (liveGpsFollow && !gpsMapDragActive) {
+                    map.panTo(rawLatLng, { animate: true, duration: 0.35 });
+                }
+                return;
+            }
+
             updateLiveGpsVisual(rawLatLng, rawLatLng, accuracy, heading);
             emitGpsReading('off_path', latestSample, qualityLock, {
                 accepted: false,
@@ -1453,6 +1537,23 @@
             consecutiveOffRouteReadings = 0;
         }
 
+        if (!updateGpsRouteStart(snappedLatLng, 'live_gps_snapped')) {
+            emitGpsReading('graph_start_unavailable', latestSample, qualityLock, {
+                accepted: false,
+                reason: 'route_graph_unavailable',
+                heading,
+                snappedLat: Number(snappedLatLng.lat),
+                snappedLng: Number(snappedLatLng.lng),
+                snapSource: snapResult.source,
+            });
+            setLiveGpsStatus(
+                'weak',
+                'Campus paths still loading',
+                'Your GPS fix is valid, but the route network is not ready yet. Tracking will retry automatically.'
+            );
+            return;
+        }
+
         const smoothLatLng = liveGpsHasAcceptedFix
             ? smoothGpsPoint(lastSmoothGpsLatLng, snappedLatLng)
             : snappedLatLng;
@@ -1465,7 +1566,6 @@
 
         updateLiveGpsVisual(rawLatLng, smoothLatLng, accuracy, heading);
 
-        updateGpsRouteStart(snappedLatLng, 'live_gps_snapped');
         refreshActiveRouteFromGps(snappedLatLng);
 
         emitGpsReading('accepted', latestSample, qualityLock, {
@@ -1542,12 +1642,22 @@
                 status: 'unsupported',
                 message: 'Geolocation is not supported on this device/browser.',
             });
-            alert('Geolocation is not supported on this device/browser. Please use Tap My Location.');
+            activateTapMyLocationFallback(
+                'GPS is not supported',
+                'This browser cannot provide GPS. Tap your actual position on a campus path to continue.'
+            );
             return;
         }
 
         if (!usingSimulator && location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            alert('GPS requires HTTPS when deployed online. Please use HTTPS hosting.');
+            emitGpsDiagnostic('error', {
+                status: 'insecure_context',
+                message: 'GPS requires a secure HTTPS connection.',
+            });
+            activateTapMyLocationFallback(
+                'Secure GPS unavailable',
+                'GPS requires HTTPS. Tap your actual position on a campus path to continue safely.'
+            );
             return;
         }
 
@@ -1585,15 +1695,30 @@
             qualityLocked: false,
             accepted: false,
         });
-        liveGpsWatchId = gpsProvider.watchPosition(
-            handleLiveGpsPosition,
-            handleLiveGpsError,
-            {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 18000
-            }
-        );
+        try {
+            liveGpsWatchId = gpsProvider.watchPosition(
+                handleLiveGpsPosition,
+                handleLiveGpsError,
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 18000
+                }
+            );
+        } catch (error) {
+            liveGpsWatchId = null;
+            liveGpsProvider = null;
+            emitGpsDiagnostic('error', {
+                status: 'watch_start_failed',
+                message: String(error?.message || 'Unable to start GPS tracking.'),
+            });
+            activateTapMyLocationFallback(
+                'GPS could not start',
+                'The browser could not start location tracking. Tap your actual position on a campus path to continue.'
+            );
+            return;
+        }
+
         scheduleGpsQualityFallback();
     }
 

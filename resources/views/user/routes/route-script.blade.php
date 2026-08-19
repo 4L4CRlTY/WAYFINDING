@@ -742,35 +742,51 @@
                 finish(reject, new Error('A stable GPS fix was not available.'));
             }, 32000);
 
-            watchId = navigator.geolocation.watchPosition(position => {
-                samples.push({
-                    lat: Number(position.coords.latitude),
-                    lng: Number(position.coords.longitude),
-                    accuracy: Number(position.coords.accuracy),
-                });
-                samples.splice(0, Math.max(0, samples.length - 8));
+            try {
+                watchId = navigator.geolocation.watchPosition(position => {
+                    const lat = Number(position?.coords?.latitude);
+                    const lng = Number(position?.coords?.longitude);
+                    const accuracy = Number(position?.coords?.accuracy);
+                    if (
+                        !Number.isFinite(lat)
+                        || !Number.isFinite(lng)
+                        || lat < -90
+                        || lat > 90
+                        || lng < -180
+                        || lng > 180
+                        || !Number.isFinite(accuracy)
+                        || accuracy <= 0
+                    ) {
+                        return;
+                    }
 
-                const quality = window.WayfindingRouting.evaluateGpsQualitySamples(samples, {
-                    requiredSamples: 4,
-                    maxAccuracy: 20,
-                    maxSpread: 10,
-                });
-                if (!quality.locked || !quality.point) return;
+                    samples.push({ lat, lng, accuracy });
+                    samples.splice(0, Math.max(0, samples.length - 8));
 
-                finish(resolve, {
-                    coords: {
-                        latitude: quality.point.lat,
-                        longitude: quality.point.lng,
-                        accuracy: quality.accuracy,
-                    },
+                    const quality = window.WayfindingRouting.evaluateGpsQualitySamples(samples, {
+                        requiredSamples: 4,
+                        maxAccuracy: 20,
+                        maxSpread: 10,
+                    });
+                    if (!quality.locked || !quality.point) return;
+
+                    finish(resolve, {
+                        coords: {
+                            latitude: quality.point.lat,
+                            longitude: quality.point.lng,
+                            accuracy: quality.accuracy,
+                        },
+                    });
+                }, error => {
+                    if (Number(error?.code) === 1) finish(reject, error);
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 18000,
+                    maximumAge: 0,
                 });
-            }, error => {
-                if (Number(error?.code) === 1) finish(reject, error);
-            }, {
-                enableHighAccuracy: true,
-                timeout: 18000,
-                maximumAge: 0,
-            });
+            } catch (error) {
+                finish(reject, error);
+            }
         });
     }
 

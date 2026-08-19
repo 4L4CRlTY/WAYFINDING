@@ -23,14 +23,14 @@ const gzipBudgets = {
 
 const lazyBudgets = {
     'resources/js/wayfinding-assistant-entry.js': 20 * 1024,
-    // GPS is lazy-loaded; this includes continuous validation and fallback.
-    'resources/js/wayfinding-gps-entry.js': 26 * 1024,
+    // GPS is lazy-loaded; includes validation, gateway recovery, and safe fallback.
+    'resources/js/wayfinding-gps-entry.js': 28 * 1024,
     'resources/js/wayfinding-gps-diagnostics-entry.js': 11 * 1024,
 };
 
 const lazyGzipBudgets = {
     'resources/js/wayfinding-assistant-entry.js': 4 * 1024,
-    'resources/js/wayfinding-gps-entry.js': 9 * 1024,
+    'resources/js/wayfinding-gps-entry.js': 10 * 1024,
     'resources/js/wayfinding-gps-diagnostics-entry.js': 4 * 1024,
 };
 
