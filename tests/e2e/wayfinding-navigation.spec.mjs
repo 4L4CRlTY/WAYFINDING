@@ -532,6 +532,7 @@ test.describe('low-end mobile building popup', () => {
 test.describe('low-end mobile indoor route', () => {
     test.use({
         viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
         userAgent: 'Mozilla/5.0 (Linux; Android 11; CPH2349) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
     });
 
@@ -572,6 +573,18 @@ test.describe('low-end mobile indoor route', () => {
 
         const routeCanvas = page.locator('#indoorMap .leaflet-overlay-pane > canvas');
         await expect(routeCanvas).toBeVisible();
+        const routeCanvasBudget = await routeCanvas.evaluate(canvas => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                pixelRatio: window.devicePixelRatio,
+                backingWidth: canvas.width,
+                cssWidth: rect.width,
+            };
+        });
+        expect(routeCanvasBudget.pixelRatio).toBe(3);
+        expect(routeCanvasBudget.backingWidth).toBeLessThanOrEqual(
+            Math.ceil(routeCanvasBudget.cssWidth) + 1,
+        );
 
         const gestureVisibility = await page.evaluate(() => {
             document.body.classList.add('indoor-map-zooming');

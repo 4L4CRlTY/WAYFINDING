@@ -551,6 +551,14 @@ test('indoor vectors use one shared Canvas renderer and room selection does not 
     assert.match(indoorRouting, /__wayfindingVectorRendererMode\s*=\s*['"]canvas['"]/);
     assert.doesNotMatch(indoorRouting, /lowEndIndoorView[\s\S]{0,160}L\.svg\(/);
     assert.match(indoorRouting, /renderer:\s*indoorMap\.__wayfindingVectorRenderer/);
+    assert.match(
+        indoorRouting,
+        /className:\s*'route-line-live-indoor',[\s\S]{0,100}renderer:\s*indoorMap\.__wayfindingVectorRenderer/,
+    );
+    assert.match(
+        indoorRouting,
+        /indoorEndMarker\s*=\s*L\.circleMarker\([\s\S]{0,100}renderer:\s*indoorMap\.__wayfindingVectorRenderer/,
+    );
     assert.match(indoorRouting, /interactive:\s*false/);
     assert.match(indoorRouting, /indoorRoomsLayer\?\.eachLayer/);
     assert.doesNotMatch(indoorRouting, /selectedIndoorRoomFeature = feature;[\s\S]{0,180}renderIndoorFloor\(\)/);

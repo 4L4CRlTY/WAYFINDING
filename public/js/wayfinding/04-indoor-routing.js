@@ -1490,7 +1490,8 @@
                 outlineColor: '#67dcfa',
                 outlineWeight: 11,
                 outlineOpacity: 0.28,
-                className: 'route-line-live-indoor'
+                className: 'route-line-live-indoor',
+                renderer: indoorMap.__wayfindingVectorRenderer
             });
 
             indoorRouteAnimationTimer = staticIndoorRoute.timer;
@@ -1507,6 +1508,7 @@
 
         if (roomCenter && Number(roomFeature.properties?.floor_number) === Number(currentIndoorFloor)) {
             indoorEndMarker = L.circleMarker(roomCenter, {
+                renderer: indoorMap.__wayfindingVectorRenderer,
                 radius: 8,
                 color: '#fff',
                 weight: 2,
@@ -1553,7 +1555,8 @@
                 outlineColor: '#67dcfa',
                 outlineWeight: 11,
                 outlineOpacity: 0.28,
-                className: 'route-line-live-indoor'
+                className: 'route-line-live-indoor',
+                renderer: indoorMap.__wayfindingVectorRenderer
             });
 
             indoorRouteAnimationTimer = staticIndoorRoute.timer;
@@ -1575,6 +1578,7 @@
 
         if (roomCenter && Number(roomFeature.properties?.floor_number) === Number(currentIndoorFloor)) {
             indoorEndMarker = L.circleMarker(roomCenter, {
+                renderer: indoorMap.__wayfindingVectorRenderer,
                 radius: 8,
                 color: '#fff',
                 weight: 2,

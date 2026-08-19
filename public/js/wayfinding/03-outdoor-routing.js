@@ -706,7 +706,10 @@
             outlineOptions.pane = pane;
         }
 
-        if (pane === 'pathsPane' && typeof OUTDOOR_ROUTE_RENDERER !== 'undefined') {
+        if (options.renderer) {
+            polylineOptions.renderer = options.renderer;
+            outlineOptions.renderer = options.renderer;
+        } else if (pane === 'pathsPane' && typeof OUTDOOR_ROUTE_RENDERER !== 'undefined') {
             polylineOptions.renderer = OUTDOOR_ROUTE_RENDERER;
             outlineOptions.renderer = OUTDOOR_ROUTE_RENDERER;
         }
