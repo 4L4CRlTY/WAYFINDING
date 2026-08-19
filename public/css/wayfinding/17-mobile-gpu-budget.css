@@ -57,11 +57,26 @@
 
     /* Idle HUD motion steals frames from Leaflet gestures on slower phones. */
     .ai-dot,
+    .campus-event-bell-pulse,
     .floating-main-pin .pin-disc,
     .floating-start-bar::before,
     .ai-transform-panel::before,
     .floating-action-card::before {
         animation: none !important;
+    }
+
+    /* Inline HUD icons stay static while Leaflet owns the gesture frame. */
+    .wf-line-icon,
+    .floating-mode-icon,
+    .user-profile-icon,
+    .campus-event-bell-icon {
+        animation: none !important;
+        transition: none !important;
+        filter: none !important;
+    }
+
+    .floating-mode-icon {
+        box-shadow: none !important;
     }
 
     /* Voice feedback animates only while speech recognition is listening. */

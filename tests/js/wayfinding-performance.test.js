@@ -18,6 +18,30 @@ test('dashboard uses the two production wayfinding entries', () => {
     assert.doesNotMatch(dashboard, /fonts\.googleapis\.com/);
 });
 
+test('dashboard navigation icons are local static SVGs with a mobile GPU guard', () => {
+    const dashboard = readFileSync(
+        new URL('../../resources/views/user/dashboard.blade.php', import.meta.url),
+        'utf8',
+    );
+    const campusEvents = readFileSync(
+        new URL('../../public/js/wayfinding/07-campus-events-data.js', import.meta.url),
+        'utf8',
+    );
+    const mobileBudget = readFileSync(
+        new URL('../../public/css/wayfinding/17-mobile-gpu-budget.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(dashboard, /class="floating-mode-icon"/);
+    assert.match(dashboard, /class="wf-line-icon"/);
+    assert.match(dashboard, />Select Start</);
+    assert.match(dashboard, />Current Location</);
+    assert.match(dashboard, />Campus Entrance</);
+    assert.match(campusEvents, /campus-event-bell-icon[\s\S]{0,180}<svg class="wf-line-icon"/);
+    assert.match(mobileBudget, /\.campus-event-bell-pulse,[\s\S]{0,180}animation:\s*none !important/);
+    assert.match(mobileBudget, /\.wf-line-icon,[\s\S]{0,180}transition:\s*none !important/);
+});
+
 test('wayfinding core preserves routing order and account features are lazy chunks', () => {
     const viteConfig = readFileSync(
         new URL('../../vite.config.js', import.meta.url),

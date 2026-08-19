@@ -37,7 +37,7 @@
         const gatewayLabel = document.getElementById('route-gateway-label');
         const endLabel = document.getElementById('route-end-label');
 
-        if (modeLabel) modeLabel.textContent = window.placingStartMode ? 'Pick On Path Mode' : 'Idle';
+        if (modeLabel) modeLabel.textContent = window.placingStartMode ? 'Select Start Mode' : 'Idle';
         if (sourceLabel) sourceLabel.textContent = startSourceType ? startSourceType.replaceAll('_', ' ') : 'None';
         if (startLabel) startLabel.textContent = startNodeKey || 'Not selected';
         if (gatewayLabel) gatewayLabel.textContent = gatewayNodeKey || 'None';

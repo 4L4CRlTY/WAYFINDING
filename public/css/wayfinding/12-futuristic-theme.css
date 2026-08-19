@@ -248,6 +248,24 @@ body {
     overflow: hidden;
 }
 
+/* Lightweight HUD icon language: local inline SVG, no font or image fetch. */
+.wf-line-icon {
+    width: 1em;
+    height: 1em;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.wf-line-icon .wf-icon-accent {
+    color: var(--future-cyan);
+    stroke: currentColor;
+}
+
 .floating-start-bar .floating-mode-btn,
 .floating-start-bar .floating-mode-btn.pick,
 .floating-start-bar .floating-mode-btn.gps,
@@ -255,12 +273,45 @@ body {
     position: relative;
     overflow: hidden;
     min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding-inline: 9px !important;
     border: 1px solid rgba(126, 176, 214, 0.22) !important;
     border-radius: 13px 4px 13px 4px !important;
     color: #c6d7e4 !important;
     background: rgba(8, 25, 41, 0.68) !important;
     box-shadow: none !important;
     letter-spacing: 0.045em !important;
+}
+
+.floating-mode-icon {
+    width: 27px;
+    height: 27px;
+    flex: 0 0 27px;
+    display: grid;
+    place-items: center;
+    color: #9eeeff;
+    border: 1px solid rgba(91, 224, 255, 0.28);
+    border-radius: 9px 3px 9px 3px;
+    background: linear-gradient(145deg, rgba(66, 217, 255, 0.16), rgba(8, 25, 41, 0.28));
+}
+
+.floating-mode-icon .wf-line-icon {
+    width: 17px;
+    height: 17px;
+}
+
+.floating-mode-label {
+    min-width: 0;
+    color: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: 0.025em;
+    text-align: left;
+    text-transform: uppercase;
 }
 
 .floating-mode-btn::after {
@@ -287,6 +338,12 @@ body {
     border-color: rgba(66, 217, 255, 0.72) !important;
     background: linear-gradient(135deg, var(--future-primary-bright), var(--future-primary)) !important;
     box-shadow: inset 0 0 22px rgba(66, 217, 255, 0.14), 0 0 18px rgba(66, 217, 255, 0.16) !important;
+}
+
+.floating-start-bar .floating-mode-btn.active .floating-mode-icon {
+    color: #ffffff;
+    border-color: rgba(137, 239, 255, 0.68);
+    background: rgba(55, 218, 249, 0.14);
 }
 
 .floating-start-bar .floating-mode-btn.active::after {
@@ -488,10 +545,36 @@ body {
 /* Profile and campus events */
 .user-profile-btn,
 .campus-event-bell-btn {
+    position: relative;
     color: var(--future-cyan) !important;
     background: var(--future-panel) !important;
     border: 1px solid var(--future-line) !important;
     box-shadow: 0 14px 34px rgba(1, 10, 20, 0.34), var(--future-inner) !important;
+}
+
+.user-profile-icon,
+.campus-event-bell-icon {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    color: #b8f4ff;
+}
+
+.user-profile-icon .wf-line-icon,
+.campus-event-bell-icon .wf-line-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.user-profile-btn::after,
+.campus-event-bell-btn::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(94, 225, 255, 0.13);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
 .user-profile-btn:hover,
@@ -864,6 +947,32 @@ input:focus-visible {
 
     .floating-mode-btn {
         font-size: 8px !important;
+    }
+
+    .floating-start-bar .floating-mode-btn {
+        flex-direction: column;
+        gap: 2px !important;
+        padding: 4px 3px !important;
+    }
+
+    .floating-mode-icon {
+        width: 20px;
+        height: 20px;
+        flex-basis: 20px;
+        border-radius: 7px 2px 7px 2px;
+    }
+
+    .floating-mode-icon .wf-line-icon {
+        width: 13px;
+        height: 13px;
+    }
+
+    .floating-mode-label {
+        font-size: 8px;
+        letter-spacing: 0;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
     }
 }
 

@@ -1161,7 +1161,7 @@
     function selectGpsMode() {
         if (window.WAYFINDING_GUEST_MODE === true) {
             window.showWayfindingToast?.(
-                'GPS is available after signing in. Guest Mode can use Default Route or Pick Path.',
+                'Current Location is available after signing in. Guest Mode can use Select Start or Campus Entrance.',
                 { kind: 'info' }
             );
             return;
@@ -1308,7 +1308,7 @@
 
         return new Promise((resolve) => {
             if (!navigator.geolocation) {
-                alert('Geolocation is not supported on this device. You can use Pick Path or Default Route instead.');
+                alert('Location services are not supported on this device. Use Select Start or Campus Entrance instead.');
                 resolve(false);
                 return;
             }
@@ -1354,7 +1354,7 @@
                 resolve(true);
 
             }, function() {
-                alert('Unable to get your current location. You can use Pick Path or Default Route instead.');
+                alert('Unable to get your current location. Use Select Start or Campus Entrance instead.');
                 resolve(false);
             }, {
                 enableHighAccuracy: true,

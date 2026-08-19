@@ -247,7 +247,7 @@ function waitForStart(mode, currentOperation) {
             if (Date.now() >= deadline) {
                 reject(new Error(
                     mode === 'gps'
-                        ? 'GPS is taking too long. Try Pick Path or Default instead.'
+                        ? 'Location services are taking too long. Try Select on Map or Campus Entrance instead.'
                         : 'No start point was selected. Please try again.'
                 ));
                 return;

@@ -554,7 +554,7 @@ test('simple user mode keeps route cards readable and technical GPS tools option
     const indoor = readFileSync(indoorPath, 'utf8');
 
     assert.match(dashboard, /\$gpsDiagnosticsEnabled/);
-    assert.match(dashboard, /Tap Use GPS when ready/);
+    assert.match(dashboard, /Select Current Location when ready/);
     assert.match(dashboard, /@if\(\$gpsDiagnosticsEnabled\)/);
     assert.match(navigation, /classList\.toggle\('is-started'/);
     assert.match(navigation, /routeUiState\.started = true/);

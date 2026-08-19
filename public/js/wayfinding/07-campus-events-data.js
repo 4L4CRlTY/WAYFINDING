@@ -171,7 +171,12 @@
                     onclick="toggleCampusEventPanel()"
                     aria-label="Open campus events">
                 <span class="campus-event-bell-pulse" id="campus-event-bell-pulse" style="display:none;"></span>
-                <span class="campus-event-bell-icon">🔔</span>
+                <span class="campus-event-bell-icon" aria-hidden="true">
+                    <svg class="wf-line-icon" viewBox="0 0 24 24">
+                        <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
+                        <path class="wf-icon-accent" d="M10 21h4M9 4.2A4.8 4.8 0 0 1 12 3" />
+                    </svg>
+                </span>
                 <span class="campus-event-bell-count is-zero" id="campus-event-bell-count">0</span>
             </button>
 

@@ -122,7 +122,7 @@ class WayfindingAssetTest extends TestCase
             ->assertSee('id="wayfinding-connection-banner"', escape: false)
             ->assertSee('id="wayfinding-retry-btn"', escape: false)
             ->assertSee('id="navigation-gps-quality"', escape: false)
-            ->assertSee('Tap Use GPS when ready', escape: false)
+            ->assertSee('Select Current Location when ready', escape: false)
             ->assertDontSee('id="gps-diagnostics-toggle"', escape: false)
             ->assertDontSee('id="gps-diagnostics-panel"', escape: false)
             ->assertDontSee('Real-device field test', escape: false)

@@ -65,7 +65,13 @@
                      alt="Profile"
                      class="user-profile-img">
             @else
-                <span class="user-profile-icon">👤</span>
+                <span class="user-profile-icon" aria-hidden="true">
+                    <svg class="wf-line-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3.5" />
+                        <path d="M5.5 19.5c.7-3.4 3-5.3 6.5-5.3s5.8 1.9 6.5 5.3" />
+                        <path class="wf-icon-accent" d="M5 6V4h2M17 4h2v2M19 18v2h-2M7 20H5v-2" />
+                    </svg>
+                </span>
             @endif
         </button>
 
@@ -78,7 +84,12 @@
                     @if(auth()->check() && auth()->user()->photo)
                         <img src="{{ asset('image/' . auth()->user()->photo) }}" alt="Profile">
                     @else
-                        <span>👤</span>
+                        <span class="user-profile-icon" aria-hidden="true">
+                            <svg class="wf-line-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="8" r="3.5" />
+                                <path d="M5.5 19.5c.7-3.4 3-5.3 6.5-5.3s5.8 1.9 6.5 5.3" />
+                            </svg>
+                        </span>
                     @endif
                 </div>
 
@@ -247,7 +258,7 @@
                 </div>
 
                 <div class="ai-transform-hint">
-                    Type a building, room, office, or phrase. Default start is used automatically if no GPS/Pick Path is selected.
+                    Type a building, room, office, or phrase. The campus entrance is used automatically when no starting point is selected.
                 </div>
 
                 <div class="ai-search-progress" id="ai-search-progress" role="status" aria-live="polite" hidden></div>
@@ -310,7 +321,14 @@
                     class="floating-mode-btn pick"
                     onclick="selectPickPathMode()"
                     aria-pressed="false">
-                📍 PICK PATH
+                <span class="floating-mode-icon" aria-hidden="true">
+                    <svg class="wf-line-icon" viewBox="0 0 24 24">
+                        <path d="M12 21s6-5.4 6-11a6 6 0 1 0-12 0c0 5.6 6 11 6 11Z" />
+                        <circle cx="12" cy="10" r="2" />
+                        <path class="wf-icon-accent" d="M3 6V3h3M18 3h3v3" />
+                    </svg>
+                </span>
+                <span class="floating-mode-label">Select Start</span>
             </button>
 
             @if($guestMode)
@@ -319,14 +337,28 @@
                         onclick="requestGuestFeatureAccess('Live GPS navigation')"
                         aria-label="Log in to use GPS navigation"
                         aria-pressed="false">
-                    🔒 USE GPS
+                    <span class="floating-mode-icon" aria-hidden="true">
+                        <svg class="wf-line-icon" viewBox="0 0 24 24">
+                            <rect x="7" y="10" width="10" height="9" rx="2" />
+                            <path d="M9.5 10V7.5a2.5 2.5 0 0 1 5 0V10" />
+                            <circle class="wf-icon-accent" cx="12" cy="14.5" r="1" />
+                        </svg>
+                    </span>
+                    <span class="floating-mode-label">Current Location</span>
                 </button>
             @else
                 <button type="button"
                         class="floating-mode-btn gps"
                         onclick="selectGpsMode()"
                         aria-pressed="false">
-                    🧭 USE GPS
+                    <span class="floating-mode-icon" aria-hidden="true">
+                        <svg class="wf-line-icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="6" />
+                            <circle class="wf-icon-accent" cx="12" cy="12" r="2" />
+                            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                        </svg>
+                    </span>
+                    <span class="floating-mode-label">Current Location</span>
                 </button>
             @endif
 
@@ -334,7 +366,14 @@
                     class="floating-mode-btn default active"
                     onclick="selectDefaultMode()"
                     aria-pressed="true">
-                🗺️ DEFAULT ROUTE
+                <span class="floating-mode-icon" aria-hidden="true">
+                    <svg class="wf-line-icon" viewBox="0 0 24 24">
+                        <path d="M4 20V9l8-5 8 5v11" />
+                        <path d="M2.5 20h19M8 20v-7h8v7M7 9h10" />
+                        <path class="wf-icon-accent" d="M12 4v5" />
+                    </svg>
+                </span>
+                <span class="floating-mode-label">Campus Entrance</span>
             </button>
         </div>
     </div>
@@ -428,7 +467,7 @@
                     <div class="navigation-metric navigation-location-card">
                         <span class="navigation-metric-label">Location</span>
                         <strong id="navigation-gps-quality">Not active</strong>
-                        <small>{{ $guestMode ? 'Use Default Route or Pick Path' : 'Tap Use GPS when ready' }}</small>
+                        <small>{{ $guestMode ? 'Choose Select Start or Campus Entrance' : 'Select Current Location when ready' }}</small>
                     </div>
                 @endif
                 <div class="navigation-metric">
@@ -489,25 +528,42 @@
             <div class="cr-navigation-modes" id="cr-navigation-modes">
                 @unless($guestMode)
                     <button type="button" class="cr-navigation-mode" data-cr-mode="gps">
-                        <span class="cr-navigation-mode-icon" aria-hidden="true">⌖</span>
+                        <span class="cr-navigation-mode-icon" aria-hidden="true">
+                            <svg class="wf-line-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="6" />
+                                <circle class="wf-icon-accent" cx="12" cy="12" r="2" />
+                                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                            </svg>
+                        </span>
                         <span>
-                            <strong>Use GPS</strong>
-                            <small>Use your current location</small>
+                            <strong>Current Location</strong>
+                            <small>Start from your live GPS position</small>
                         </span>
                     </button>
                 @endunless
                 <button type="button" class="cr-navigation-mode" data-cr-mode="path">
-                    <span class="cr-navigation-mode-icon" aria-hidden="true">⌁</span>
+                    <span class="cr-navigation-mode-icon" aria-hidden="true">
+                        <svg class="wf-line-icon" viewBox="0 0 24 24">
+                            <path d="M12 21s6-5.4 6-11a6 6 0 1 0-12 0c0 5.6 6 11 6 11Z" />
+                            <circle class="wf-icon-accent" cx="12" cy="10" r="2" />
+                        </svg>
+                    </span>
                     <span>
-                        <strong>Pick Path</strong>
-                        <small>Tap your position on the map</small>
+                        <strong>Select on Map</strong>
+                        <small>Choose your exact starting point</small>
                     </span>
                 </button>
                 <button type="button" class="cr-navigation-mode" data-cr-mode="default">
-                    <span class="cr-navigation-mode-icon" aria-hidden="true">◆</span>
+                    <span class="cr-navigation-mode-icon" aria-hidden="true">
+                        <svg class="wf-line-icon" viewBox="0 0 24 24">
+                            <path d="M4 20V9l8-5 8 5v11" />
+                            <path d="M2.5 20h19M8 20v-7h8v7M7 9h10" />
+                            <path class="wf-icon-accent" d="M12 4v5" />
+                        </svg>
+                    </span>
                     <span>
-                        <strong>Default</strong>
-                        <small>Start from the campus entrance</small>
+                        <strong>Campus Entrance</strong>
+                        <small>Start from the official main gate</small>
                     </span>
                 </button>
             </div>

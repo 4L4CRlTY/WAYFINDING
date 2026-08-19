@@ -396,7 +396,7 @@
     }
 
     function updateRouteLabels() {
-        safeSetText(routeModeLabel, placingStartMode ? 'Pick On Path Mode' : 'Idle');
+        safeSetText(routeModeLabel, placingStartMode ? 'Select Start Mode' : 'Idle');
         safeSetText(routeSourceLabel, startSourceType ? startSourceType.replaceAll('_', ' ') : 'None');
         safeSetText(routeStartLabel, startNodeKey || 'Not selected');
 

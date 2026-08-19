@@ -86,8 +86,8 @@ class DestinationLinkTest extends TestCase
             ->assertOk()
             ->assertSeeText('Guest Mode')
             ->assertSeeText('Browse Options')
-            ->assertSeeText('PICK PATH')
-            ->assertSeeText('DEFAULT ROUTE')
+            ->assertSeeText('Select Start')
+            ->assertSeeText('Campus Entrance')
             ->assertSeeText('CR')
             ->assertSee('id="guest-upgrade-card"', false)
             ->assertSeeText('Unlock smarter campus navigation')
@@ -124,8 +124,8 @@ class DestinationLinkTest extends TestCase
             ->assertOk()
             ->assertSeeText('Guest Mode')
             ->assertSeeText('Browse Options')
-            ->assertSeeText('PICK PATH')
-            ->assertSeeText('DEFAULT ROUTE')
+            ->assertSeeText('Select Start')
+            ->assertSeeText('Campus Entrance')
             ->assertSeeText('CR')
             ->assertSee('id="guest-text-search-command-btn"', false)
             ->assertSee('id="guest-voice-command-btn"', false)
@@ -160,7 +160,7 @@ class DestinationLinkTest extends TestCase
             ->assertSee('"type":"room"', false)
             ->assertSeeText('Search Text')
             ->assertSeeText('Voice Search')
-            ->assertSeeText('USE GPS');
+            ->assertSeeText('Current Location');
     }
 
     public function test_landuse_link_opens_guest_mode_with_an_automatic_landuse_destination(): void
