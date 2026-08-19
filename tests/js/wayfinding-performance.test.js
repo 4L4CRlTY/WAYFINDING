@@ -627,7 +627,7 @@ test('low-end indoor gestures transform one cached surface while room geometry s
     );
 });
 
-test('low-end outdoor static layers use one-pixel Canvas backing stores', () => {
+test('low-end outdoor Canvas uses a bounded sharpness boost only for building tops', () => {
     const mapCore = readFileSync(
         new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
         'utf8',
@@ -635,7 +635,13 @@ test('low-end outdoor static layers use one-pixel Canvas backing stores', () => 
 
     assert.match(mapCore, /WayfindingLowResolutionCanvas\s*=\s*L\.Canvas\.extend/);
     assert.match(mapCore, /createOutdoorCanvasRenderer/);
-    assert.match(mapCore, /container\.width\s*=\s*Math\.max\(1, Math\.ceil\(size\.x\)\)/);
+    assert.match(mapCore, /const LOW_END_BUILDING_CANVAS_RATIO\s*=\s*Math\.min\(/);
+    assert.match(mapCore, /container\.width\s*=\s*Math\.max\(1, Math\.ceil\(size\.x \* pixelRatio\)\)/);
+    assert.match(mapCore, /if \(pixelRatio !== 1\) this\._ctx\.scale\(pixelRatio, pixelRatio\)/);
+    assert.match(
+        mapCore,
+        /pane:\s*'buildingsPane',[\s\S]{0,160}wayfindingPixelRatio:\s*LOW_END_BUILDING_CANVAS_RATIO/,
+    );
     assert.match(mapCore, /WayfindingBuildingDepthCanvasBase/);
 });
 

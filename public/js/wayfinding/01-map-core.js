@@ -142,6 +142,13 @@
     const MOBILE_PATH_CANVAS_PADDING = WAYFINDING_RENDER_PROFILE.mode === 'low'
         ? 0.16
         : 0.35;
+    /* A 1x Canvas is fast but visibly soft when Android stretches it across a
+       2x-3x DPR display. Only the clickable building tops receive a bounded
+       1.5x backing store; paths and depth remain at the original 1x budget. */
+    const LOW_END_BUILDING_CANVAS_RATIO = Math.min(
+        1.5,
+        Math.max(1, Number(window.devicePixelRatio || 1))
+    );
     const WayfindingLowResolutionCanvas = L.Canvas.extend({
         _update: function() {
             if (this._map._animatingZoom && this._bounds) return;
@@ -149,11 +156,16 @@
             const bounds = this._bounds;
             const container = this._container;
             const size = bounds.getSize();
+            const pixelRatio = Math.max(
+                1,
+                Number(this.options.wayfindingPixelRatio || 1)
+            );
             L.DomUtil.setPosition(container, bounds.min);
-            container.width = Math.max(1, Math.ceil(size.x));
-            container.height = Math.max(1, Math.ceil(size.y));
+            container.width = Math.max(1, Math.ceil(size.x * pixelRatio));
+            container.height = Math.max(1, Math.ceil(size.y * pixelRatio));
             container.style.width = `${size.x}px`;
             container.style.height = `${size.y}px`;
+            if (pixelRatio !== 1) this._ctx.scale(pixelRatio, pixelRatio);
             this._ctx.translate(-bounds.min.x, -bounds.min.y);
             this.fire('update');
         }
@@ -258,7 +270,8 @@
         ? createOutdoorCanvasRenderer({
             pane: 'buildingsPane',
             padding: MOBILE_PATH_CANVAS_PADDING,
-            tolerance: 5
+            tolerance: 5,
+            wayfindingPixelRatio: LOW_END_BUILDING_CANVAS_RATIO
         })
         : L.svg({
             pane: 'buildingsPane',

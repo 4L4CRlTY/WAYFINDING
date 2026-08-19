@@ -463,6 +463,7 @@ test.describe('mobile layout', () => {
 test.describe('low-end mobile building popup', () => {
     test.use({
         viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
         userAgent: 'Mozilla/5.0 (Linux; Android 11; CPH2349) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
     });
 
@@ -486,6 +487,8 @@ test.describe('low-end mobile building popup', () => {
                 renderMode: document.body.dataset.renderQuality,
                 renderers: Array.from(document.querySelectorAll('#map canvas')).map(element => ({
                     pane: element.parentElement?.className,
+                    backingWidth: element.width,
+                    cssWidth: element.getBoundingClientRect().width,
                     left: element.getBoundingClientRect().left,
                     top: element.getBoundingClientRect().top,
                     transform: window.getComputedStyle(element).transform,
@@ -494,6 +497,17 @@ test.describe('low-end mobile building popup', () => {
         });
 
         expect(initialState.renderMode).toBe('low');
+        const initialBuildingsBudget = initialState.renderers.find(renderer => (
+            renderer.pane?.includes('leaflet-buildings-pane')
+        ));
+        const initialDepthBudget = initialState.renderers.find(renderer => (
+            renderer.pane?.includes('leaflet-buildingDepth-pane')
+        ));
+        expect(initialBuildingsBudget.backingWidth / initialBuildingsBudget.cssWidth).toBeGreaterThan(1.45);
+        expect(initialBuildingsBudget.backingWidth / initialBuildingsBudget.cssWidth).toBeLessThanOrEqual(1.51);
+        expect(initialDepthBudget.backingWidth).toBeLessThanOrEqual(
+            Math.ceil(initialDepthBudget.cssWidth) + 1,
+        );
         await page.mouse.click(initialState.point.x, initialState.point.y);
         await expect(page.locator('.building-summary-leaflet-popup')).toBeVisible();
         await expect(page.locator('.building-map-summary.is-unavailable')).toBeVisible();

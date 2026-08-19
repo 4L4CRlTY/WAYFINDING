@@ -335,9 +335,13 @@
                 className: `fake-3d-building ${className}`,
                 style: {
                     color: darkenColor(baseColor, 0.32),
-                    weight: IS_MOBILE_OUTDOOR_VIEW ? 0.9 : 1.25,
+                    weight: WAYFINDING_RENDER_PROFILE.mode === 'low'
+                        ? 1.1
+                        : (IS_MOBILE_OUTDOOR_VIEW ? 0.9 : 1.25),
                     fillColor: baseColor,
-                    fillOpacity: IS_MOBILE_OUTDOOR_VIEW ? 0.96 : 0.98,
+                    fillOpacity: WAYFINDING_RENDER_PROFILE.mode === 'low'
+                        ? 1
+                        : (IS_MOBILE_OUTDOOR_VIEW ? 0.96 : 0.98),
                     lineJoin: 'round'
                 },
                 onEachFeature: function(feature, layer) {
