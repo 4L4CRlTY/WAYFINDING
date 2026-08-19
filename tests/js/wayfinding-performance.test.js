@@ -581,8 +581,18 @@ test('low-end indoor gestures transform one cached surface while room geometry s
     assert.match(indoorRouting, /window\.routeToIndoorRoom/);
     assert.match(searchVoice, /prefetchWayfindingIndoorBuilding/);
     assert.match(searchVoice, /await indoorDataReady/);
-    assert.match(gpuBudget, /render-quality-low\.indoor-map-zooming[\s\S]*?leaflet-overlay-pane > canvas/);
-    assert.match(gpuBudget, /render-quality-low\.indoor-map-zooming[\s\S]*?leaflet-marker-pane/);
+    assert.match(
+        gpuBudget,
+        /render-quality-low\.indoor-map-zooming[\s\S]*?leaflet-overlay-pane > canvas[\s\S]*?visibility:\s*visible !important/,
+    );
+    assert.match(
+        gpuBudget,
+        /render-quality-low\.indoor-map-zooming[\s\S]*?leaflet-marker-pane[\s\S]*?visibility:\s*visible !important/,
+    );
+    assert.doesNotMatch(
+        gpuBudget,
+        /render-quality-low\.indoor-map-zooming[\s\S]*?visibility:\s*hidden !important/,
+    );
 });
 
 test('low-end outdoor static layers use one-pixel Canvas backing stores', () => {

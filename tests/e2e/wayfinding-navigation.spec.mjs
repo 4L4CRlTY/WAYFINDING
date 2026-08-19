@@ -528,3 +528,78 @@ test.describe('low-end mobile building popup', () => {
         runtime.expectNone();
     });
 });
+
+test.describe('low-end mobile indoor route', () => {
+    test.use({
+        viewport: { width: 390, height: 844 },
+        userAgent: 'Mozilla/5.0 (Linux; Android 11; CPH2349) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+    });
+
+    test('keeps the room route visible during and after indoor zoom and drag', async ({ page }) => {
+        const runtime = monitorRuntimeErrors(page);
+        await loginAsUser(page);
+        await expect.poll(() => page.evaluate(() => (
+            window.WayfindingCrBridge?.getRooms?.().length || 0
+        ))).toBeGreaterThan(0);
+
+        const routedRoom = await page.evaluate(async () => {
+            const bridge = window.WayfindingCrBridge;
+            const seedRoom = bridge.getRooms().find(room => (
+                room.properties?.building_name === 'Admin Building'
+                && Number(room.properties?.floor_number) === 2
+            ));
+            if (!seedRoom) throw new Error('Admin Building 2F test room is unavailable.');
+
+            await bridge.prepareRooms([seedRoom]);
+            const room = bridge.getRooms().find(candidate => (
+                Number(candidate.properties?.id) === Number(seedRoom.properties?.id)
+            ));
+            await bridge.chooseStartMode('default');
+            await bridge.routeToRoom(room);
+
+            return {
+                id: Number(room.properties?.id),
+                name: room.properties?.name,
+            };
+        });
+
+        expect(routedRoom.id).toBeGreaterThan(0);
+        await expect(page.locator('.route-building-map-popup-btn')).toBeVisible();
+        await page.evaluate(() => window.openIndoorFromRoutePopup());
+        await expect(page.locator('#indoorPanel')).toHaveClass(/active/);
+        await page.locator('#indoorFloorButtons [data-floor="2"]').click();
+        await expect(page.locator('#indoorFooter')).toContainText('Indoor Route Ready');
+
+        const routeCanvas = page.locator('#indoorMap .leaflet-overlay-pane > canvas');
+        await expect(routeCanvas).toBeVisible();
+
+        const gestureVisibility = await page.evaluate(() => {
+            document.body.classList.add('indoor-map-zooming');
+            const canvas = document.querySelector('#indoorMap .leaflet-overlay-pane > canvas');
+            const markerPane = document.querySelector('#indoorMap .leaflet-marker-pane');
+            const result = {
+                routeCanvas: canvas ? window.getComputedStyle(canvas).visibility : 'missing',
+                markerPane: markerPane ? window.getComputedStyle(markerPane).visibility : 'missing',
+            };
+            document.body.classList.remove('indoor-map-zooming');
+            return result;
+        });
+        expect(gestureVisibility.routeCanvas).toBe('visible');
+        expect(gestureVisibility.markerPane).toBe('visible');
+
+        await page.locator('#indoorMap .leaflet-control-zoom-in').click();
+        await expect(page.locator('body')).not.toHaveClass(/indoor-map-zooming/);
+        await expect(routeCanvas).toBeVisible();
+
+        const mapBox = await page.locator('#indoorMap').boundingBox();
+        expect(mapBox).not.toBeNull();
+        await page.mouse.move(mapBox.x + mapBox.width * 0.55, mapBox.y + mapBox.height * 0.55);
+        await page.mouse.down();
+        await page.mouse.move(mapBox.x + mapBox.width * 0.42, mapBox.y + mapBox.height * 0.62, {
+            steps: 5,
+        });
+        await page.mouse.up();
+        await expect(routeCanvas).toBeVisible();
+        runtime.expectNone();
+    });
+});

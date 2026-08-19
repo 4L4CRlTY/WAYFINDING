@@ -191,16 +191,18 @@
         box-shadow: none !important;
     }
 
-    /* On Oppo-class hardware the composited floorplan is the complete visual
-       floor during a pinch. Temporarily skip route/marker repaints while both
-       fingers are down, then restore them on zoomend. Their data and Leaflet
-       layers remain intact, so the route cannot change or disappear after the
-       gesture. The floorplan itself never hides. */
+    /* The cyan route and its start/end markers are essential navigation state.
+       They must stay visible throughout a pinch: some Android WebViews delay or
+       omit zoomend after an interrupted gesture, which previously left these
+       panes hidden until the indoor panel was rebuilt. Low-end mode already
+       removes expensive effects above, so preserving these lightweight layers
+       does not restore the old GPU-heavy rendering. */
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-overlay-pane > canvas,
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-overlay-pane > svg,
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-marker-pane,
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-shadow-pane {
-        visibility: hidden !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     /* Keep the small fixed HUD surfaces on stable compositor layers. This is
