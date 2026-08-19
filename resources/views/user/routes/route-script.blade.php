@@ -721,13 +721,66 @@
         return nearest;
     }
 
+    function requestTrustedRouteGpsPosition() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser.'));
+                return;
+            }
+
+            const samples = [];
+            let watchId = null;
+            let settled = false;
+            const finish = (callback, value) => {
+                if (settled) return;
+                settled = true;
+                window.clearTimeout(deadlineId);
+                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                callback(value);
+            };
+            const deadlineId = window.setTimeout(() => {
+                finish(reject, new Error('A stable GPS fix was not available.'));
+            }, 32000);
+
+            watchId = navigator.geolocation.watchPosition(position => {
+                samples.push({
+                    lat: Number(position.coords.latitude),
+                    lng: Number(position.coords.longitude),
+                    accuracy: Number(position.coords.accuracy),
+                });
+                samples.splice(0, Math.max(0, samples.length - 8));
+
+                const quality = window.WayfindingRouting.evaluateGpsQualitySamples(samples, {
+                    requiredSamples: 4,
+                    maxAccuracy: 20,
+                    maxSpread: 10,
+                });
+                if (!quality.locked || !quality.point) return;
+
+                finish(resolve, {
+                    coords: {
+                        latitude: quality.point.lat,
+                        longitude: quality.point.lng,
+                        accuracy: quality.accuracy,
+                    },
+                });
+            }, error => {
+                if (Number(error?.code) === 1) finish(reject, error);
+            }, {
+                enableHighAccuracy: true,
+                timeout: 18000,
+                maximumAge: 0,
+            });
+        });
+    }
+
     function useCurrentLocationAsStart() {
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser.');
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(
+        requestTrustedRouteGpsPosition().then(
             function (position) {
                 const lat = Number(position.coords.latitude);
                 const lng = Number(position.coords.longitude);
@@ -805,11 +858,6 @@
             },
             function () {
                 alert('Unable to get your current location.');
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
             }
         );
     }

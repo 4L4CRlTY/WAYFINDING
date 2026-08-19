@@ -202,6 +202,41 @@ test('GPS simulator reaches the quality lock used by the real dashboard', async 
     runtime.expectNone();
 });
 
+test('GPS tracking revalidates degraded signal and rejects a false strong jump', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await loginAsUser(page, '/user/dashboard?gps_simulator=1');
+
+    await page.evaluate(() => {
+        window.__gpsRegressionStatuses = [];
+        window.addEventListener('wayfinding:gps-diagnostic', event => {
+            const status = event.detail?.status;
+            if (status) window.__gpsRegressionStatuses.push(status);
+        });
+    });
+
+    await page.locator('.floating-mode-btn.gps').click();
+    await page.locator('[data-gps-sim-speed]').selectOption('4');
+    await page.locator('[data-gps-sim-start]').click();
+    await expect(page.locator('body')).toHaveAttribute('data-gps-quality-lock', 'locked', {
+        timeout: 15_000,
+    });
+
+    await page.locator('[data-gps-sim-signal]').selectOption('weak');
+    await expect(page.locator('body')).toHaveAttribute('data-gps-quality-lock', 'waiting', {
+        timeout: 8_000,
+    });
+
+    await page.locator('[data-gps-sim-signal]').selectOption('false_jump');
+    await expect(page.locator('body')).toHaveAttribute('data-gps-quality-lock', 'locked', {
+        timeout: 8_000,
+    });
+    await expect.poll(() => page.evaluate(() => (
+        window.__gpsRegressionStatuses.includes('jump_rejected')
+    )), { timeout: 8_000 }).toBe(true);
+
+    runtime.expectNone();
+});
+
 test('GPS field test records diagnostics and exports a local CSV', async ({ page }) => {
     const runtime = monitorRuntimeErrors(page);
     await loginAsUser(page, '/user/dashboard?gps_simulator=1');
@@ -565,29 +600,23 @@ test.describe('low-end mobile indoor route', () => {
         });
         await page.evaluate(() => window.openIndoorFromRoutePopup());
         await expect(page.locator('#indoorPanel')).toHaveClass(/active/);
-        await expect(page.locator('#indoorFooter')).toContainText('Indoor Route Ready');
+        await expect(page.locator('#indoorFooter')).toContainText('Destination floor reached');
 
         let visualState = null;
         await expect.poll(async () => {
             visualState = await page.evaluate(() => {
             const map = document.querySelector('#indoorMap');
             const image = map?.querySelector('.leaflet-image-layer');
-            const canvas = map?.querySelector('.leaflet-overlay-pane > canvas');
-            if (!map || !image || !canvas) return null;
+            const routePath = map?.querySelector(
+                '.wayfinding-indoor-route-pane path.route-line-live-indoor',
+            );
+            if (!map || !image || !routePath) return null;
 
             const mapRect = map.getBoundingClientRect();
             const imageRect = image.getBoundingClientRect();
-            const context = canvas.getContext('2d', { willReadFrequently: true });
-            const pixels = context?.getImageData(0, 0, canvas.width, canvas.height).data;
-            let paintedPixels = 0;
-            if (pixels) {
-                for (let index = 3; index < pixels.length; index += 4) {
-                    if (pixels[index] > 0) paintedPixels += 1;
-                }
-            }
 
             return {
-                paintedPixels,
+                routeLength: routePath.getTotalLength(),
                 horizontalCenterOffset: Math.abs(
                     (imageRect.left + imageRect.width / 2)
                     - (mapRect.left + mapRect.width / 2)
@@ -600,8 +629,8 @@ test.describe('low-end mobile indoor route', () => {
                 mapHeight: mapRect.height,
             };
             });
-            return visualState?.paintedPixels || 0;
-        }).toBeGreaterThan(20);
+            return visualState?.routeLength || 0;
+        }).toBeGreaterThan(10);
 
         expect(visualState.horizontalCenterOffset).toBeLessThan(visualState.mapWidth * 0.18);
         expect(visualState.verticalCenterOffset).toBeLessThan(visualState.mapHeight * 0.18);
@@ -641,40 +670,34 @@ test.describe('low-end mobile indoor route', () => {
         await page.evaluate(() => window.openIndoorFromRoutePopup());
         await expect(page.locator('#indoorPanel')).toHaveClass(/active/);
         await page.locator('#indoorFloorButtons [data-floor="2"]').click();
-        await expect(page.locator('#indoorFooter')).toContainText('Indoor Route Ready');
+        await expect(page.locator('#indoorFooter')).toContainText('Destination floor reached');
 
-        const routeCanvas = page.locator('#indoorMap .leaflet-overlay-pane > canvas');
-        await expect(routeCanvas).toBeVisible();
-        const routeCanvasBudget = await routeCanvas.evaluate(canvas => {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                pixelRatio: window.devicePixelRatio,
-                backingWidth: canvas.width,
-                cssWidth: rect.width,
-            };
-        });
-        expect(routeCanvasBudget.pixelRatio).toBe(3);
-        expect(routeCanvasBudget.backingWidth).toBeLessThanOrEqual(
-            Math.ceil(routeCanvasBudget.cssWidth) + 1,
+        const routePath = page.locator(
+            '#indoorMap .wayfinding-indoor-route-pane path.route-line-live-indoor',
         );
+        await expect(routePath).toBeVisible();
+        await expect.poll(() => routePath.evaluate(path => path.getTotalLength()))
+            .toBeGreaterThan(10);
 
         const gestureVisibility = await page.evaluate(() => {
             document.body.classList.add('indoor-map-zooming');
-            const canvas = document.querySelector('#indoorMap .leaflet-overlay-pane > canvas');
+            const route = document.querySelector(
+                '#indoorMap .wayfinding-indoor-route-pane path.route-line-live-indoor',
+            );
             const markerPane = document.querySelector('#indoorMap .leaflet-marker-pane');
             const result = {
-                routeCanvas: canvas ? window.getComputedStyle(canvas).visibility : 'missing',
+                routePath: route ? window.getComputedStyle(route).visibility : 'missing',
                 markerPane: markerPane ? window.getComputedStyle(markerPane).visibility : 'missing',
             };
             document.body.classList.remove('indoor-map-zooming');
             return result;
         });
-        expect(gestureVisibility.routeCanvas).toBe('visible');
+        expect(gestureVisibility.routePath).toBe('visible');
         expect(gestureVisibility.markerPane).toBe('visible');
 
         await page.locator('#indoorMap .leaflet-control-zoom-in').click();
         await expect(page.locator('body')).not.toHaveClass(/indoor-map-zooming/);
-        await expect(routeCanvas).toBeVisible();
+        await expect(routePath).toBeVisible();
 
         const mapBox = await page.locator('#indoorMap').boundingBox();
         expect(mapBox).not.toBeNull();
@@ -684,7 +707,7 @@ test.describe('low-end mobile indoor route', () => {
             steps: 5,
         });
         await page.mouse.up();
-        await expect(routeCanvas).toBeVisible();
+        await expect(routePath).toBeVisible();
         runtime.expectNone();
     });
 });

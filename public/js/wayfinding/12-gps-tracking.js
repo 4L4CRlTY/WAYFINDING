@@ -21,10 +21,15 @@
     const GPS_MIN_SNAP_RADIUS_M = 12;          // minimum snap radius
     const GPS_MAX_SNAP_RADIUS_M = 30;          // strict cap to avoid snapping to wrong campus path
     const GPS_SNAP_GRACE_M = 4;                // small tolerance for QGIS/path offset
-    const GPS_ACTIVE_ROUTE_EXTRA_M = 6;        // active route gets a little more allowance
+    const GPS_ACTIVE_ROUTE_EXTRA_M = 2;        // small active-route preference without route sticking
+    const GPS_ACTIVE_ROUTE_MAX_SNAP_RADIUS_M = 24;
+    const GPS_ROUTE_SWITCH_MARGIN_M = 5;
     const GPS_QUALITY_LOCK_REQUIRED_SAMPLES = 4;
     const GPS_QUALITY_LOCK_MAX_ACCURACY_M = 20;
     const GPS_QUALITY_LOCK_MAX_SPREAD_M = 10;
+    const GPS_RELOCK_ACCURACY_M = 45;
+    const GPS_DEGRADED_READING_LIMIT = 3;
+    const GPS_QUALITY_LOCK_TIMEOUT_MS = 32000;
     const GPS_OFF_ROUTE_CONFIRMATION_SAMPLES = 3;
     const GPS_BAD_JUMP_SPEED_MPS = 14;         // reject only physically implausible jumps
     const GPS_SMOOTH_FACTOR = 0.58;             // responsive enough for walking guidance
@@ -37,6 +42,9 @@
         fairAccuracy: GPS_PREVIEW_ACCURACY_M,
         rejectAccuracy: GPS_REJECT_ACCURACY_M,
         maxSpread: GPS_QUALITY_LOCK_MAX_SPREAD_M,
+        relockAccuracy: GPS_RELOCK_ACCURACY_M,
+        degradedReadingLimit: GPS_DEGRADED_READING_LIMIT,
+        lockTimeoutMs: GPS_QUALITY_LOCK_TIMEOUT_MS,
         requiredLockSamples: GPS_QUALITY_LOCK_REQUIRED_SAMPLES,
         minSnapRadius: GPS_MIN_SNAP_RADIUS_M,
         maxSnapRadius: GPS_MAX_SNAP_RADIUS_M,
@@ -60,7 +68,11 @@
     }
 
     function getGpsActiveRouteSnapRadiusMeters(accuracy) {
-        return clampGpsMeters(getGpsSnapRadiusMeters(accuracy) + GPS_ACTIVE_ROUTE_EXTRA_M, GPS_MIN_SNAP_RADIUS_M, GPS_MAX_SNAP_RADIUS_M + GPS_ACTIVE_ROUTE_EXTRA_M);
+        return clampGpsMeters(
+            getGpsSnapRadiusMeters(accuracy) + GPS_ACTIVE_ROUTE_EXTRA_M,
+            GPS_MIN_SNAP_RADIUS_M,
+            GPS_ACTIVE_ROUTE_MAX_SNAP_RADIUS_M
+        );
     }
 
     let liveGpsWatchId = null;
@@ -82,6 +94,7 @@
     let liveGpsFollow = true;
     let cachedCampusSegments = null;
     let cachedCampusSegmentCount = 0;
+    let cachedCampusGeojsonReference = null;
     let activeOutdoorRouteResult = null;
     let activeOutdoorDestinationKey = null;
     let lastLiveRerouteAt = 0;
@@ -91,6 +104,8 @@
     let liveGpsProviderName = 'device';
     let gpsMapDragActive = false;
     let pendingGpsRouteRefreshPosition = null;
+    let consecutiveDegradedGpsReadings = 0;
+    let gpsQualityFallbackTimer = null;
 
     const baseSelectGpsMode = typeof selectGpsMode === 'function' ? selectGpsMode : null;
     const baseSelectPickPathMode = typeof selectPickPathMode === 'function' ? selectPickPathMode : null;
@@ -112,21 +127,37 @@
         }));
     }
 
+    function finiteGpsNumber(value) {
+        if (value === null || value === undefined || value === '') return null;
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+    }
+
+    function isGpsJumpPlausible(distance, elapsedSeconds, accuracy) {
+        const plausibleDistance = Math.max(
+            35,
+            (Math.max(1, Number(elapsedSeconds || 1)) * GPS_BAD_JUMP_SPEED_MPS)
+                + Math.max(0, Number(accuracy || 0))
+        );
+        return { plausible: Number(distance) <= plausibleDistance, plausibleDistance };
+    }
+
+    function shouldPreferActiveRouteSnap(activeDistance, campusDistance) {
+        return Number.isFinite(Number(activeDistance)) && (
+            !Number.isFinite(Number(campusDistance))
+            || Number(activeDistance) <= Number(campusDistance) + GPS_ROUTE_SWITCH_MARGIN_M
+        );
+    }
+
     function emitGpsReading(status, sample, qualityLock, detail = {}) {
         emitGpsDiagnostic('reading', {
             status,
             lat: Number(sample?.latLng?.lat),
             lng: Number(sample?.latLng?.lng),
             accuracy: Number(sample?.accuracy || 999),
-            heading: Number.isFinite(Number(sample?.heading))
-                ? Number(sample.heading)
-                : null,
-            speed: Number.isFinite(Number(sample?.speed))
-                ? Number(sample.speed)
-                : null,
-            altitude: Number.isFinite(Number(sample?.altitude))
-                ? Number(sample.altitude)
-                : null,
+            heading: finiteGpsNumber(sample?.heading),
+            speed: finiteGpsNumber(sample?.speed),
+            altitude: finiteGpsNumber(sample?.altitude),
             qualityLocked: qualityLock?.locked === true,
             qualitySamples: Number(qualityLock?.sampleCount || 0),
             spread: Number(qualityLock?.spread || 0),
@@ -174,12 +205,66 @@
     function resetGpsQualityLock() {
         gpsQualityLockSamples = [];
         gpsQualityLockAcquired = false;
+        consecutiveDegradedGpsReadings = 0;
         consecutiveOffRouteReadings = 0;
         setGpsQualityLockDataset('waiting');
     }
 
+    function clearGpsQualityFallbackTimer() {
+        if (gpsQualityFallbackTimer === null) return;
+        window.clearTimeout(gpsQualityFallbackTimer);
+        gpsQualityFallbackTimer = null;
+    }
+
+    function scheduleGpsQualityFallback() {
+        clearGpsQualityFallbackTimer();
+        gpsQualityFallbackTimer = window.setTimeout(() => {
+            gpsQualityFallbackTimer = null;
+            if (liveGpsWatchId === null || liveGpsHasAcceptedFix) return;
+
+            emitGpsDiagnostic('state', {
+                status: 'tap_location_fallback',
+                accepted: false,
+                qualityLocked: false,
+            });
+            activateTapMyLocationFallback(
+                'GPS needs help',
+                'A reliable GPS lock was not available. Tap your actual position on a campus path to continue.'
+            );
+        }, GPS_QUALITY_LOCK_TIMEOUT_MS);
+    }
+
     function evaluateGpsQualityLock(sample) {
         if (gpsQualityLockAcquired) {
+            if (Number(sample.accuracy) > GPS_RELOCK_ACCURACY_M) {
+                consecutiveDegradedGpsReadings += 1;
+
+                if (consecutiveDegradedGpsReadings >= GPS_DEGRADED_READING_LIMIT) {
+                    gpsQualityLockAcquired = false;
+                    gpsQualityLockSamples = [sample];
+                    consecutiveDegradedGpsReadings = 0;
+                    liveGpsHasAcceptedFix = false;
+                    setGpsQualityLockDataset('waiting');
+                    scheduleGpsQualityFallback();
+
+                    const evaluation = window.WayfindingRouting.evaluateGpsQualitySamples(
+                        gpsQualityLockSamples,
+                        {
+                            requiredSamples: GPS_QUALITY_LOCK_REQUIRED_SAMPLES,
+                            maxAccuracy: GPS_QUALITY_LOCK_MAX_ACCURACY_M,
+                            maxSpread: GPS_QUALITY_LOCK_MAX_SPREAD_M,
+                        }
+                    );
+
+                    return {
+                        ...evaluation,
+                        point: sample.latLng,
+                    };
+                }
+            } else {
+                consecutiveDegradedGpsReadings = 0;
+            }
+
             return {
                 locked: true,
                 justLocked: false,
@@ -216,6 +301,7 @@
         }
 
         gpsQualityLockAcquired = true;
+        consecutiveDegradedGpsReadings = 0;
         setGpsQualityLockDataset('locked');
 
         return {
@@ -458,7 +544,11 @@
         const features = pathGeojson?.features || [];
         const count = features.length;
 
-        if (cachedCampusSegments && cachedCampusSegmentCount === count) {
+        if (
+            cachedCampusSegments
+            && cachedCampusGeojsonReference === pathGeojson
+            && cachedCampusSegmentCount === count
+        ) {
             return cachedCampusSegments;
         }
 
@@ -495,10 +585,26 @@
 
         cachedCampusSegments = segments;
         cachedCampusSegmentCount = count;
+        cachedCampusGeojsonReference = pathGeojson;
         return segments;
     }
 
-    function snapToSegments(gpsLatLng, segments, maxDistanceMeters) {
+    function gpsAngleDifference(first, second) {
+        const difference = Math.abs(Number(first) - Number(second)) % 360;
+        return difference > 180 ? 360 - difference : difference;
+    }
+
+    function segmentHeadingDifference(heading, segment) {
+        if (!Number.isFinite(Number(heading)) || !segment?.a || !segment?.b) return 0;
+        const forward = window.WayfindingRouting.bearingBetween(segment.a, segment.b);
+        const reverse = (forward + 180) % 360;
+        return Math.min(
+            gpsAngleDifference(heading, forward),
+            gpsAngleDifference(heading, reverse)
+        );
+    }
+
+    function snapToSegments(gpsLatLng, segments, maxDistanceMeters, options = {}) {
         gpsLatLng = toLiveLatLng(gpsLatLng);
         if (!gpsLatLng || !segments || !segments.length) {
             return { point: gpsLatLng, distance: Infinity, snapped: false, source: 'raw_gps' };
@@ -506,33 +612,82 @@
 
         let best = null;
         let bestDistance = Infinity;
+        let nearestDistance = Infinity;
+        let bestScore = Infinity;
         let bestSource = 'raw_gps';
+        let bestHeadingDifference = null;
+        const previousPoint = toLiveLatLng(options.previousPoint);
+        const heading = finiteGpsNumber(options.heading);
 
         segments.forEach(segment => {
             const candidate = closestPointOnSegmentMeters(gpsLatLng, segment.a, segment.b);
             if (!candidate) return;
 
             const distance = map.distance(gpsLatLng, candidate);
-            if (distance < bestDistance) {
+            nearestDistance = Math.min(nearestDistance, distance);
+            if (distance > maxDistanceMeters) return;
+
+            const headingDifference = heading === null
+                ? 0
+                : segmentHeadingDifference(heading, segment);
+            const headingPenalty = heading === null
+                ? 0
+                : (headingDifference / 180) * 7;
+            const continuityPenalty = previousPoint
+                ? Math.min(30, map.distance(previousPoint, candidate)) * 0.04
+                : 0;
+            const score = distance + headingPenalty + continuityPenalty;
+
+            if (score < bestScore) {
+                bestScore = score;
                 bestDistance = distance;
                 best = candidate;
                 bestSource = segment.source || 'path';
+                bestHeadingDifference = headingDifference;
             }
         });
 
-        if (best && bestDistance <= maxDistanceMeters) {
-            return { point: best, distance: bestDistance, snapped: true, source: bestSource };
+        if (best) {
+            return {
+                point: best,
+                distance: bestDistance,
+                score: bestScore,
+                headingDifference: bestHeadingDifference,
+                snapped: true,
+                source: bestSource,
+            };
         }
 
-        return { point: gpsLatLng, distance: bestDistance, snapped: false, source: 'raw_gps' };
+        return { point: gpsLatLng, distance: nearestDistance, snapped: false, source: 'raw_gps' };
     }
 
-    function snapOutdoorGps(gpsLatLng, accuracy) {
+    function snapOutdoorGps(gpsLatLng, accuracy, heading = null) {
         const activeSnapRadius = getGpsActiveRouteSnapRadiusMeters(accuracy);
         const pathSnapRadius = getGpsSnapRadiusMeters(accuracy);
+        const snapOptions = {
+            heading,
+            previousPoint: lastSnappedGpsLatLng,
+        };
 
-        const activeRouteSnap = snapToSegments(gpsLatLng, getActiveRouteSegments(), activeSnapRadius);
-        if (activeRouteSnap.snapped) {
+        const activeRouteSnap = snapToSegments(
+            gpsLatLng,
+            getActiveRouteSegments(),
+            activeSnapRadius,
+            snapOptions
+        );
+        const campusPathSnap = snapToSegments(
+            gpsLatLng,
+            getCampusPathSegments(),
+            pathSnapRadius,
+            snapOptions
+        );
+        const activeRouteIsBest = activeRouteSnap.snapped
+            && shouldPreferActiveRouteSnap(
+                activeRouteSnap.distance,
+                campusPathSnap.snapped ? campusPathSnap.distance : Infinity
+            );
+
+        if (activeRouteIsBest) {
             return {
                 ...activeRouteSnap,
                 activeRouteDistance: activeRouteSnap.distance,
@@ -541,7 +696,6 @@
             };
         }
 
-        const campusPathSnap = snapToSegments(gpsLatLng, getCampusPathSegments(), pathSnapRadius);
         if (campusPathSnap.snapped) {
             return {
                 ...campusPathSnap,
@@ -908,6 +1062,36 @@
         return sample;
     }
 
+    function medianGpsCoordinate(values) {
+        const sorted = values.map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+        if (!sorted.length) return null;
+        const middle = Math.floor(sorted.length / 2);
+        return sorted.length % 2
+            ? sorted[middle]
+            : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
+    function stabilizeFairGpsPoint(sample) {
+        if (!sample?.latLng || Number(sample.accuracy) <= GPS_STRONG_ACCURACY_M) {
+            return sample?.latLng || null;
+        }
+
+        const recentSamples = liveGpsSamples
+            .filter(candidate => (
+                Number(candidate.accuracy) <= GPS_RELOCK_ACCURACY_M
+                && Math.abs(Number(sample.time) - Number(candidate.time)) <= 8000
+            ))
+            .slice(-3);
+
+        if (recentSamples.length < 3) return sample.latLng;
+
+        const lat = medianGpsCoordinate(recentSamples.map(candidate => candidate.latLng.lat));
+        const lng = medianGpsCoordinate(recentSamples.map(candidate => candidate.latLng.lng));
+        return Number.isFinite(lat) && Number.isFinite(lng)
+            ? L.latLng(lat, lng)
+            : sample.latLng;
+    }
+
     function updateRawGpsAccuracyCircle(rawLatLng, accuracy) {
         if (!rawLatLng) return;
 
@@ -968,9 +1152,41 @@
         }
     }
 
+    function nearestGpsEntryPoint(latLng) {
+        const location = toLiveLatLng(latLng);
+        if (!location || !Array.isArray(entryPoints)) return null;
+
+        return entryPoints.reduce((nearest, point) => {
+            const latitude = Number(point?.latitude);
+            const longitude = Number(point?.longitude);
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return nearest;
+            if (!nearest) return point;
+
+            const candidateDistance = map.distance(location, [latitude, longitude]);
+            const nearestDistance = map.distance(
+                location,
+                [Number(nearest.latitude), Number(nearest.longitude)]
+            );
+            return candidateDistance < nearestDistance ? point : nearest;
+        }, null);
+    }
+
+    function isInsideGpsNavigationArea(latLng) {
+        const location = toLiveLatLng(latLng);
+        if (!location) return false;
+        if (isInsideCampus(location.lat, location.lng)) return true;
+
+        const nearestKey = nearestNodeKey(location.lat, location.lng);
+        const coordinate = nearestKey ? parseCoordKey(nearestKey) : null;
+        return Boolean(coordinate) && map.distance(
+            location,
+            [Number(coordinate[0]), Number(coordinate[1])]
+        ) <= 35;
+    }
+
     function updateGpsRouteStart(snappedLatLng, sourceText) {
-        if (!snappedLatLng || !isInsideCampus(snappedLatLng.lat, snappedLatLng.lng)) {
-            const fallback = entryPoints?.[0];
+        if (!snappedLatLng || !isInsideGpsNavigationArea(snappedLatLng)) {
+            const fallback = nearestGpsEntryPoint(snappedLatLng);
             if (!fallback) return false;
 
             const gatewayLat = Number(fallback.latitude);
@@ -1009,6 +1225,7 @@
 
     function stopOutdoorLiveGpsWatchOnly() {
         clearOutdoorGpsWatch();
+        clearGpsQualityFallbackTimer();
 
         liveGpsSamples = [];
         resetGpsQualityLock();
@@ -1071,6 +1288,7 @@
             || position.coords.heading === undefined
             ? null
             : Number(position.coords.heading);
+        const reportedSpeed = finiteGpsNumber(position.coords.speed);
 
         if (!qualityLock.locked) {
             updateRawGpsAccuracyCircle(latestSample.latLng, latestSample.accuracy);
@@ -1089,24 +1307,11 @@
             return;
         }
 
-        const movementDistance = lastNavigationPosition
-            ? map.distance(lastNavigationPosition, rawLatLng)
-            : 0;
-
-        if (lastNavigationPosition && movementDistance >= 1.5) {
-            lastMovementHeading = window.WayfindingRouting.bearingBetween(
-                lastNavigationPosition,
-                rawLatLng
-            );
+        if (!qualityLock.justLocked) {
+            rawLatLng = stabilizeFairGpsPoint(latestSample) || rawLatLng;
         }
 
-        const heading = Number.isFinite(reportedHeading) && reportedHeading >= 0
-            ? reportedHeading
-            : lastMovementHeading;
-
-        lastNavigationPosition = rawLatLng;
-
-        if (accuracy > GPS_REJECT_ACCURACY_M) {
+        if (accuracy > GPS_RELOCK_ACCURACY_M) {
             updateRawGpsAccuracyCircle(rawLatLng, accuracy);
             emitGpsReading('weak_accuracy', latestSample, qualityLock, {
                 accepted: false,
@@ -1116,7 +1321,7 @@
             setLiveGpsStatus(
                 'weak',
                 `GPS weak (${Math.round(accuracy)}m)`,
-                'Live tracking is still running, but this reading is too weak to move the route. Move to an open area or use Tap My Location.'
+                `This reading is above the safe ${GPS_RELOCK_ACCURACY_M}m movement limit and will not move the route.`
             );
             return;
         }
@@ -1124,12 +1329,14 @@
         if (lastRawGpsLatLng && lastRawGpsTime) {
             const jumpDistance = map.distance(lastRawGpsLatLng, rawLatLng);
             const elapsedSeconds = Math.max(1, (sampleTime - lastRawGpsTime) / 1000);
-            const plausibleDistance = Math.max(
-                35,
-                (elapsedSeconds * GPS_BAD_JUMP_SPEED_MPS) + accuracy
+            const jumpEvaluation = isGpsJumpPlausible(
+                jumpDistance,
+                elapsedSeconds,
+                accuracy
             );
+            const plausibleDistance = jumpEvaluation.plausibleDistance;
 
-            if (jumpDistance > plausibleDistance && accuracy > GPS_STRONG_ACCURACY_M) {
+            if (!jumpEvaluation.plausible) {
                 updateRawGpsAccuracyCircle(rawLatLng, accuracy);
                 emitGpsReading('jump_rejected', latestSample, qualityLock, {
                     accepted: false,
@@ -1146,10 +1353,24 @@
             }
         }
 
+        const movementDistance = lastNavigationPosition
+            ? map.distance(lastNavigationPosition, rawLatLng)
+            : 0;
+
+        const movementHeading = lastNavigationPosition && movementDistance >= 1.5
+            ? window.WayfindingRouting.bearingBetween(lastNavigationPosition, rawLatLng)
+            : lastMovementHeading;
+        const canTrustReportedHeading = Number.isFinite(reportedHeading)
+            && reportedHeading >= 0
+            && (reportedSpeed === null || reportedSpeed >= 0.5);
+        const heading = canTrustReportedHeading
+            ? reportedHeading
+            : movementHeading;
+
         lastRawGpsLatLng = rawLatLng;
         lastRawGpsTime = sampleTime;
 
-        const snapResult = snapOutdoorGps(rawLatLng, accuracy);
+        const snapResult = snapOutdoorGps(rawLatLng, accuracy, heading);
         const snappedLatLng = snapResult.point || null;
         const snapDistanceText = Number.isFinite(snapResult.distance) ? `${Math.round(snapResult.distance)}m from path` : 'no nearby path';
         const snapRadiusText = `${Math.round(snapResult.allowedDistance || getGpsSnapRadiusMeters(accuracy))}m snap radius`;
@@ -1237,7 +1458,10 @@
             : snappedLatLng;
         lastSmoothGpsLatLng = smoothLatLng;
         lastSnappedGpsLatLng = snappedLatLng;
+        lastNavigationPosition = rawLatLng;
+        lastMovementHeading = movementHeading;
         liveGpsHasAcceptedFix = true;
+        clearGpsQualityFallbackTimer();
 
         updateLiveGpsVisual(rawLatLng, smoothLatLng, accuracy, heading);
 
@@ -1291,6 +1515,13 @@
         });
         setLiveGpsStatus('bad', 'GPS unavailable', message);
         setRouteResultLabel(message);
+
+        if (Number(error?.code) === 1) {
+            activateTapMyLocationFallback(
+                'Location permission unavailable',
+                'Tap your actual position on a campus path, or enable location permission and select Current Location again.'
+            );
+        }
     }
 
     function startOutdoorLiveGpsTracking() {
@@ -1363,11 +1594,13 @@
                 timeout: 18000
             }
         );
+        scheduleGpsQualityFallback();
     }
 
     function stopOutdoorLiveGpsTracking(options = {}) {
         const wasTracking = liveGpsWatchId !== null;
         clearOutdoorGpsWatch();
+        clearGpsQualityFallbackTimer();
 
         liveGpsSamples = [];
         resetGpsQualityLock();
@@ -1422,6 +1655,45 @@
         if (liveGpsFollow && lastSmoothGpsLatLng) {
             map.panTo(lastSmoothGpsLatLng, { animate: true, duration: 0.35 });
         }
+    }
+
+    function waitForOutdoorGpsStart(timeoutMs = GPS_QUALITY_LOCK_TIMEOUT_MS) {
+        startOutdoorLiveGpsTracking();
+
+        return new Promise(resolve => {
+            const deadline = Date.now() + Math.max(10000, Number(timeoutMs || GPS_QUALITY_LOCK_TIMEOUT_MS));
+
+            const check = () => {
+                if (
+                    liveGpsHasAcceptedFix
+                    && startNodeKey
+                    && String(startSourceType || '').includes('gps')
+                ) {
+                    resolve(true);
+                    return;
+                }
+
+                if (selectedStartMode === 'path' && placingStartMode) {
+                    resolve(false);
+                    return;
+                }
+
+                if (Date.now() >= deadline) {
+                    if (liveGpsWatchId !== null && !liveGpsHasAcceptedFix) {
+                        activateTapMyLocationFallback(
+                            'GPS needs help',
+                            'A reliable GPS lock was not available. Tap your actual position on a campus path to continue.'
+                        );
+                    }
+                    resolve(false);
+                    return;
+                }
+
+                window.setTimeout(check, 150);
+            };
+
+            check();
+        });
     }
 
     if (baseClearRouteLayer) {
@@ -1492,6 +1764,7 @@
     window.startOutdoorLiveGpsTracking = startOutdoorLiveGpsTracking;
     window.stopOutdoorLiveGpsTracking = stopOutdoorLiveGpsTracking;
     window.toggleOutdoorLiveGpsFollow = toggleOutdoorLiveGpsFollow;
+    window.waitForOutdoorGpsStart = waitForOutdoorGpsStart;
     window.activateTapMyLocationFallback = activateTapMyLocationFallback;
     window.refreshActiveRouteFromGps = refreshActiveRouteFromGps;
     window.refreshOutdoorLiveGpsGuidance = function () {

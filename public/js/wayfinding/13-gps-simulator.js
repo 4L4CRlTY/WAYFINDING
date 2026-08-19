@@ -46,6 +46,14 @@
     const STEP_DISTANCE_METERS = 4;
     const BASE_INTERVAL_MS = 1800;
     const ACCURACY_METERS = 5;
+    const SIGNAL_PROFILES = Object.freeze({
+        stable: { label: 'Stable · 5m' },
+        fair: { label: 'Fair + jitter · 32m' },
+        weak: { label: 'Weak · 75m' },
+        drift: { label: 'Post-lock drift · 38m' },
+        false_jump: { label: 'False strong jump · 8m' },
+        no_heading: { label: 'No device heading · 8m' },
+    });
     const watchers = new Map();
     let nextWatchId = 1;
     let currentIndex = 0;
@@ -53,6 +61,8 @@
     let timerId = null;
     let running = false;
     let panel = null;
+    let signalProfile = 'stable';
+    let emittedReadingCount = 0;
 
     function distanceMeters(a, b) {
         const earthRadius = 6371000;
@@ -117,19 +127,52 @@
         return walkingRoute[Math.min(currentIndex, walkingRoute.length - 1)];
     }
 
+    function offsetPointMeters(point, northMeters = 0, eastMeters = 0) {
+        const latitudeOffset = Number(northMeters) / 111320;
+        const longitudeScale = 111320 * Math.cos(Number(point.lat) * Math.PI / 180);
+        return {
+            lat: Number(point.lat) + latitudeOffset,
+            lng: Number(point.lng) + (Number(eastMeters) / longitudeScale),
+        };
+    }
+
+    function simulatedSignal(point) {
+        const reading = emittedReadingCount;
+        if (signalProfile === 'fair') {
+            const jitter = [4, -5, 7, -3][reading % 4];
+            return { point: offsetPointMeters(point, jitter * 0.45, jitter), accuracy: 32 };
+        }
+        if (signalProfile === 'weak') {
+            return { point: offsetPointMeters(point, 18, -14), accuracy: 75 };
+        }
+        if (signalProfile === 'drift' && reading > 5) {
+            const driftMeters = Math.min(28, (reading - 5) * 3.5);
+            return { point: offsetPointMeters(point, driftMeters * 0.25, driftMeters), accuracy: 38 };
+        }
+        if (signalProfile === 'false_jump' && reading === 14) {
+            return { point: offsetPointMeters(point, 120, 0), accuracy: 8 };
+        }
+        return {
+            point,
+            accuracy: signalProfile === 'no_heading' ? 8 : ACCURACY_METERS,
+        };
+    }
+
     function createPosition() {
         const point = currentPoint();
         const nextPoint = walkingRoute[Math.min(currentIndex + 1, walkingRoute.length - 1)];
         const intervalSeconds = (BASE_INTERVAL_MS / speedMultiplier) / 1000;
+        const signal = simulatedSignal(point);
+        emittedReadingCount += 1;
 
         return {
             coords: {
-                latitude: point.lat,
-                longitude: point.lng,
-                accuracy: ACCURACY_METERS,
+                latitude: signal.point.lat,
+                longitude: signal.point.lng,
+                accuracy: signal.accuracy,
                 altitude: null,
                 altitudeAccuracy: null,
-                heading: distanceMeters(point, nextPoint) > 0.2
+                heading: signalProfile !== 'no_heading' && distanceMeters(point, nextPoint) > 0.2
                     ? bearingBetween(point, nextPoint)
                     : null,
                 speed: STEP_DISTANCE_METERS / intervalSeconds,
@@ -309,6 +352,7 @@
         running = false;
         clearTimer();
         currentIndex = 0;
+        emittedReadingCount = 0;
 
         if (watchers.size > 0) {
             notifyWatchers();
@@ -472,6 +516,15 @@
         updatePanel();
     }
 
+    function setSignalProfile(profile) {
+        signalProfile = Object.hasOwn(SIGNAL_PROFILES, profile) ? profile : 'stable';
+        emittedReadingCount = 0;
+        setStatus(`Signal profile: ${SIGNAL_PROFILES[signalProfile].label}.`);
+
+        if (watchers.size > 0) notifyWatchers();
+        updatePanel();
+    }
+
     const geolocation = {
         getCurrentPosition(success) {
             setTimeout(() => success(createPosition()), 0);
@@ -546,6 +599,14 @@
                         <option value="4">4× Demo</option>
                     </select>
                 </div>
+                <div class="gps-simulator-speed-row">
+                    <label class="gps-simulator-speed-label" for="gps-simulator-signal">GPS signal</label>
+                    <select class="gps-simulator-speed" id="gps-simulator-signal" data-gps-sim-signal>
+                        ${Object.entries(SIGNAL_PROFILES).map(([value, profile]) => (
+                            `<option value="${value}">${profile.label}</option>`
+                        )).join('')}
+                    </select>
+                </div>
                 <div class="gps-simulator-dev-note">
                     Developer-only tool. It is never loaded for regular users or when debug mode is disabled.
                 </div>
@@ -559,6 +620,9 @@
         panel.querySelector('[data-gps-sim-choose-start]').addEventListener('click', chooseCustomStart);
         panel.querySelector('[data-gps-sim-speed]').addEventListener('change', (event) => {
             setSpeed(event.target.value);
+        });
+        panel.querySelector('[data-gps-sim-signal]').addEventListener('change', (event) => {
+            setSignalProfile(event.target.value);
         });
         panel.querySelector('[data-gps-sim-collapse]').addEventListener('click', (event) => {
             const collapsed = panel.classList.toggle('is-collapsed');
@@ -580,6 +644,7 @@
         pause,
         reset,
         setSpeed,
+        setSignalProfile,
         chooseCustomStart,
         usePresetRoute,
         getState() {
@@ -587,6 +652,8 @@
                 currentIndex,
                 pointCount: walkingRoute.length,
                 routeMode,
+                signalProfile,
+                emittedReadingCount,
                 selectingCustomStart,
                 running,
                 speedMultiplier,

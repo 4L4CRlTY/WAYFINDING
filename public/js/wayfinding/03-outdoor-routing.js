@@ -1259,45 +1259,16 @@
         selectedStartMode = 'gps';
         setActiveStartModeButton('gps');
 
-        if (!navigator.geolocation) {
-            alert('Geolocation is not supported on this device.');
+        if (typeof window.startOutdoorLiveGpsTracking === 'function') {
+            window.startOutdoorLiveGpsTracking();
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-
-            clearCurrentLocationMarker();
-            currentLocationMarker = L.marker([lat, lng], {
-                icon: createDivIcon('<div class="route-gps-dot"></div>', [18, 18], [9, 9])
-            }).addTo(map).bindPopup('Your Current Location');
-
-            if (!isInsideCampus(lat, lng)) {
-                const fallback = entryPoints[0];
-                if (!fallback) {
-                    alert('No entry point found for outside-campus routing.');
-                    return;
-                }
-
-                const gatewayLat = Number(fallback.latitude);
-                const gatewayLng = Number(fallback.longitude);
-
-                drawOutsideGuideLine(lat, lng, gatewayLat, gatewayLng);
-                setStartFromLatLng(gatewayLat, gatewayLng, fallback.name || 'Campus Entry',
-                    'gps_outside_campus');
-                setRouteResultLabel('Outside campus: guiding first to campus entry point.');
-                return;
-            }
-
-            setStartFromLatLng(lat, lng, 'Your Current Location', 'gps_inside_campus');
-            setRouteResultLabel('GPS start point selected.');
-        }, function() {
-            alert('Unable to get your current location.');
-        }, {
-            enableHighAccuracy: true,
-            timeout: 10000
-        });
+        setRouteResultLabel('Live GPS could not load. Use Select Start or Campus Entrance instead.');
+        window.showWayfindingToast?.(
+            'Live GPS could not load. Use Select Start or Campus Entrance instead.',
+            { kind: 'error' }
+        );
     }
 
 
@@ -1306,62 +1277,17 @@
         selectedStartMode = 'gps';
         setActiveStartModeButton('gps');
 
-        return new Promise((resolve) => {
-            if (!navigator.geolocation) {
-                alert('Location services are not supported on this device. Use Select Start or Campus Entrance instead.');
-                resolve(false);
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(function(position) {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-
-                clearCurrentLocationMarker();
-
-                currentLocationMarker = L.marker([lat, lng], {
-                    icon: createDivIcon('<div class="route-gps-dot"></div>', [18, 18], [9, 9])
-                }).addTo(map).bindPopup('Your Current Location');
-
-                if (!isInsideCampus(lat, lng)) {
-                    const fallback = entryPoints[0];
-
-                    if (!fallback) {
-                        alert('No entry point found for outside-campus routing.');
-                        resolve(false);
-                        return;
-                    }
-
-                    const gatewayLat = Number(fallback.latitude);
-                    const gatewayLng = Number(fallback.longitude);
-
-                    drawOutsideGuideLine(lat, lng, gatewayLat, gatewayLng);
-
-                    setStartFromLatLng(
-                        gatewayLat,
-                        gatewayLng,
-                        fallback.name || 'Campus Entry',
-                        'gps_outside_campus'
-                    );
-
-                    setRouteResultLabel('Outside campus: guiding first to campus entry point.');
-                    resolve(true);
-                    return;
+        if (typeof window.waitForOutdoorGpsStart === 'function') {
+            return window.waitForOutdoorGpsStart(32000).then(ready => {
+                if (!ready && selectedStartMode === 'path' && placingStartMode) {
+                    pendingRouteAfterPickPath = true;
                 }
-
-                setStartFromLatLng(lat, lng, 'Your Current Location', 'gps_inside_campus');
-                setRouteResultLabel('GPS start point selected.');
-                resolve(true);
-
-            }, function() {
-                alert('Unable to get your current location. Use Select Start or Campus Entrance instead.');
-                resolve(false);
-            }, {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
+                return ready;
             });
-        });
+        }
+
+        setRouteResultLabel('Live GPS could not load. Use Select Start or Campus Entrance instead.');
+        return Promise.resolve(false);
     }
 
     async function ensureSelectedStartBeforeRoute() {

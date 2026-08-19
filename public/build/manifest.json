@@ -57,7 +57,7 @@
     ]
   },
   "resources/js/wayfinding-entry.js": {
-    "file": "assets/wayfinding-entry-CZPArUMj.js",
+    "file": "assets/wayfinding-entry-ANNAvbhz.js",
     "name": "wayfinding-entry",
     "src": "resources/js/wayfinding-entry.js",
     "isEntry": true,
@@ -80,7 +80,7 @@
     ]
   },
   "resources/js/wayfinding-gps-entry.js": {
-    "file": "assets/wayfinding-gps-entry-B3osotA2.js",
+    "file": "assets/wayfinding-gps-entry-DZy2Sga2.js",
     "name": "wayfinding-gps-entry",
     "src": "resources/js/wayfinding-gps-entry.js",
     "isDynamicEntry": true,

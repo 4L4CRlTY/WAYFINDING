@@ -276,6 +276,10 @@ test('GPS tracking code is contained in an executable JavaScript module', () => 
         import.meta.url,
     );
     const source = readFileSync(path, 'utf8');
+    const outdoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/03-outdoor-routing.js', import.meta.url),
+        'utf8',
+    );
 
     assert.match(source, /function startOutdoorLiveGpsTracking\(\)/);
     assert.match(source, /window\.startOutdoorLiveGpsTracking/);
@@ -284,6 +288,9 @@ test('GPS tracking code is contained in an executable JavaScript module', () => 
     assert.match(source, /GPS_QUALITY_LOCK_REQUIRED_SAMPLES\s*=\s*4/);
     assert.match(source, /GPS_QUALITY_LOCK_MAX_ACCURACY_M\s*=\s*20/);
     assert.match(source, /GPS_QUALITY_LOCK_MAX_SPREAD_M\s*=\s*10/);
+    assert.match(source, /GPS_RELOCK_ACCURACY_M\s*=\s*45/);
+    assert.match(source, /GPS_DEGRADED_READING_LIMIT\s*=\s*3/);
+    assert.match(source, /GPS_QUALITY_LOCK_TIMEOUT_MS\s*=\s*32000/);
     assert.match(source, /GPS_OFF_ROUTE_CONFIRMATION_SAMPLES\s*=\s*3/);
     assert.match(source, /function evaluateGpsQualityLock\(sample\)/);
     assert.match(source, /evaluateGpsQualitySamples/);
@@ -292,6 +299,10 @@ test('GPS tracking code is contained in an executable JavaScript module', () => 
     assert.match(source, /wayfinding:gps-diagnostic/);
     assert.match(source, /GPS_CALIBRATION_THRESHOLDS/);
     assert.match(source, /window\.WayfindingGpsCalibration/);
+    assert.match(source, /window\.waitForOutdoorGpsStart/);
+    assert.match(source, /scheduleGpsQualityFallback/);
+    assert.match(source, /isGpsJumpPlausible/);
+    assert.match(source, /shouldPreferActiveRouteSnap/);
     assert.match(source, /nextGpsOffRouteConfirmation/);
     assert.match(source, /let rawLatLng = qualityLock\.point \|\| latestSample\.latLng/);
     assert.match(source, /function refreshActiveRouteFromGps/);
@@ -300,6 +311,9 @@ test('GPS tracking code is contained in an executable JavaScript module', () => 
     assert.match(source, /window\.getWayfindingGpsSimulatorRoute/);
     assert.match(source, /WayfindingNavigationUi\?\.updateGpsStatus/);
     assert.match(source, /WayfindingNavigationUi\?\.updateGuidance/);
+    assert.match(outdoorRouting, /window\.waitForOutdoorGpsStart/);
+    assert.doesNotMatch(outdoorRouting, /navigator\.geolocation\.getCurrentPosition/);
+    assert.doesNotMatch(outdoorRouting, /navigator\.geolocation\.watchPosition/);
 });
 
 test('unified navigation UI exposes route summary and non-blocking recovery feedback', () => {
@@ -377,6 +391,9 @@ test('development GPS simulator drives the live GPS provider with campus route p
     assert.match(source, /Reset/);
     assert.match(source, /1× Normal/);
     assert.match(source, /4× Demo/);
+    assert.match(source, /Post-lock drift/);
+    assert.match(source, /False strong jump/);
+    assert.match(source, /No device heading/);
 });
 
 test('mobile QA emulator is local-only and switches low or advanced phone profiles', () => {

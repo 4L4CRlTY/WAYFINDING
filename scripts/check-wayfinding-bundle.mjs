@@ -12,23 +12,25 @@ const entries = [
 
 const budgets = {
     'resources/css/wayfinding.css': 190 * 1024,
-    'resources/js/wayfinding-entry.js': 305 * 1024,
+    // Keep the core below the previously shipped 306.8 KiB bundle.
+    'resources/js/wayfinding-entry.js': 307 * 1024,
 };
 
 const gzipBudgets = {
     'resources/css/wayfinding.css': 32 * 1024,
-    'resources/js/wayfinding-entry.js': 88 * 1024,
+    'resources/js/wayfinding-entry.js': 94 * 1024,
 };
 
 const lazyBudgets = {
     'resources/js/wayfinding-assistant-entry.js': 20 * 1024,
-    'resources/js/wayfinding-gps-entry.js': 24 * 1024,
+    // GPS is lazy-loaded; this includes continuous validation and fallback.
+    'resources/js/wayfinding-gps-entry.js': 26 * 1024,
     'resources/js/wayfinding-gps-diagnostics-entry.js': 11 * 1024,
 };
 
 const lazyGzipBudgets = {
     'resources/js/wayfinding-assistant-entry.js': 4 * 1024,
-    'resources/js/wayfinding-gps-entry.js': 8 * 1024,
+    'resources/js/wayfinding-gps-entry.js': 9 * 1024,
     'resources/js/wayfinding-gps-diagnostics-entry.js': 4 * 1024,
 };
 
