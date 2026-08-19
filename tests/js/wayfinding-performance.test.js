@@ -472,6 +472,8 @@ test('building top remains clickable while Canvas depth cannot intercept clicks'
     assert.match(mapRendering, /renderer:\s*OUTDOOR_BUILDING_DEPTH_RENDERER/);
     assert.match(mapRendering, /interactive:\s*false/);
     assert.match(performanceCss, /\.fake-3d-building,[\s\S]*?filter:\s*none !important;/);
+    assert.match(performanceCss, /\.leaflet-buildings-pane path\.leaflet-interactive/);
+    assert.doesNotMatch(performanceCss, /\.leaflet-buildings-pane \.leaflet-interactive/);
 });
 
 test('indoor graph and styles stay deferred until a building is opened', () => {

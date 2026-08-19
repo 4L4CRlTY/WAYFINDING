@@ -459,3 +459,72 @@ test.describe('mobile layout', () => {
         runtime.expectNone();
     });
 });
+
+test.describe('low-end mobile building popup', () => {
+    test.use({
+        viewport: { width: 390, height: 844 },
+        userAgent: 'Mozilla/5.0 (Linux; Android 11; CPH2349) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+    });
+
+    test('keeps Canvas building layers aligned when indoor maps are unavailable', async ({ page }) => {
+        const runtime = monitorRuntimeErrors(page);
+        await loginAsUser(page);
+
+        const initialState = await page.evaluate(async () => {
+            const buildings = await fetch('/api/buildings').then(response => response.json());
+            const building = buildings.find(item => item.name === 'Human Kinetic Building');
+            const bounds = window.L.geoJSON({
+                type: 'Feature',
+                geometry: building.geometry,
+            }).getBounds();
+            const center = bounds.getCenter();
+            const point = window.map.latLngToContainerPoint(center);
+
+            return {
+                mapCenter: window.map.getCenter(),
+                point,
+                renderMode: document.body.dataset.renderQuality,
+                renderers: Array.from(document.querySelectorAll('#map canvas')).map(element => ({
+                    pane: element.parentElement?.className,
+                    left: element.getBoundingClientRect().left,
+                    top: element.getBoundingClientRect().top,
+                    transform: window.getComputedStyle(element).transform,
+                })),
+            };
+        });
+
+        expect(initialState.renderMode).toBe('low');
+        await page.mouse.click(initialState.point.x, initialState.point.y);
+        await expect(page.locator('.building-summary-leaflet-popup')).toBeVisible();
+        await expect(page.locator('.building-map-summary.is-unavailable')).toBeVisible();
+
+        const finalState = await page.evaluate(() => ({
+            mapCenter: window.map.getCenter(),
+            renderers: Array.from(document.querySelectorAll('#map canvas')).map(element => ({
+                pane: element.parentElement?.className,
+                left: element.getBoundingClientRect().left,
+                top: element.getBoundingClientRect().top,
+                transform: window.getComputedStyle(element).transform,
+            })),
+        }));
+        const finalCenter = finalState.mapCenter;
+        const initialBuildings = initialState.renderers.find(renderer => (
+            renderer.pane?.includes('leaflet-buildings-pane')
+        ));
+        const finalBuildings = finalState.renderers.find(renderer => (
+            renderer.pane?.includes('leaflet-buildings-pane')
+        ));
+        const finalDepth = finalState.renderers.find(renderer => (
+            renderer.pane?.includes('leaflet-buildingDepth-pane')
+        ));
+
+        expect(finalBuildings.transform).toBe(initialBuildings.transform);
+        expect(finalBuildings.left).toBeCloseTo(initialBuildings.left, 3);
+        expect(finalBuildings.top).toBeCloseTo(initialBuildings.top, 3);
+        expect(finalBuildings.left).toBeCloseTo(finalDepth.left, 3);
+        expect(finalBuildings.top).toBeCloseTo(finalDepth.top, 3);
+        expect(finalCenter.lat).toBeCloseTo(initialState.mapCenter.lat, 8);
+        expect(finalCenter.lng).toBeCloseTo(initialState.mapCenter.lng, 8);
+        runtime.expectNone();
+    });
+});
