@@ -550,25 +550,48 @@
     }
 
     function getIndoorViewportBounds(preferRoute = false) {
-        if (preferRoute && typeof persistentIndoorRouteByFloor !== 'undefined') {
-            const routePoints = persistentIndoorRouteByFloor?.[currentIndoorFloor] || [];
-            if (routePoints.length >= 2) {
-                return {
-                    bounds: L.latLngBounds(routePoints),
-                    route: true
-                };
-            }
-        }
-
         const mapItem = allIndoorMaps.find(item =>
             Number(item.building_id) === Number(currentIndoorBuildingId) &&
             Number(item.floor_number) === Number(currentIndoorFloor)
         );
         const geometryBounds = getIndoorMapBoundsFromGeometry(mapItem?.geometry);
+
+        if (preferRoute && typeof persistentIndoorRouteByFloor !== 'undefined') {
+            const routePoints = persistentIndoorRouteByFloor?.[currentIndoorFloor] || [];
+            if (routePoints.length >= 2) {
+                const routeBounds = L.latLngBounds(routePoints);
+
+                /* A route-only fit can zoom deeply into one corridor and leave
+                   most of the floorplan outside the phone viewport. Keep the
+                   complete floor centered and extend it only if route data
+                   reaches beyond the saved floor geometry. */
+                if (geometryBounds?.isValid()) {
+                    const combinedBounds = L.latLngBounds(
+                        geometryBounds.getSouthWest(),
+                        geometryBounds.getNorthEast()
+                    );
+                    combinedBounds.extend(routeBounds);
+
+                    return {
+                        bounds: combinedBounds,
+                        route: true,
+                        floor: true
+                    };
+                }
+
+                return {
+                    bounds: routeBounds,
+                    route: true,
+                    floor: false
+                };
+            }
+        }
+
         if (geometryBounds?.isValid()) {
             return {
                 bounds: geometryBounds,
-                route: false
+                route: false,
+                floor: true
             };
         }
 
@@ -577,7 +600,7 @@
         if (!layers.length) return null;
 
         const bounds = L.featureGroup(layers).getBounds();
-        return bounds.isValid() ? { bounds, route: false } : null;
+        return bounds.isValid() ? { bounds, route: false, floor: true } : null;
     }
 
     function fitIndoorViewportOnce(options = {}) {
@@ -602,9 +625,9 @@
         if (!viewport) return false;
 
         const mobile = window.matchMedia('(max-width: 768px)').matches;
-        const paddedBounds = viewport.route
-            ? viewport.bounds
-            : viewport.bounds.pad(mobile ? 0.03 : 0.12);
+        const paddedBounds = viewport.floor
+            ? viewport.bounds.pad(mobile ? 0.03 : 0.12)
+            : viewport.bounds;
 
         /* Drawing a route often happens while its complete floor segment is
            already visible. Re-fitting the same bounds forces a full Canvas and
@@ -620,9 +643,9 @@
 
         indoorMap.fitBounds(paddedBounds, {
             animate: false,
-            padding: viewport.route
-                ? (mobile ? [18, 18] : [44, 44])
-                : (mobile ? [8, 8] : [28, 28]),
+            padding: viewport.floor
+                ? (mobile ? [8, 8] : [28, 28])
+                : (mobile ? [18, 18] : [44, 44]),
             maxZoom: 22
         });
 

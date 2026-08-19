@@ -550,6 +550,64 @@ test.describe('low-end mobile indoor route', () => {
         userAgent: 'Mozilla/5.0 (Linux; Android 11; CPH2349) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
     });
 
+    test('centers and paints a room route opened from text search', async ({ page }) => {
+        const runtime = monitorRuntimeErrors(page);
+        await loginAsUser(page);
+
+        await page.locator('#destination-menu-toggle').click();
+        await page.locator('#text-search-command-btn').click();
+        await expect(page.locator('#ai-search-panel')).toBeVisible();
+        await page.locator('#destination-search-input').fill('it laboratory');
+        await page.locator('#ai-search-panel .ai-search-submit').click();
+
+        await expect(page.locator('.route-building-map-popup-btn')).toBeVisible({
+            timeout: 15_000,
+        });
+        await page.evaluate(() => window.openIndoorFromRoutePopup());
+        await expect(page.locator('#indoorPanel')).toHaveClass(/active/);
+        await expect(page.locator('#indoorFooter')).toContainText('Indoor Route Ready');
+
+        let visualState = null;
+        await expect.poll(async () => {
+            visualState = await page.evaluate(() => {
+            const map = document.querySelector('#indoorMap');
+            const image = map?.querySelector('.leaflet-image-layer');
+            const canvas = map?.querySelector('.leaflet-overlay-pane > canvas');
+            if (!map || !image || !canvas) return null;
+
+            const mapRect = map.getBoundingClientRect();
+            const imageRect = image.getBoundingClientRect();
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            const pixels = context?.getImageData(0, 0, canvas.width, canvas.height).data;
+            let paintedPixels = 0;
+            if (pixels) {
+                for (let index = 3; index < pixels.length; index += 4) {
+                    if (pixels[index] > 0) paintedPixels += 1;
+                }
+            }
+
+            return {
+                paintedPixels,
+                horizontalCenterOffset: Math.abs(
+                    (imageRect.left + imageRect.width / 2)
+                    - (mapRect.left + mapRect.width / 2)
+                ),
+                verticalCenterOffset: Math.abs(
+                    (imageRect.top + imageRect.height / 2)
+                    - (mapRect.top + mapRect.height / 2)
+                ),
+                mapWidth: mapRect.width,
+                mapHeight: mapRect.height,
+            };
+            });
+            return visualState?.paintedPixels || 0;
+        }).toBeGreaterThan(20);
+
+        expect(visualState.horizontalCenterOffset).toBeLessThan(visualState.mapWidth * 0.18);
+        expect(visualState.verticalCenterOffset).toBeLessThan(visualState.mapHeight * 0.18);
+        runtime.expectNone();
+    });
+
     test('keeps the room route visible during and after indoor zoom and drag', async ({ page }) => {
         const runtime = monitorRuntimeErrors(page);
         await loginAsUser(page);

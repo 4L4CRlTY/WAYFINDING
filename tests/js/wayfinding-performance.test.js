@@ -468,6 +468,9 @@ test('mobile camera has one explicit route fit and one ResizeObserver indoor fit
 
     assert.match(indoorRouting, /new ResizeObserver\(/);
     assert.match(indoorRouting, /function scheduleIndoorViewportFit\(/);
+    assert.match(indoorRouting, /const combinedBounds\s*=\s*L\.latLngBounds\(/);
+    assert.match(indoorRouting, /combinedBounds\.extend\(routeBounds\)/);
+    assert.match(indoorRouting, /const paddedBounds\s*=\s*viewport\.floor/);
     assert.match(indoorRouting, /indoorMap\.fitBounds\(paddedBounds/);
     assert.doesNotMatch(indoorRouting, /setTimeout\([\s\S]{0,180}(?:fitBounds|invalidateSize)/);
     assert.match(outdoorRouting, /const routeAlreadyVisible\s*=\s*IS_MOBILE_OUTDOOR_VIEW/);
