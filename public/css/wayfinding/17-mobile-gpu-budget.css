@@ -149,6 +149,12 @@
         -webkit-backdrop-filter: none !important;
     }
 
+    body.render-quality-low .campus-event-panel-card::before,
+    body.render-quality-low .campus-event-panel-head::after,
+    body.render-quality-low .campus-event-empty {
+        background-image: none !important;
+    }
+
     /* Low-end only: the tested Vivo stays balanced, while Oppo-class phones
        avoid full-screen filtered tile/grid surfaces during gestures. */
     body.render-quality-low #map .leaflet-tile-pane {
@@ -224,10 +230,17 @@
        does not restore the old GPU-heavy rendering. */
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-overlay-pane > canvas,
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-overlay-pane > svg,
+    body.render-quality-low.indoor-map-zooming #indoorMap .wayfinding-indoor-route-pane,
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-marker-pane,
     body.render-quality-low.indoor-map-zooming #indoorMap .leaflet-shadow-pane {
         visibility: visible !important;
         opacity: 1 !important;
+    }
+
+    body.render-quality-low #indoorMap .wayfinding-indoor-route-pane svg {
+        animation: none !important;
+        transition: none !important;
+        filter: none !important;
     }
 
     /* Keep the small fixed HUD surfaces on stable compositor layers. This is

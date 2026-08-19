@@ -34,6 +34,14 @@ Route::get('/guest', [UserController::class, 'GuestDashboard'])
     ->middleware(['wayfinding.client', 'throttle:wayfinding-public-page'])
     ->name('guest.dashboard');
 
+/* This route is intentionally absent from production. It provides a
+   phone-sized QA shell for reproducing low/balanced rendering issues locally
+   without changing the real device-detection rules. */
+if (app()->environment('local') && config('app.debug')) {
+    Route::view('/dev/mobile-emulator', 'dev.mobile-emulator')
+        ->name('dev.mobile-emulator');
+}
+
 require __DIR__.'/auth.php';
 
 Route::middleware(['auth', 'roles:admin'])->group(function () {

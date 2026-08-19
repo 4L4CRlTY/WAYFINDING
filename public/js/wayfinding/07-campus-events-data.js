@@ -4,6 +4,14 @@
        - Room event: display above parent building, route to specific room.
        - Landuse event: display above landuse, route to area.
     ========================================================= */
+    const CAMPUS_EVENT_SCHEDULE_ICON = `
+        <svg class="wf-line-icon campus-event-schedule-symbol" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3.5" y="4.5" width="17" height="16" rx="3" />
+            <path d="M7.5 2.8v4M16.5 2.8v4M3.5 9h17" />
+            <path class="wf-icon-accent" d="M8 17h8M9.2 17v-3.5h5.6V17M8.2 13.5l3.8-2.2 3.8 2.2" />
+        </svg>
+    `;
+
     function escapeEventHtml(value) {
         return String(value ?? '')
             .replaceAll('&', '&amp;')
@@ -172,10 +180,7 @@
                     aria-label="Open campus events">
                 <span class="campus-event-bell-pulse" id="campus-event-bell-pulse" style="display:none;"></span>
                 <span class="campus-event-bell-icon" aria-hidden="true">
-                    <svg class="wf-line-icon" viewBox="0 0 24 24">
-                        <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
-                        <path class="wf-icon-accent" d="M10 21h4M9 4.2A4.8 4.8 0 0 1 12 3" />
-                    </svg>
+                    ${CAMPUS_EVENT_SCHEDULE_ICON}
                 </span>
                 <span class="campus-event-bell-count is-zero" id="campus-event-bell-count">0</span>
             </button>
@@ -207,12 +212,14 @@
                 <div class="campus-event-panel-head">
                     <div>
                         <div class="campus-event-panel-kicker">
-                            <span class="campus-event-mini-dot upcoming-dot"></span>
+                            <span class="campus-event-kicker-icon" aria-hidden="true">
+                                ${CAMPUS_EVENT_SCHEDULE_ICON}
+                            </span>
                             Campus Events
                         </div>
-                        <div class="campus-event-panel-title">Current & Upcoming</div>
+                        <div class="campus-event-panel-title">Campus Event Schedule</div>
                         <div class="campus-event-panel-subtitle">
-                            Tap an event to route. Panel stays hidden until you open it.
+                            Choose an active event to open its campus route.
                         </div>
                     </div>
 
@@ -227,8 +234,11 @@
                 <div class="campus-event-list" id="campus-event-list"></div>
 
                 <div class="campus-event-empty" id="campus-event-empty" style="display:none;">
-                    <span class="campus-event-empty-icon">🔕</span>
-                    No current or upcoming campus events.
+                    <span class="campus-event-empty-icon" aria-hidden="true">
+                        ${CAMPUS_EVENT_SCHEDULE_ICON}
+                    </span>
+                    <strong>No scheduled campus events</strong>
+                    <small>Current and upcoming activities will appear here.</small>
                 </div>
             </div>
         `;
@@ -248,7 +258,7 @@
                 ? activeEvents.map(event => createCampusEventCardHtml(event)).join('')
                 : '';
         }
-        if (empty) empty.style.display = activeEvents.length ? 'none' : 'block';
+        if (empty) empty.style.display = activeEvents.length ? 'none' : 'grid';
     }
 
     function toggleCampusEventPanel() {

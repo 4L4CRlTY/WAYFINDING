@@ -8,6 +8,12 @@
     $gpsDiagnosticsEnabled = ! $guestMode
         && config('app.debug')
         && ($gpsSimulatorEnabled || request()->boolean('gps_diagnostics'));
+    $requestedMobileEmulatorProfile = strtolower((string) request()->query('mobile_emulator', ''));
+    $mobileEmulatorProfile = app()->environment('local')
+        && config('app.debug')
+        && in_array($requestedMobileEmulatorProfile, ['low', 'balanced'], true)
+            ? $requestedMobileEmulatorProfile
+            : null;
 @endphp
 
 <!DOCTYPE html>
@@ -1056,6 +1062,10 @@
 
     @if($gpsSimulatorEnabled)
         <script>window.WAYFINDING_GPS_SIMULATOR_ENABLED = true;</script>
+    @endif
+
+    @if($mobileEmulatorProfile)
+        <script>window.WAYFINDING_FORCE_RENDER_PROFILE = @json($mobileEmulatorProfile);</script>
     @endif
 
     <script>

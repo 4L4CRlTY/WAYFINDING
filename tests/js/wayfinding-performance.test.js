@@ -39,7 +39,11 @@ test('dashboard navigation icons are local static SVGs with a mobile GPU guard',
     assert.match(dashboard, />Select Start</);
     assert.match(dashboard, />Current Location</);
     assert.match(dashboard, />Campus Entrance</);
-    assert.match(campusEvents, /campus-event-bell-icon[\s\S]{0,180}<svg class="wf-line-icon"/);
+    assert.match(campusEvents, /campus-event-bell-icon[\s\S]{0,180}CAMPUS_EVENT_SCHEDULE_ICON/);
+    assert.match(campusEvents, /campus-event-schedule-symbol/);
+    assert.match(campusEvents, /Campus Event Schedule/);
+    assert.doesNotMatch(campusEvents, /M18 9a6 6 0 0 0-12 0/);
+    assert.doesNotMatch(campusEvents, /🔕/);
     assert.match(mobileBudget, /\.campus-event-bell-pulse,[\s\S]{0,180}animation:\s*none !important/);
     assert.match(mobileBudget, /\.wf-line-icon,[\s\S]{0,180}transition:\s*none !important/);
     assert.match(mobileBudget, /\.navigator-beacon-icon,[\s\S]{0,180}animation:\s*none !important/);
@@ -568,7 +572,7 @@ test('indoor opening responds immediately and caches versioned building data', (
     assert.doesNotMatch(indoorDataTransport, /cache: 'no-cache'/);
 });
 
-test('indoor vectors use one shared Canvas renderer and room selection does not rebuild the floor', () => {
+test('indoor floor vectors share one Canvas while the essential route uses a stable SVG pane', () => {
     const indoorRouting = readFileSync(
         new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
         'utf8',
@@ -581,13 +585,15 @@ test('indoor vectors use one shared Canvas renderer and room selection does not 
     assert.match(indoorRouting, /__wayfindingVectorRendererMode\s*=\s*['"]canvas['"]/);
     assert.doesNotMatch(indoorRouting, /lowEndIndoorView[\s\S]{0,160}L\.svg\(/);
     assert.match(indoorRouting, /renderer:\s*indoorMap\.__wayfindingVectorRenderer/);
+    assert.match(indoorRouting, /createPane\('indoorRoutePane'\)/);
+    assert.match(indoorRouting, /__wayfindingRouteRenderer\s*=\s*L\.svg\(/);
     assert.match(
         indoorRouting,
-        /className:\s*'route-line-live-indoor',[\s\S]{0,100}renderer:\s*indoorMap\.__wayfindingVectorRenderer/,
+        /className:\s*'route-line-live-indoor',[\s\S]{0,100}renderer:\s*indoorMap\.__wayfindingRouteRenderer/,
     );
     assert.match(
         indoorRouting,
-        /indoorEndMarker\s*=\s*L\.circleMarker\([\s\S]{0,100}renderer:\s*indoorMap\.__wayfindingVectorRenderer/,
+        /indoorEndMarker\s*=\s*L\.circleMarker\([\s\S]{0,100}renderer:\s*indoorMap\.__wayfindingRouteRenderer/,
     );
     assert.match(indoorRouting, /interactive:\s*false/);
     assert.match(indoorRouting, /indoorRoomsLayer\?\.eachLayer/);
@@ -627,6 +633,10 @@ test('low-end indoor gestures transform one cached surface while room geometry s
     assert.match(
         gpuBudget,
         /render-quality-low\.indoor-map-zooming[\s\S]*?leaflet-marker-pane[\s\S]*?visibility:\s*visible !important/,
+    );
+    assert.match(
+        gpuBudget,
+        /render-quality-low\.indoor-map-zooming[\s\S]*?wayfinding-indoor-route-pane[\s\S]*?visibility:\s*visible !important/,
     );
     assert.doesNotMatch(
         gpuBudget,
@@ -765,6 +775,10 @@ test('room information and route-ready HUD stay futuristic without mobile effect
     );
     assert.match(userFriendly, /#floating-route-ui \.ai-route-confirmation \{[\s\S]*?position:\s*relative !important/);
     assert.match(userFriendly, /\.indoor-room-map-popup[\s\S]*?backdrop-filter:\s*none !important/);
+    assert.match(
+        userFriendly,
+        /render-quality-low \.indoor-panel \.indoor-header \{\s*background-color:\s*#071c30 !important/,
+    );
     assert.match(gpuBudget, /#floating-route-ui \.ai-route-confirmation \{[\s\S]*?animation:\s*none !important/);
     assert.match(gpuBudget, /#floating-route-ui \.floating-start-bar \{\s*order:\s*3/);
 });

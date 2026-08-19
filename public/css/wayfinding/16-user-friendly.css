@@ -1211,6 +1211,14 @@ body.render-quality-low .indoor-guide-symbol {
     transition: none !important;
 }
 
+/* The regular header uses a gradient with no background-color. Removing that
+   gradient in low mode previously made the header transparent, leaving its
+   white title on top of the white map. This opaque fallback costs no GPU
+   effect and preserves the same high-contrast futuristic palette. */
+body.render-quality-low .indoor-panel .indoor-header {
+    background-color: #071c30 !important;
+}
+
 @media (max-width: 370px) {
     .navigation-sheet.is-started .navigation-actions {
         grid-template-columns: repeat(2, minmax(0, 1fr));

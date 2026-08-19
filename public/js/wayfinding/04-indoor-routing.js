@@ -143,6 +143,19 @@
         indoorMap.__wayfindingVectorRendererMode = 'canvas';
         indoorMap.__wayfindingVectorPixelRatio = lowEndIndoorView ? 1 : Math.min(2, window.devicePixelRatio || 1);
 
+        /* Keep the essential route separate from the cached low-end floor
+           surface. One lightweight SVG (two route paths plus the destination
+           dot) stays crisp and cannot be erased when the 1x floor Canvas is
+           resized or repainted during a pinch/zoom. */
+        const indoorRoutePane = indoorMap.createPane('indoorRoutePane');
+        indoorRoutePane.classList.add('wayfinding-indoor-route-pane');
+        indoorRoutePane.style.zIndex = '480';
+        indoorRoutePane.style.pointerEvents = 'none';
+        indoorMap.__wayfindingRouteRenderer = L.svg({
+            pane: 'indoorRoutePane',
+            padding: 0.08
+        }) || indoorMap.__wayfindingVectorRenderer;
+
         installIndoorInteractionController();
 
         indoorMap.setView([10.2925, 124.9985], 20);
@@ -1674,7 +1687,7 @@
                 outlineWeight: 11,
                 outlineOpacity: 0.28,
                 className: 'route-line-live-indoor',
-                renderer: indoorMap.__wayfindingVectorRenderer
+                renderer: indoorMap.__wayfindingRouteRenderer
             });
 
             indoorRouteAnimationTimer = staticIndoorRoute.timer;
@@ -1691,7 +1704,7 @@
 
         if (roomCenter && Number(roomFeature.properties?.floor_number) === Number(currentIndoorFloor)) {
             indoorEndMarker = L.circleMarker(roomCenter, {
-                renderer: indoorMap.__wayfindingVectorRenderer,
+                renderer: indoorMap.__wayfindingRouteRenderer,
                 radius: 8,
                 color: '#fff',
                 weight: 2,
@@ -1739,7 +1752,7 @@
                 outlineWeight: 11,
                 outlineOpacity: 0.28,
                 className: 'route-line-live-indoor',
-                renderer: indoorMap.__wayfindingVectorRenderer
+                renderer: indoorMap.__wayfindingRouteRenderer
             });
 
             indoorRouteAnimationTimer = staticIndoorRoute.timer;
@@ -1761,7 +1774,7 @@
 
         if (roomCenter && Number(roomFeature.properties?.floor_number) === Number(currentIndoorFloor)) {
             indoorEndMarker = L.circleMarker(roomCenter, {
-                renderer: indoorMap.__wayfindingVectorRenderer,
+                renderer: indoorMap.__wayfindingRouteRenderer,
                 radius: 8,
                 color: '#fff',
                 weight: 2,

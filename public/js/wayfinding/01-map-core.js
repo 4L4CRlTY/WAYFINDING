@@ -8,6 +8,17 @@
     | Lower value = mas zoom out.
     */
     function detectWayfindingRenderProfile() {
+        const forcedMobileProfile = String(window.WAYFINDING_FORCE_RENDER_PROFILE || '').toLowerCase();
+
+        if (['low', 'balanced'].includes(forcedMobileProfile)) {
+            return {
+                mode: forcedMobileProfile,
+                score: forcedMobileProfile === 'low' ? 99 : 0,
+                mobile: true,
+                emulated: true
+            };
+        }
+
         const mobileView = window.matchMedia('(hover: none), (max-width: 768px)').matches;
 
         if (!mobileView) {

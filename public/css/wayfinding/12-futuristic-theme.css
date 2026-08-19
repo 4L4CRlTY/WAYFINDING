@@ -611,17 +611,166 @@ body {
 }
 
 .campus-event-panel-head {
-    border-color: rgba(66, 217, 255, 0.12) !important;
+    position: relative;
+    padding: 15px 16px 13px !important;
+    background: #0a2943 !important;
+    border-color: rgba(66, 217, 255, 0.22) !important;
+}
+
+.campus-event-panel-head::after {
+    content: "";
+    position: absolute;
+    right: 58px;
+    bottom: -1px;
+    left: 16px;
+    height: 1px;
+    background: linear-gradient(90deg, #36d9f5, rgba(54, 217, 245, 0));
+    pointer-events: none;
+}
+
+.campus-event-panel-card {
+    position: relative;
+    color: var(--future-text) !important;
+    background: #061827 !important;
+    border: 1px solid rgba(68, 215, 247, 0.38) !important;
+    box-shadow: 0 22px 54px rgba(0, 7, 15, 0.48), var(--future-inner) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.campus-event-panel-kicker {
+    gap: 7px !important;
+    color: #56e4fb !important;
+    letter-spacing: 0.13em !important;
+}
+
+.campus-event-kicker-icon {
+    width: 17px;
+    height: 17px;
+    display: grid;
+    place-items: center;
+    color: #6deaff;
+}
+
+.campus-event-kicker-icon .wf-line-icon {
+    width: 17px;
+    height: 17px;
+}
+
+.campus-event-panel-title {
+    color: #f3fbff !important;
+    font-size: 15px !important;
+    letter-spacing: -0.01em;
+}
+
+.campus-event-panel-subtitle {
+    max-width: 240px;
+    color: #8eafc0 !important;
+}
+
+.campus-event-panel-close {
+    color: #6fe9ff !important;
+    background: #0b263d !important;
+    border: 1px solid rgba(87, 223, 249, 0.32) !important;
+    box-shadow: none !important;
+}
+
+.campus-event-list {
+    background: #061827 !important;
 }
 
 .campus-event-card {
-    background: rgba(7, 21, 34, 0.5) !important;
-    border-color: rgba(111, 178, 221, 0.18) !important;
+    background: #0a2134 !important;
+    border-color: rgba(111, 204, 234, 0.22) !important;
+    box-shadow: none !important;
+}
+
+.campus-event-card.now-card {
+    background: #231d29 !important;
+    border-color: rgba(255, 109, 142, 0.42) !important;
+}
+
+.campus-event-card.upcoming-card {
+    background: #0a2134 !important;
+    border-color: rgba(75, 205, 239, 0.36) !important;
 }
 
 .campus-event-route-btn {
     color: #ffffff !important;
-    background: var(--future-primary-bright) !important;
+    background: #075381 !important;
+    border: 1px solid rgba(91, 224, 255, 0.4) !important;
+    box-shadow: none !important;
+}
+
+.campus-event-schedule-symbol {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.campus-event-schedule-symbol .wf-icon-accent {
+    stroke: #51e8ff;
+}
+
+.campus-event-empty {
+    min-height: 154px;
+    place-items: center;
+    align-content: center;
+    gap: 5px;
+    padding: 22px 16px !important;
+    color: #8eafc0 !important;
+    background:
+        linear-gradient(rgba(53, 210, 240, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(53, 210, 240, 0.035) 1px, transparent 1px),
+        #061827;
+    background-size: 22px 22px;
+}
+
+.campus-event-empty-icon {
+    width: 48px;
+    height: 48px;
+    display: grid !important;
+    place-items: center;
+    margin: 0 0 5px !important;
+    color: #65e7ff;
+    background: #0b2a43;
+    border: 1px solid rgba(90, 226, 251, 0.32);
+    border-radius: 14px;
+}
+
+.campus-event-empty-icon .wf-line-icon {
+    width: 29px;
+    height: 29px;
+}
+
+.campus-event-empty strong {
+    color: #eafaff;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.campus-event-empty small {
+    color: #789aaa;
+    font-size: 9.5px;
+    font-weight: 650;
+}
+
+.campus-event-bell-count {
+    background: #0c91b2 !important;
+    border-color: #061827 !important;
+    box-shadow: none !important;
+}
+
+.campus-event-bell-count.is-zero {
+    color: #8edff0 !important;
+    background: #12354a !important;
+}
+
+.campus-event-bell-pulse {
+    animation: none !important;
+    border-color: rgba(84, 226, 250, 0.48) !important;
 }
 
 /* Legend, map popups, and route */

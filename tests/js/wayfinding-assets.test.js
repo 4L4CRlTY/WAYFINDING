@@ -379,6 +379,34 @@ test('development GPS simulator drives the live GPS provider with campus route p
     assert.match(source, /4× Demo/);
 });
 
+test('mobile QA emulator is local-only and switches low or advanced phone profiles', () => {
+    const routes = readFileSync(
+        new URL('../../routes/web.php', import.meta.url),
+        'utf8',
+    );
+    const dashboard = readFileSync(
+        new URL('../../resources/views/user/dashboard.blade.php', import.meta.url),
+        'utf8',
+    );
+    const emulator = readFileSync(
+        new URL('../../resources/views/dev/mobile-emulator.blade.php', import.meta.url),
+        'utf8',
+    );
+    const mapCore = readFileSync(
+        new URL('../../public/js/wayfinding/01-map-core.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(routes, /environment\('local'\)\s*&&\s*config\('app\.debug'\)/);
+    assert.match(routes, /Route::view\('\/dev\/mobile-emulator',\s*'dev\.mobile-emulator'\)/);
+    assert.match(dashboard, /in_array\(\$requestedMobileEmulatorProfile, \['low', 'balanced'\], true\)/);
+    assert.match(emulator, /data-profile="low"/);
+    assert.match(emulator, /data-profile="balanced"/);
+    assert.match(emulator, /390x844/);
+    assert.match(mapCore, /\['low', 'balanced'\]\.includes\(forcedMobileProfile\)/);
+    assert.match(mapCore, /emulated:\s*true/);
+});
+
 test('GPS diagnostics records locally and exports field-test measurements', () => {
     const path = new URL(
         '../../public/js/wayfinding/13-gps-diagnostics.js',

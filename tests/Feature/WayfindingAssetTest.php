@@ -202,6 +202,40 @@ class WayfindingAssetTest extends TestCase
             ], escape: false);
     }
 
+    public function test_mobile_emulator_override_is_hidden_outside_local_debug_mode(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'user',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('user.dashboard', ['mobile_emulator' => 'low']))
+            ->assertOk()
+            ->assertDontSee('window.WAYFINDING_FORCE_RENDER_PROFILE', escape: false);
+    }
+
+    public function test_mobile_emulator_can_force_low_and_advanced_profiles_locally(): void
+    {
+        $this->app->detectEnvironment(fn (): string => 'local');
+        config(['app.debug' => true]);
+
+        $user = User::factory()->create([
+            'role' => 'user',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('user.dashboard', ['mobile_emulator' => 'low']))
+            ->assertOk()
+            ->assertSee("window.WAYFINDING_FORCE_RENDER_PROFILE = \"low\";", escape: false);
+
+        $this
+            ->get(route('user.dashboard', ['mobile_emulator' => 'balanced']))
+            ->assertOk()
+            ->assertSee("window.WAYFINDING_FORCE_RENDER_PROFILE = \"balanced\";", escape: false);
+    }
+
     public function test_gps_diagnostics_can_be_explicitly_enabled_in_debug_mode(): void
     {
         config(['app.debug' => true]);
