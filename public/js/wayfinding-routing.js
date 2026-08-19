@@ -564,6 +564,23 @@
         };
     }
 
+    function indoorRouteBelongsToBuilding(routePackage, buildingId) {
+        if (!routePackage) return false;
+
+        const normalizedBuildingId = Number(buildingId);
+        const routeBuildingId = Number(
+            routePackage.buildingId ??
+            routePackage.roomFeature?.properties?.building_id ??
+            routePackage.entranceFeature?.properties?.building_id
+        );
+
+        return Number.isFinite(normalizedBuildingId) &&
+            normalizedBuildingId > 0 &&
+            Number.isFinite(routeBuildingId) &&
+            routeBuildingId > 0 &&
+            routeBuildingId === normalizedBuildingId;
+    }
+
     global.WayfindingRouting = Object.freeze({
         isPathBlocked,
         shortestPath,
@@ -579,5 +596,6 @@
         nextGpsOffRouteConfirmation,
         classifyGpsSignal,
         summarizeGpsCalibration,
+        indoorRouteBelongsToBuilding,
     });
 })(typeof window !== 'undefined' ? window : globalThis);

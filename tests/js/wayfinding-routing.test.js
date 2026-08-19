@@ -160,6 +160,23 @@ test('indoor routing may enter the selected destination room', () => {
     assert.equal(result.totalCost, 5);
 });
 
+test('an indoor route belongs only to its destination building', () => {
+    const routePackage = {
+        buildingId: 5,
+        roomFeature: {
+            properties: {
+                building_id: 5,
+                floor_number: 2,
+            },
+        },
+    };
+
+    assert.equal(routing.indoorRouteBelongsToBuilding(routePackage, 5), true);
+    assert.equal(routing.indoorRouteBelongsToBuilding(routePackage, 1), false);
+    assert.equal(routing.indoorRouteBelongsToBuilding(routePackage, 12), false);
+    assert.equal(routing.indoorRouteBelongsToBuilding(null, 5), false);
+});
+
 test('entrance selection uses a shorter side entrance for the complete route', () => {
     const mainEntrance = {
         name: 'Main Entrance',

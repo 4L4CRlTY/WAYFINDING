@@ -560,7 +560,7 @@ test('indoor opening responds immediately and caches versioned building data', (
         /openIndoorPanelModal\(\);[\s\S]{0,160}setIndoorLoading\(true\);[\s\S]{0,260}await Promise\.all/,
     );
     assert.match(indoorRouting, /latestIndoorOpenRequestId/);
-    assert.match(indoorRouting, /Loading rooms and indoor map/);
+    assert.match(indoorRouting, /Preparing indoor floors/);
     assert.match(mapUi, /wayfinding:indoor-panel-closed/);
     assert.match(searchVoice, /wayfinding-indoor-data\.js\?v=/);
     assert.match(indoorDataTransport, /cacheVersion/);
@@ -617,6 +617,7 @@ test('low-end indoor gestures transform one cached surface while room geometry s
     assert.match(indoorRouting, /if \(!lowEndSurfaceMode\) \{/);
     assert.match(indoorRouting, /indoorFeatureContainsLatLng/);
     assert.match(indoorRouting, /window\.routeToIndoorRoom/);
+    assert.doesNotMatch(indoorRouting, /Route to this room/i);
     assert.match(searchVoice, /prefetchWayfindingIndoorBuilding/);
     assert.match(searchVoice, /await indoorDataReady/);
     assert.match(
@@ -682,6 +683,90 @@ test('rooms without a usable door still connect through the nearest wall and hal
     assert.match(indoorRouting, /type:\s*'room_to_virtual_door'/);
     assert.match(indoorRouting, /type:\s*'virtual_door_to_hallway'/);
     assert.match(indoorRouting, /return computeCompleteRouteToRoom\(room\)/);
+});
+
+test('indoor floor controls show a compact current-next-destination sequence', () => {
+    const dashboard = readFileSync(
+        new URL('../../resources/views/user/dashboard.blade.php', import.meta.url),
+        'utf8',
+    );
+    const indoorUi = readFileSync(
+        new URL('../../public/js/wayfinding/09-building-indoor-ui.js', import.meta.url),
+        'utf8',
+    );
+    const userFriendly = readFileSync(
+        new URL('../../public/css/wayfinding/16-user-friendly.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(dashboard, /id="indoorFloorGuide"/);
+    assert.match(dashboard, /aria-label="Indoor floor route"/);
+    assert.match(indoorUi, /return 'Ground Floor'/);
+    assert.match(indoorUi, /return `\$\{floor\}\$\{suffix\} Floor`/);
+    assert.match(indoorUi, /classList\.toggle\('is-next'/);
+    assert.match(indoorUi, /classList\.toggle\('is-destination'/);
+    assert.match(indoorUi, /floorRail\.scrollLeft\s*=\s*Math\.max/);
+    assert.match(userFriendly, /\.indoor-floor-guide\[data-state="next"\]/);
+    assert.match(userFriendly, /\.indoor-floor-btn\.is-next:not\(\.active\)/);
+    assert.match(
+        userFriendly,
+        /body\.render-quality-low \.indoor-panel \.indoor-header,[\s\S]{0,500}animation:\s*none !important/,
+    );
+});
+
+test('cached indoor routes are strictly scoped to their destination building', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const indoorUi = readFileSync(
+        new URL('../../public/js/wayfinding/09-building-indoor-ui.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /function getIndoorRouteBuildingId\(/);
+    assert.match(indoorRouting, /function hasIndoorRouteForBuilding\(/);
+    assert.match(indoorRouting, /routeBuildingId === normalizedBuildingId/);
+    assert.match(indoorRouting, /if \(!hasIndoorRouteForBuilding\(\)\) \{\s*clearIndoorRoute\(\)/);
+    assert.match(
+        indoorRouting,
+        /preferRoute:\s*hasIndoorRouteForBuilding\(\)/,
+    );
+    assert.match(indoorUi, /routeMatchesCurrentBuilding/);
+    assert.match(indoorUi, /if \(hasCurrentBuildingRoute\) \{\s*redrawPersistentIndoorRouteForCurrentFloor\(\)/);
+    assert.match(indoorUi, /preferRoute:\s*hasCurrentBuildingRoute/);
+});
+
+test('room information and route-ready HUD stay futuristic without mobile effects', () => {
+    const dashboard = readFileSync(
+        new URL('../../resources/views/user/dashboard.blade.php', import.meta.url),
+        'utf8',
+    );
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+    const userFriendly = readFileSync(
+        new URL('../../public/css/wayfinding/16-user-friendly.css', import.meta.url),
+        'utf8',
+    );
+    const gpuBudget = readFileSync(
+        new URL('../../public/css/wayfinding/17-mobile-gpu-budget.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /function buildIndoorRoomInfoPopup\(/);
+    assert.match(indoorRouting, /className:\s*'indoor-room-map-popup'/);
+    assert.match(indoorRouting, /class="indoor-room-popup-meta"/);
+    assert.doesNotMatch(indoorRouting, /Route to this room/i);
+    assert.ok(
+        dashboard.indexOf('id="ai-route-confirmation"') <
+        dashboard.indexOf('class="floating-start-bar"'),
+    );
+    assert.match(userFriendly, /#floating-route-ui \.ai-route-confirmation \{[\s\S]*?position:\s*relative !important/);
+    assert.match(userFriendly, /\.indoor-room-map-popup[\s\S]*?backdrop-filter:\s*none !important/);
+    assert.match(gpuBudget, /#floating-route-ui \.ai-route-confirmation \{[\s\S]*?animation:\s*none !important/);
+    assert.match(gpuBudget, /#floating-route-ui \.floating-start-bar \{\s*order:\s*3/);
 });
 
 test('a runtime low-end downgrade stays active for the browser session', () => {

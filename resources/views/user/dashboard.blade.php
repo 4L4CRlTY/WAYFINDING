@@ -314,17 +314,26 @@
                 </div>
             </div>
 
-            <div class="ai-route-confirmation"
-                 id="ai-route-confirmation"
-                 role="status"
-                 aria-live="polite"
-                 hidden>
-                <span class="ai-route-confirmation-icon" aria-hidden="true">✓</span>
-                <span>
-                    <strong>Route ready</strong>
-                    <span id="ai-route-confirmation-text">Destination selected</span>
-                </span>
-            </div>
+        </div>
+
+        <div class="ai-route-confirmation"
+             id="ai-route-confirmation"
+             role="status"
+             aria-live="polite"
+             hidden>
+            <span class="ai-route-confirmation-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="7" />
+                    <circle class="ai-route-confirmation-core" cx="12" cy="12" r="2.5" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                </svg>
+            </span>
+            <span class="ai-route-confirmation-copy">
+                <small>Navigation status</small>
+                <strong>Route ready</strong>
+                <span id="ai-route-confirmation-text">Destination selected</span>
+            </span>
+            <span class="ai-route-confirmation-code" aria-hidden="true">READY</span>
         </div>
 
         <div class="floating-start-bar">
@@ -1009,7 +1018,17 @@
             <input type="text" id="indoorRoomSearch" class="indoor-room-search-hidden"
                 placeholder="Search room or office...">
 
-            <div class="indoor-floor-buttons" id="indoorFloorButtons"></div>
+            <div class="indoor-floor-guide" id="indoorFloorGuide" aria-live="polite">
+                <span class="indoor-floor-guide-signal" aria-hidden="true"></span>
+                <span class="indoor-floor-guide-copy">
+                    <small>FLOOR ROUTE</small>
+                    <strong>Select a floor</strong>
+                </span>
+                <span class="indoor-floor-guide-step">READY</span>
+            </div>
+
+            <div class="indoor-floor-buttons" id="indoorFloorButtons"
+                 aria-label="Indoor floor route"></div>
         </div>
 
         <div class="indoor-body">
@@ -1024,8 +1043,12 @@
                     <div class="loading-overlay" id="indoorLoading" style="display:none;">Loading indoor map...</div>
                 </div>
                 <div class="indoor-footer" id="indoorFooter">
-                    <span class="indoor-badge badge-blue">Select Building</span>
-                    Choose a room or office to compute the route.
+                    <span class="indoor-guide-symbol" aria-hidden="true">⌖</span>
+                    <span class="indoor-guide-message">
+                        <small>INDOOR GUIDE</small>
+                        <strong>Choose a room</strong>
+                        <span>Tap a room to create a route</span>
+                    </span>
                 </div>
             </div>
         </div>

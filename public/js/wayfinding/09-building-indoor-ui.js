@@ -342,6 +342,143 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         return document.getElementById('indoorFloorButtons');
     }
 
+    function formatIndoorFloorNameFinal(floorNumber) {
+        const floor = Number(floorNumber);
+        if (floor === 0) return 'Ground Floor';
+
+        const mod100 = Math.abs(floor) % 100;
+        const mod10 = Math.abs(floor) % 10;
+        let suffix = 'th';
+        if (mod100 < 11 || mod100 > 13) {
+            if (mod10 === 1) suffix = 'st';
+            else if (mod10 === 2) suffix = 'nd';
+            else if (mod10 === 3) suffix = 'rd';
+        }
+
+        return `${floor}${suffix} Floor`;
+    }
+
+    function getIndoorFloorRouteStateFinal() {
+        const currentFloor = Number(currentIndoorFloor);
+        const routeMatchesCurrentBuilding = typeof window.hasIndoorRouteForBuilding === 'function'
+            ? window.hasIndoorRouteForBuilding(currentIndoorBuildingId)
+            : Number(lastIndoorRoutePackage?.roomFeature?.properties?.building_id) === Number(currentIndoorBuildingId);
+        const destinationFloor = Number(
+            lastIndoorRoutePackage?.roomFeature?.properties?.floor_number ?? NaN
+        );
+        const entranceFloor = Number(
+            lastIndoorRoutePackage?.entranceFeature?.properties?.floor_number ?? NaN
+        );
+        const routeFloors = Object.keys(persistentIndoorRouteByFloor || {})
+            .map(Number)
+            .filter(Number.isFinite);
+
+        if (
+            !routeMatchesCurrentBuilding ||
+            !lastIndoorRoutePackage ||
+            !routeFloors.length ||
+            !Number.isFinite(destinationFloor)
+        ) {
+            return {
+                active: false,
+                currentFloor,
+                destinationFloor: null,
+                entranceFloor: null,
+                routeFloors: [],
+                orderedFloors: [],
+                nextFloor: null,
+                step: null,
+                totalSteps: 0,
+                onRouteFloor: false
+            };
+        }
+
+        const direction = destinationFloor >= entranceFloor ? 1 : -1;
+        const orderedFloors = [...new Set(routeFloors)]
+            .sort((a, b) => direction > 0 ? a - b : b - a);
+        const currentIndex = orderedFloors.indexOf(currentFloor);
+        const onRouteFloor = currentIndex >= 0;
+        const nextFloor = currentFloor === destinationFloor
+            ? null
+            : (onRouteFloor
+                ? (orderedFloors[currentIndex + 1] ?? destinationFloor)
+                : (orderedFloors[0] ?? destinationFloor));
+
+        return {
+            active: true,
+            currentFloor,
+            destinationFloor,
+            entranceFloor,
+            routeFloors,
+            orderedFloors,
+            nextFloor,
+            step: onRouteFloor ? currentIndex + 1 : null,
+            totalSteps: orderedFloors.length,
+            onRouteFloor
+        };
+    }
+
+    function renderIndoorNavigationGuideFinal() {
+        const guide = document.getElementById('indoorFloorGuide');
+        const state = getIndoorFloorRouteStateFinal();
+        if (!guide || !indoorFooter) return;
+
+        let guideKicker = 'FLOOR ROUTE';
+        let guideTitle = 'Select a floor';
+        let guideStep = 'READY';
+        let footerKicker = 'INDOOR GUIDE';
+        let footerTitle = 'Choose a room';
+        let footerDetail = 'Tap a room to create a route';
+        let guideState = 'idle';
+
+        if (state.active && state.currentFloor === state.destinationFloor) {
+            guideKicker = 'DESTINATION FLOOR';
+            guideTitle = formatIndoorFloorNameFinal(state.currentFloor);
+            guideStep = `${state.totalSteps || 1}/${state.totalSteps || 1}`;
+            footerKicker = 'FINAL STEP';
+            footerTitle = 'Destination floor reached';
+            footerDetail = 'Follow the cyan line to your room';
+            guideState = 'destination';
+        } else if (state.active && state.onRouteFloor && Number.isFinite(state.nextFloor)) {
+            const directionArrow = state.nextFloor > state.currentFloor ? '↑' : '↓';
+            guideKicker = 'NEXT FLOOR';
+            guideTitle = `${formatIndoorFloorNameFinal(state.nextFloor)} ${directionArrow}`;
+            guideStep = `${state.step || 1}/${state.totalSteps}`;
+            footerKicker = 'NEXT MOVE';
+            footerTitle = `Go to ${formatIndoorFloorNameFinal(state.nextFloor)}`;
+            footerDetail = 'Follow cyan line to orange stairs';
+            guideState = 'next';
+        } else if (state.active && Number.isFinite(state.nextFloor)) {
+            guideKicker = 'RETURN TO ROUTE';
+            guideTitle = formatIndoorFloorNameFinal(state.nextFloor);
+            guideStep = 'ROUTE';
+            footerKicker = 'FLOOR GUIDE';
+            footerTitle = `Open ${formatIndoorFloorNameFinal(state.nextFloor)}`;
+            footerDetail = 'The highlighted floor continues your route';
+            guideState = 'next';
+        }
+
+        guide.dataset.state = guideState;
+        guide.innerHTML = `
+            <span class="indoor-floor-guide-signal" aria-hidden="true"></span>
+            <span class="indoor-floor-guide-copy">
+                <small>${guideKicker}</small>
+                <strong>${guideTitle}</strong>
+            </span>
+            <span class="indoor-floor-guide-step">${guideStep}</span>
+        `;
+
+        indoorFooter.dataset.state = guideState;
+        indoorFooter.innerHTML = `
+            <span class="indoor-guide-symbol" aria-hidden="true">${guideState === 'destination' ? '◆' : (guideState === 'next' ? '↟' : '⌖')}</span>
+            <span class="indoor-guide-message">
+                <small>${footerKicker}</small>
+                <strong>${footerTitle}</strong>
+                <span>${footerDetail}</span>
+            </span>
+        `;
+    }
+
     function renderIndoorFloorButtonsFinal() {
         const container = getIndoorFloorButtonsContainerFinal();
         if (!container || !currentIndoorBuildingId) return;
@@ -355,7 +492,10 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
             btn.type = 'button';
             btn.className = 'indoor-floor-btn';
             btn.dataset.floor = String(floor);
-            btn.textContent = formatIndoorFloorLabel(floor, mapItem.floor_label);
+            btn.innerHTML = `
+                <span class="indoor-floor-btn-name">${formatIndoorFloorNameFinal(floor)}</span>
+                <span class="indoor-floor-btn-state">FLOOR</span>
+            `;
 
             if (Number(currentIndoorFloor) === floor) {
                 btn.classList.add('active');
@@ -367,12 +507,58 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
 
             container.appendChild(btn);
         });
+
+        updateIndoorFloorButtonActiveFinal();
     }
 
     function updateIndoorFloorButtonActiveFinal() {
+        const state = getIndoorFloorRouteStateFinal();
+        let recommendedButton = null;
+
         document.querySelectorAll('.indoor-floor-btn').forEach(btn => {
-            btn.classList.toggle('active', Number(btn.dataset.floor) === Number(currentIndoorFloor));
+            const floor = Number(btn.dataset.floor);
+            const isCurrent = floor === Number(currentIndoorFloor);
+            const isDestination = state.active && floor === state.destinationFloor;
+            const isNext = state.active && Number.isFinite(state.nextFloor) && floor === state.nextFloor;
+            const stateLabel = btn.querySelector('.indoor-floor-btn-state');
+
+            btn.classList.toggle('active', isCurrent);
+            btn.classList.toggle('is-current', isCurrent);
+            btn.classList.toggle('is-next', isNext && !isCurrent);
+            btn.classList.toggle('is-destination', isDestination);
+            btn.setAttribute('aria-pressed', isCurrent ? 'true' : 'false');
+
+            if (stateLabel) {
+                stateLabel.textContent = isCurrent && isDestination
+                    ? 'DESTINATION'
+                    : (isCurrent ? 'CURRENT' : (isNext ? 'NEXT' : (isDestination ? 'DEST' : 'FLOOR')));
+            }
+
+            const floorName = formatIndoorFloorNameFinal(floor);
+            btn.setAttribute(
+                'aria-label',
+                `${floorName}${isCurrent ? ', current floor' : ''}${isNext ? ', next floor on route' : ''}${isDestination ? ', destination floor' : ''}`
+            );
+
+            if (isNext && !isCurrent) recommendedButton = btn;
         });
+
+        renderIndoorNavigationGuideFinal();
+
+        if (recommendedButton) {
+            const floorRail = recommendedButton.closest('.indoor-floor-buttons');
+            const revealRecommendedFloor = () => {
+                if (!floorRail) return;
+                floorRail.scrollLeft = Math.max(
+                    0,
+                    recommendedButton.offsetLeft
+                        - ((floorRail.clientWidth - recommendedButton.offsetWidth) / 2)
+                );
+            };
+
+            revealRecommendedFloor();
+            requestAnimationFrame(revealRecommendedFloor);
+        }
     }
 
     function setIndoorFloorFromButtonFinal(floor) {
@@ -386,13 +572,16 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
         renderIndoorRoomList();
         renderIndoorFloor();
 
-        if (lastIndoorRoutePackage) {
+        const hasCurrentBuildingRoute = typeof window.hasIndoorRouteForBuilding === 'function'
+            && window.hasIndoorRouteForBuilding(currentIndoorBuildingId);
+
+        if (hasCurrentBuildingRoute) {
             redrawPersistentIndoorRouteForCurrentFloor();
         }
 
         scheduleIndoorViewportFit({
             reason: 'floor-button',
-            preferRoute: Boolean(lastIndoorRoutePackage)
+            preferRoute: hasCurrentBuildingRoute
         });
     }
 
@@ -408,6 +597,7 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
 
     window.renderIndoorFloorButtonsFinal = renderIndoorFloorButtonsFinal;
     window.setIndoorFloorFromButtonFinal = setIndoorFloorFromButtonFinal;
+    window.renderIndoorNavigationGuideFinal = renderIndoorNavigationGuideFinal;
 
 
     /* =========================================================

@@ -52,6 +52,39 @@
         });
     }
 
+    function escapeIndoorPopupText(value, fallback = '') {
+        return String(value ?? fallback).replace(/[&<>"']/g, character => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[character]);
+    }
+
+    function buildIndoorRoomInfoPopup(properties = {}) {
+        const floorLabel = typeof formatIndoorFloorLabel === 'function'
+            ? formatIndoorFloorLabel(properties.floor_number, properties.floor_label)
+            : (properties.floor_label || properties.floor_number || '-');
+
+        return `
+            <article class="indoor-room-popup-card">
+                <header class="indoor-room-popup-head">
+                    <span class="indoor-room-popup-signal" aria-hidden="true"><i></i></span>
+                    <span class="indoor-room-popup-title-wrap">
+                        <small>ROOM INFORMATION</small>
+                        <strong>${escapeIndoorPopupText(properties.name, 'Room')}</strong>
+                    </span>
+                </header>
+                <div class="indoor-room-popup-meta">
+                    <span><small>CODE</small><strong>${escapeIndoorPopupText(properties.room_code, 'N/A')}</strong></span>
+                    <span><small>TYPE</small><strong>${escapeIndoorPopupText(properties.type, 'Room')}</strong></span>
+                    <span><small>FLOOR</small><strong>${escapeIndoorPopupText(floorLabel, '-')}</strong></span>
+                </div>
+            </article>
+        `;
+    }
+
     function installIndoorLowEndRoomTap() {
         if (!indoorMap || indoorLowEndRoomTapInstalled) return;
         indoorLowEndRoomTapInstalled = true;
@@ -63,22 +96,12 @@
             selectedIndoorRoomFeature = room;
             renderIndoorRoomList();
             const p = room.properties || {};
-            const safeName = String(p.name || 'Room').replace(/[&<>"']/g, character => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-            })[character]);
-            const safeCode = String(p.room_code || 'N/A').replace(/[&<>"']/g, character => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-            })[character]);
-            L.popup({ autoPan: false })
+            L.popup({
+                autoPan: false,
+                className: 'indoor-room-map-popup'
+            })
                 .setLatLng(event.latlng)
-                .setContent(`<div style="min-width:150px">
-                    <strong>${safeName}</strong>
-                    <div>Code: ${safeCode}</div>
-                    <button type="button" onclick="window.routeToIndoorRoom(${Number(p.id)})"
-                        style="margin-top:8px;padding:7px 10px;">
-                        Route to this room
-                    </button>
-                </div>`)
+                .setContent(buildIndoorRoomInfoPopup(p))
                 .openOn(indoorMap);
         });
     }
@@ -172,6 +195,42 @@
             .filter(m => Number(m.building_id) === Number(buildingId))
             .sort((a, b) => Number(a.floor_number) - Number(b.floor_number));
     }
+
+    function getIndoorRouteBuildingId(routePackage = lastIndoorRoutePackage) {
+        if (!routePackage) return null;
+
+        const routeBuildingId = Number(
+            routePackage.buildingId ??
+            routePackage.roomFeature?.properties?.building_id ??
+            routePackage.entranceFeature?.properties?.building_id
+        );
+
+        return Number.isFinite(routeBuildingId) && routeBuildingId > 0
+            ? routeBuildingId
+            : null;
+    }
+
+    function hasIndoorRouteForBuilding(buildingId = currentIndoorBuildingId) {
+        const normalizedBuildingId = Number(buildingId);
+
+        if (typeof window.WayfindingRouting?.indoorRouteBelongsToBuilding === 'function') {
+            return window.WayfindingRouting.indoorRouteBelongsToBuilding(
+                lastIndoorRoutePackage,
+                normalizedBuildingId
+            );
+        }
+
+        const routeBuildingId = getIndoorRouteBuildingId();
+
+        return Boolean(
+            lastIndoorRoutePackage &&
+            Number.isFinite(normalizedBuildingId) &&
+            normalizedBuildingId > 0 &&
+            routeBuildingId === normalizedBuildingId
+        );
+    }
+
+    window.hasIndoorRouteForBuilding = hasIndoorRouteForBuilding;
 
     function getIndoorRoomsFor(buildingId, floorNumber = null) {
         return (allIndoorRooms.features || []).filter(f => {
@@ -456,7 +515,8 @@
         rooms.forEach(room => {
             const p = room.properties || {};
             const isActive = selectedIndoorRoomFeature &&
-                Number(selectedIndoorRoomFeature.properties?.id) === Number(p.id);
+                Number(selectedIndoorRoomFeature.properties?.id) === Number(p.id) &&
+                Number(selectedIndoorRoomFeature.properties?.building_id) === Number(currentIndoorBuildingId);
 
             const div = document.createElement('div');
             div.className = `room-item ${isActive ? 'active' : ''}`;
@@ -481,7 +541,8 @@
         const p = feature?.properties || {};
         const type = String(p.type || '').toLowerCase();
         const isSelected = selectedIndoorRoomFeature
-            && Number(selectedIndoorRoomFeature.properties?.id) === Number(p.id);
+            && Number(selectedIndoorRoomFeature.properties?.id) === Number(p.id)
+            && Number(selectedIndoorRoomFeature.properties?.building_id) === Number(currentIndoorBuildingId);
 
         let fillColor = '#dbeafe';
         if (type.includes('office')) fillColor = '#dcfce7';
@@ -533,7 +594,7 @@
                     indoorResizeFitPending = false;
                     scheduleIndoorViewportFit({
                         reason: 'settled-container-resize',
-                        preferRoute: Boolean(lastIndoorRoutePackage)
+                        preferRoute: hasIndoorRouteForBuilding()
                     });
                 }
             });
@@ -556,7 +617,11 @@
         );
         const geometryBounds = getIndoorMapBoundsFromGeometry(mapItem?.geometry);
 
-        if (preferRoute && typeof persistentIndoorRouteByFloor !== 'undefined') {
+        if (
+            preferRoute &&
+            hasIndoorRouteForBuilding() &&
+            typeof persistentIndoorRouteByFloor !== 'undefined'
+        ) {
             const routePoints = persistentIndoorRouteByFloor?.[currentIndoorFloor] || [];
             if (routePoints.length >= 2) {
                 const routeBounds = L.latLngBounds(routePoints);
@@ -692,7 +757,7 @@
             }
             scheduleIndoorViewportFit({
                 reason: 'container-resize',
-                preferRoute: Boolean(lastIndoorRoutePackage)
+                preferRoute: hasIndoorRouteForBuilding()
             });
         });
         indoorViewportResizeObserver.observe(target);
@@ -757,30 +822,15 @@
             onEachFeature: function(feature, layer) {
                 const p = feature.properties || {};
 
-                layer.bindPopup(`
-                    <div style="font-family:'Plus Jakarta Sans',sans-serif;min-width:180px;text-align:left;">
-                        <div style="font-size:15px;font-weight:800;color:#0f172a;">${p.name || 'Room'}</div>
-                        <div style="font-size:12px;color:#64748b;margin-top:5px;">
-                            Code: ${p.room_code || 'N/A'}<br>
-                            Type: ${p.type || 'room'}<br>
-                            Floor: ${(typeof formatIndoorFloorLabel === 'function' ? formatIndoorFloorLabel(p.floor_number, p.floor_label) : (p.floor_label || p.floor_number || '-'))}
-                        </div>
-                        <div style="margin-top:10px;">
-                            <button
-                                type="button"
-                                onclick="window.routeToIndoorRoom(${Number(p.id)})"
-                                style="border:none;background:#2563eb;color:white;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;">
-                                Route to this room
-                            </button>
-                        </div>
-                    </div>
-                `);
+                layer.bindPopup(buildIndoorRoomInfoPopup(p), {
+                    className: 'indoor-room-map-popup'
+                });
 
                 layer.on('click', function() {
                     selectedIndoorRoomFeature = feature;
                     renderIndoorRoomList();
-                    /* Keep the open popup and route action alive. Rebuilding all
-                       indoor layers here caused a visible pause on slower phones. */
+                    /* Keep the informational popup open. Rebuilding all indoor
+                       layers here caused a visible pause on slower phones. */
                     indoorRoomsLayer?.eachLayer(roomLayer => {
                         if (typeof roomLayer.setStyle !== 'function') return;
                         roomLayer.setStyle(getIndoorRoomLayerStyle(roomLayer.feature));
@@ -831,19 +881,15 @@
 
         loadIndoorFloorImage({ rooms: floorRooms, paths: floorPaths, entrances: floorEntrances });
 
-        indoorFooter.innerHTML = `
-            <span class="indoor-badge badge-blue">${getBuildingNameById(currentIndoorBuildingId)}</span>
-            <span class="indoor-badge badge-green">${indoorFloorSelect.selectedOptions[0]?.textContent || ('Floor ' + currentIndoorFloor)}</span>
-            Click a room card or room polygon to compute the exact route.
-        `;
+        if (typeof window.renderIndoorNavigationGuideFinal === 'function') {
+            window.renderIndoorNavigationGuideFinal();
+        } else {
+            indoorFooter.textContent = 'Tap a room to create a route.';
+        }
     }
 
     function restoreIndoorRouteIfAvailable() {
-        if (!lastIndoorRoutePackage) return;
-        if (!currentIndoorBuildingId) return;
-
-        const routedBuildingId = Number(lastIndoorRoutePackage.roomFeature?.properties?.building_id);
-        if (Number(routedBuildingId) !== Number(currentIndoorBuildingId)) return;
+        if (!hasIndoorRouteForBuilding()) return;
 
         if (pendingIndoorFocusFloor !== null && pendingIndoorFocusFloor !== undefined) {
             currentIndoorFloor = Number(pendingIndoorFocusFloor);
@@ -913,13 +959,25 @@
         const requestId = ++latestIndoorOpenRequestId;
         const buildingName = getBuildingNameById(normalizedBuildingId);
 
+        /* Scope the shared indoor canvas to the building being opened before
+           asynchronous assets load. A route may remain cached so users can
+           return to its original building, but it must never be painted over
+           another building's floorplan. */
+        if (Number(currentIndoorBuildingId) !== normalizedBuildingId) {
+            clearIndoorRoute();
+            currentIndoorFloor = null;
+            document.getElementById('indoorFloorButtons')?.replaceChildren();
+        }
+        currentIndoorBuildingId = normalizedBuildingId;
+        window.renderIndoorNavigationGuideFinal?.();
+
         /*
         | Show useful feedback before any network or CSS request. On a slow
         | campus connection the old flow appeared frozen because the modal was
         | opened only after the indoor stylesheet and JSON had both arrived.
         */
         indoorTitle.textContent = `${buildingName} Indoor Navigation`;
-        indoorSubtitle.textContent = 'Loading rooms and indoor map...';
+        indoorSubtitle.textContent = 'Preparing indoor floors...';
         indoorFloorSelect.innerHTML = '<option value="">Loading floors...</option>';
         indoorFloorSelect.disabled = true;
         openIndoorPanelModal();
@@ -971,7 +1029,7 @@
         pendingIndoorOpenForBuildingId = normalizedBuildingId;
 
         indoorTitle.textContent = `${buildingName} Indoor Navigation`;
-        indoorSubtitle.textContent = 'Choose room or office to compute full route';
+        indoorSubtitle.textContent = 'Follow the highlighted floor sequence';
 
         indoorFloorSelect.innerHTML = '<option value="">Select Floor</option>';
         indoorFloorSelect.disabled = false;
@@ -1018,7 +1076,7 @@
                 ensureIndoorViewportObserver();
                 scheduleIndoorViewportFit({
                     reason: 'panel-open',
-                    preferRoute: Boolean(lastIndoorRoutePackage)
+                    preferRoute: hasIndoorRouteForBuilding()
                 });
                 setIndoorLoading(false);
             } catch (error) {
@@ -1643,6 +1701,7 @@
         }
 
         lastIndoorRoutePackage = {
+            buildingId: Number(roomFeature?.properties?.building_id || currentIndoorBuildingId),
             indoorGraphData,
             indoorResult,
             entranceFeature,
@@ -1654,16 +1713,15 @@
             preferRoute: currentFloorPoints.length >= 2
         });
 
-        if (indoorFooter && currentFloorPoints.length >= 2) {
-            indoorFooter.innerHTML = `
-                <span class="indoor-badge badge-green">Indoor Route Ready</span>
-                Follow the solid cyan route line to the destination.
-            `;
-        }
+        window.renderIndoorNavigationGuideFinal?.();
     }
 
     function redrawPersistentIndoorRouteForCurrentFloor() {
-        if (!lastIndoorRoutePackage) return;
+        if (!hasIndoorRouteForBuilding()) {
+            clearIndoorRoute();
+            window.renderIndoorNavigationGuideFinal?.();
+            return false;
+        }
 
         clearIndoorRoute();
 
@@ -1717,25 +1775,8 @@
             preferRoute: currentFloorPoints.length >= 2
         });
 
-        if (indoorFooter && lastIndoorRoutePackage) {
-            const entranceFloor = Number(entranceFeature?.properties?.floor_number ?? NaN);
-            const roomFloor = Number(roomFeature?.properties?.floor_number ?? NaN);
-            const currentFloorLabel = indoorFloorSelect?.selectedOptions?.[0]?.textContent || (`Floor ${currentIndoorFloor}`);
-
-            let guideText = 'Follow the solid cyan route line on this floor.';
-
-            if (Number(currentIndoorFloor) === entranceFloor && Number(currentIndoorFloor) !== roomFloor) {
-                guideText = 'Start here at the entrance. Follow this floor route first, then use the floor buttons/stairs to continue.';
-            } else if (Number(currentIndoorFloor) === roomFloor) {
-                guideText = 'This is the destination floor. Follow the solid cyan route to the selected room or office.';
-            }
-
-            indoorFooter.innerHTML = `
-                <span class="indoor-badge badge-green">Indoor Route Ready</span>
-                <span class="indoor-badge badge-blue">${currentFloorLabel}</span>
-                ${guideText}
-            `;
-        }
+        window.renderIndoorNavigationGuideFinal?.();
+        return true;
     }
 
     function findNearestOutdoorEntranceForBuilding(buildingId) {
@@ -2305,6 +2346,7 @@
         selectedBuildingEntranceId = Number(bestRoute.outdoorEntrance.id);
 
         lastIndoorRoutePackage = {
+            buildingId: Number(roomFeature.properties?.building_id),
             indoorGraphData: bestRoute.indoorGraphData,
             indoorResult: bestRoute.indoorResult,
             entranceFeature: bestRoute.indoorEntranceFeature,
@@ -2315,6 +2357,11 @@
             bestRoute.indoorGraphData,
             bestRoute.indoorResult
         );
+
+        /* Refresh the compact floor sequence immediately when a route is
+           created from Search, Voice, Browse, or an indoor room tap. */
+        window.renderIndoorFloorButtonsFinal?.();
+        window.renderIndoorNavigationGuideFinal?.();
 
         pendingIndoorOpenForBuildingId = Number(roomFeature.properties?.building_id);
 
