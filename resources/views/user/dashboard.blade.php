@@ -225,9 +225,20 @@
                     aria-expanded="false"
                     aria-controls="floating-action-card">
                 <span class="pin-disc">
-                    <span class="pin-icon">
-                        <span class="pin-hole"></span>
-                    </span>
+                    <svg class="pin-icon navigator-beacon-icon"
+                         viewBox="0 0 64 72"
+                         aria-hidden="true">
+                        <path class="navigator-beacon-frame"
+                              d="M32 3 55 16v28L32 69 9 44V16L32 3Z" />
+                        <circle class="navigator-beacon-ring" cx="32" cy="34" r="20" />
+                        <path class="navigator-beacon-ticks"
+                              d="M32 7v7M32 58v7M5 34h8M51 34h8" />
+                        <path class="navigator-beacon-pointer"
+                              d="M32 13 48 54 32 47 16 54 32 13Z" />
+                        <path class="navigator-beacon-cutout"
+                              d="M32 25 38 43 32 40 26 43 32 25Z" />
+                        <circle class="navigator-beacon-core" cx="32" cy="35" r="3.5" />
+                    </svg>
                 </span>
             </button>
 

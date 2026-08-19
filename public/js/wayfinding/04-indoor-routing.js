@@ -1261,7 +1261,7 @@
             return false;
         }
 
-        function projectPointToIndoorSegmentMeters(point, a, b) {
+        function projectPointToIndoorSegment(point, a, b) {
             const originLat = (Number(point.lat) + Number(a[1]) + Number(b[1])) / 3;
             const metersPerDegLat = 110540;
             const metersPerDegLng = 111320 * Math.cos(originLat * Math.PI / 180);
@@ -1276,7 +1276,7 @@
             const abx = bx - ax;
             const aby = by - ay;
             const ab2 = (abx * abx) + (aby * aby);
-            if (ab2 <= 0.000001) return Infinity;
+            if (ab2 <= 0.000001) return null;
 
             let t = (((px - ax) * abx) + ((py - ay) * aby)) / ab2;
             t = Math.max(0, Math.min(1, t));
@@ -1286,7 +1286,15 @@
             const dx = px - cx;
             const dy = py - cy;
 
-            return Math.sqrt((dx * dx) + (dy * dy));
+            return {
+                distance: Math.sqrt((dx * dx) + (dy * dy)),
+                lat: cy / metersPerDegLat,
+                lng: cx / metersPerDegLng
+            };
+        }
+
+        function projectPointToIndoorSegmentMeters(point, a, b) {
+            return projectPointToIndoorSegment(point, a, b)?.distance ?? Infinity;
         }
 
         function distancePointToRoomBoundaryMeters(latlng, geometry) {
@@ -1310,6 +1318,65 @@
                         const d = projectPointToIndoorSegmentMeters(point, ring[i], ring[i + 1]);
                         if (d < best) best = d;
                     }
+                });
+            });
+
+            return best;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | VIRTUAL ROOM DOOR FALLBACK
+        |--------------------------------------------------------------------------
+        | A few imported floorplans have a valid room polygon and hallway but no
+        | room-door record (or a mismatched room_code). Previously those rooms
+        | were visible in Search, Voice, and Browse but could never receive a
+        | complete route. Use the closest room-boundary point to a same-floor
+        | hallway node as a lightweight virtual doorway. The route still enters
+        | at the wall edge; it never jumps directly from the hallway to the room
+        | center.
+        */
+        function findVirtualRoomDoorConnection(roomFeature, roomFloor) {
+            const geometry = roomFeature?.geometry;
+            if (!geometry?.coordinates) return null;
+
+            const polygons = geometry.type === 'MultiPolygon'
+                ? geometry.coordinates
+                : (geometry.type === 'Polygon' ? [geometry.coordinates] : []);
+            if (!polygons.length) return null;
+
+            let best = null;
+
+            Object.entries(coords).forEach(([pathKey, pathCoordinate]) => {
+                if (!pathKey.startsWith('p_')) return;
+                if (!String(pathKey).endsWith(`_f${roomFloor}`)) return;
+
+                const pathPoint = {
+                    lat: Number(pathCoordinate[0]),
+                    lng: Number(pathCoordinate[1])
+                };
+
+                polygons.forEach(polygon => {
+                    (polygon || []).forEach(ring => {
+                        if (!Array.isArray(ring) || ring.length < 2) return;
+
+                        for (let index = 0; index < ring.length - 1; index++) {
+                            const projection = projectPointToIndoorSegment(
+                                pathPoint,
+                                ring[index],
+                                ring[index + 1]
+                            );
+                            if (!projection || !Number.isFinite(projection.distance)) continue;
+                            if (best && projection.distance >= best.gapMeters) continue;
+
+                            best = {
+                                pathKey,
+                                pathLatLng: L.latLng(pathPoint.lat, pathPoint.lng),
+                                boundaryLatLng: L.latLng(projection.lat, projection.lng),
+                                gapMeters: projection.distance
+                            };
+                        }
+                    });
                 });
             });
 
@@ -1408,13 +1475,48 @@
                     }
                 });
             } else {
-                debugIndoorGraphWarning('[IndoorGraph] Room has no usable door entrance, route disabled for this room:', {
-                    room_id: p.id,
-                    room_name: p.name,
-                    room_code: p.room_code,
-                    floor_number: floor,
-                    building_id: buildingId
-                });
+                const virtualDoor = findVirtualRoomDoorConnection(feature, floor);
+
+                if (virtualDoor) {
+                    const virtualDoorKey = `vd_${p.id}_f${floor}`;
+                    addNode(
+                        virtualDoorKey,
+                        virtualDoor.boundaryLatLng.lat,
+                        virtualDoor.boundaryLatLng.lng
+                    );
+                    addEdge(roomKey, virtualDoorKey, center.distanceTo(virtualDoor.boundaryLatLng), {
+                        type: 'room_to_virtual_door',
+                        floor_number: floor,
+                        virtual_door_fallback: true
+                    });
+                    addEdge(
+                        virtualDoorKey,
+                        virtualDoor.pathKey,
+                        virtualDoor.boundaryLatLng.distanceTo(virtualDoor.pathLatLng),
+                        {
+                            type: 'virtual_door_to_hallway',
+                            floor_number: floor,
+                            virtual_door_fallback: true
+                        }
+                    );
+
+                    debugIndoorGraphWarning('[IndoorGraph] Room uses nearest-wall virtual doorway:', {
+                        room_id: p.id,
+                        room_name: p.name,
+                        room_code: p.room_code,
+                        floor_number: floor,
+                        building_id: buildingId,
+                        hallway_gap_meters: virtualDoor.gapMeters
+                    });
+                } else {
+                    debugIndoorGraphWarning('[IndoorGraph] Room has no same-floor hallway for a route:', {
+                        room_id: p.id,
+                        room_name: p.name,
+                        room_code: p.room_code,
+                        floor_number: floor,
+                        building_id: buildingId
+                    });
+                }
             }
 
             roomNodeById[Number(p.id)] = roomKey;
@@ -2156,11 +2258,11 @@
 
 
     async function computeCompleteRouteToRoom(roomFeature) {
-        if (!roomFeature) return;
+        if (!roomFeature) return false;
 
         if (!startNodeKey) {
             alert('Please choose your starting point first.');
-            return;
+            return false;
         }
 
         const routeRequestId = ++completeRoomRouteRequestSequence;
@@ -2168,16 +2270,27 @@
         selectedIndoorRoomFeature = roomFeature;
         selectedDestinationBuildingId = Number(roomFeature.properties?.building_id);
 
-        await ensureIndoorBuildingData(selectedDestinationBuildingId);
-        if (routeRequestId !== completeRoomRouteRequestSequence) return;
+        try {
+            await ensureIndoorBuildingData(selectedDestinationBuildingId);
+        } catch (error) {
+            if (routeRequestId !== completeRoomRouteRequestSequence) return false;
+            console.error('Indoor routing data failed to load:', error);
+            setRouteResultLabel('Indoor routing data could not load. Please try again.');
+            window.showWayfindingToast?.(
+                'Indoor routing data could not load. Check your connection and try again.',
+                { kind: 'error' }
+            );
+            return false;
+        }
+        if (routeRequestId !== completeRoomRouteRequestSequence) return false;
 
         const bestRoute = await findBestEntranceLinkForRoom(roomFeature);
-        if (routeRequestId !== completeRoomRouteRequestSequence) return;
+        if (routeRequestId !== completeRoomRouteRequestSequence) return false;
 
         if (!bestRoute) {
             alert('No complete outdoor + indoor route found for this room.');
             setRouteResultLabel('No complete outdoor + indoor route found.');
-            return;
+            return false;
         }
 
         drawOutdoorRoute(bestRoute.outdoorResult);
@@ -2242,6 +2355,8 @@
         if (typeof showRoutePopupForSelectedBuilding === 'function') {
             showRoutePopupForSelectedBuilding(selectedDestinationBuildingId);
         }
+
+        return true;
     }
 
     async function findRouteByDestination() {
@@ -2374,8 +2489,8 @@
             Number(f.properties?.floor_number) === Number(currentIndoorFloor)
         );
 
-        if (!room) return;
+        if (!room) return Promise.resolve(false);
 
         selectedIndoorRoomFeature = room;
-        computeCompleteRouteToRoom(room);
+        return computeCompleteRouteToRoom(room);
     };

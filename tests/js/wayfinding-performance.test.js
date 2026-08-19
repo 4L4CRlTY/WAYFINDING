@@ -34,12 +34,15 @@ test('dashboard navigation icons are local static SVGs with a mobile GPU guard',
 
     assert.match(dashboard, /class="floating-mode-icon"/);
     assert.match(dashboard, /class="wf-line-icon"/);
+    assert.match(dashboard, /class="pin-icon navigator-beacon-icon"/);
+    assert.match(dashboard, /class="navigator-beacon-pointer"/);
     assert.match(dashboard, />Select Start</);
     assert.match(dashboard, />Current Location</);
     assert.match(dashboard, />Campus Entrance</);
     assert.match(campusEvents, /campus-event-bell-icon[\s\S]{0,180}<svg class="wf-line-icon"/);
     assert.match(mobileBudget, /\.campus-event-bell-pulse,[\s\S]{0,180}animation:\s*none !important/);
     assert.match(mobileBudget, /\.wf-line-icon,[\s\S]{0,180}transition:\s*none !important/);
+    assert.match(mobileBudget, /\.navigator-beacon-icon,[\s\S]{0,180}animation:\s*none !important/);
 });
 
 test('wayfinding core preserves routing order and account features are lazy chunks', () => {
@@ -664,8 +667,21 @@ test('indoor entrance scoring runs off-thread and stale room routes cannot redra
     assert.match(indoorRouting, /const routeRequestId\s*=\s*\+\+completeRoomRouteRequestSequence/);
     assert.match(
         indoorRouting,
-        /if \(routeRequestId !== completeRoomRouteRequestSequence\) return;/,
+        /if \(routeRequestId !== completeRoomRouteRequestSequence\) return false;/,
     );
+});
+
+test('rooms without a usable door still connect through the nearest wall and hallway', () => {
+    const indoorRouting = readFileSync(
+        new URL('../../public/js/wayfinding/04-indoor-routing.js', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(indoorRouting, /function findVirtualRoomDoorConnection\(/);
+    assert.match(indoorRouting, /const virtualDoorKey = `vd_\$\{p\.id\}_f\$\{floor\}`/);
+    assert.match(indoorRouting, /type:\s*'room_to_virtual_door'/);
+    assert.match(indoorRouting, /type:\s*'virtual_door_to_hallway'/);
+    assert.match(indoorRouting, /return computeCompleteRouteToRoom\(room\)/);
 });
 
 test('a runtime low-end downgrade stays active for the browser session', () => {

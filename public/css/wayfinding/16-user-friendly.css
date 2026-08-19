@@ -929,33 +929,63 @@ body.guest-mode .cr-navigation-modes {
     box-shadow: 0 0 0 4px rgba(245, 183, 55, 0.13);
 }
 
-/*
- * One canonical navigator-pin shape.
- * The older cascade combined an already-upright clip path with a -45deg
- * rotation, which made the pin point down-right on real mobile browsers.
- */
+/* One static navigator-beacon SVG replaces the emoji-like map pin. The icon
+   has no animation, filter, external asset, or JavaScript paint loop. */
 #floating-route-ui .pin-icon {
     display: block !important;
     position: relative !important;
-    width: 40px !important;
-    height: 56px !important;
+    width: 50px !important;
+    height: 62px !important;
     border-radius: 0 !important;
-    clip-path: path('M20 0 C31 0 40 9 40 20 C40 36 20 56 20 56 C20 56 0 36 0 20 C0 9 9 0 20 0 Z') !important;
+    clip-path: none !important;
     transform: none !important;
-    background: linear-gradient(180deg, #ffffff 0%, #e7f3ff 100%) !important;
-    box-shadow: 0 8px 18px rgba(2, 20, 38, 0.2) !important;
+    overflow: visible !important;
+    background: none !important;
+    box-shadow: none !important;
 }
 
-#floating-route-ui .pin-hole {
-    display: block !important;
-    position: absolute !important;
-    top: 14px !important;
-    left: 50% !important;
-    width: 13px !important;
-    height: 13px !important;
-    border-radius: 50% !important;
-    transform: translateX(-50%) !important;
-    background: linear-gradient(180deg, #19c37d, #0c9c72) !important;
+#floating-route-ui .navigator-beacon-frame,
+#floating-route-ui .navigator-beacon-ring,
+#floating-route-ui .navigator-beacon-ticks {
+    fill: none;
+    stroke: #66e6ff;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+#floating-route-ui .navigator-beacon-frame {
+    stroke-width: 1.5;
+    opacity: 0.72;
+}
+
+#floating-route-ui .navigator-beacon-ring {
+    stroke-width: 1.25;
+    opacity: 0.42;
+}
+
+#floating-route-ui .navigator-beacon-ticks {
+    stroke-width: 2;
+    opacity: 0.88;
+}
+
+#floating-route-ui .navigator-beacon-pointer {
+    fill: #e9fbff;
+    stroke: #9af1ff;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+}
+
+#floating-route-ui .navigator-beacon-cutout {
+    fill: #16375d;
+    stroke: #42d9ff;
+    stroke-width: 1;
+    stroke-linejoin: round;
+}
+
+#floating-route-ui .navigator-beacon-core {
+    fill: #55f0c0;
+    stroke: #d9fff4;
+    stroke-width: 1.25;
 }
 
 @media (max-width: 480px) {

@@ -67,6 +67,7 @@
 
     /* Inline HUD icons stay static while Leaflet owns the gesture frame. */
     .wf-line-icon,
+    .navigator-beacon-icon,
     .floating-mode-icon,
     .user-profile-icon,
     .campus-event-bell-icon {
