@@ -30,6 +30,7 @@
             if (
                 Number(document?.schema_version) !== 1
                 || Number(document?.building_id) !== normalizedBuildingId
+                || (cacheVersion > 0 && Number(document?.cache_version) !== cacheVersion)
                 || !document?.datasets
             ) {
                 throw new Error('Indoor snapshot format is invalid.');

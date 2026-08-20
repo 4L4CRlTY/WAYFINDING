@@ -568,6 +568,7 @@ test('indoor opening responds immediately and caches versioned building data', (
     assert.match(mapUi, /wayfinding:indoor-panel-closed/);
     assert.match(searchVoice, /wayfinding-indoor-data\.js\?v=/);
     assert.match(indoorDataTransport, /cacheVersion/);
+    assert.match(indoorDataTransport, /Number\(document\?\.cache_version\) !== cacheVersion/);
     assert.match(indoorDataTransport, /cache: 'force-cache'/);
     assert.doesNotMatch(indoorDataTransport, /cache: 'no-cache'/);
 });

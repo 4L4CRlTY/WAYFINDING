@@ -10,6 +10,8 @@ use App\Models\Landuse;
 use App\Support\WayfindingCache;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 class CampusSnapshotPublisher
@@ -40,6 +42,13 @@ class CampusSnapshotPublisher
         '/api/campus-events' => 'campusEvents',
     ];
 
+    /** @var array<int, string> */
+    private const REQUEST_FILTERED_DATASET_METHODS = [
+        'indoorPaths',
+        'indoorEntrances',
+        'indoorStairsLinks',
+    ];
+
     public function __construct(
         private readonly ApiController $apiController,
         private readonly Filesystem $files,
@@ -56,10 +65,28 @@ class CampusSnapshotPublisher
         ?string $destinationPath = null,
         ?string $searchIndexDestinationPath = null,
     ): array {
+        return Cache::lock('wayfinding:snapshot-publish', 120)->block(
+            15,
+            fn () => $this->publishWithoutLock($destinationPath, $searchIndexDestinationPath),
+        );
+    }
+
+    /**
+     * Build every versioned dependency while holding the shared publish lock.
+     * This prevents concurrent admin requests from interleaving indoor files
+     * from different cache versions.
+     */
+    private function publishWithoutLock(
+        ?string $destinationPath,
+        ?string $searchIndexDestinationPath,
+    ): array {
         $datasets = [];
+        $snapshotRequest = Request::create('/wayfinding-snapshot', 'GET');
 
         foreach (self::DATASET_METHODS as $url => $method) {
-            $response = $this->apiController->{$method}();
+            $response = in_array($method, self::REQUEST_FILTERED_DATASET_METHODS, true)
+                ? $this->apiController->{$method}($snapshotRequest)
+                : $this->apiController->{$method}();
 
             if (! $response instanceof JsonResponse || ! $response->isSuccessful()) {
                 throw new RuntimeException("Unable to build campus snapshot dataset [{$url}].");

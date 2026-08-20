@@ -8,8 +8,10 @@ use App\Models\DestinationKeyword;
 use App\Models\IndoorEntrance;
 use App\Models\IndoorMap;
 use App\Models\IndoorPath;
+use App\Models\IndoorStairLink;
 use App\Services\CampusSnapshotPublisher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -182,6 +184,84 @@ class CampusSnapshotTest extends TestCase
 
         $this->assertSame([], $searchIndex['search_index']);
         $this->assertSame([], $searchIndex['destinations']);
+    }
+
+    public function test_snapshot_ignores_the_active_admin_building_filter(): void
+    {
+        $building = Building::create([
+            'name' => 'Administration Building',
+            'geometry' => [
+                'type' => 'Polygon',
+                'coordinates' => [[[124.0, 10.0], [124.1, 10.0], [124.1, 10.1], [124.0, 10.0]]],
+            ],
+            'properties' => ['code' => 'ADMIN'],
+            'color' => '#18375d',
+        ]);
+        $indoorMap = IndoorMap::create([
+            'building_id' => $building->id,
+            'name' => 'Admin First Floor',
+            'floor_number' => 1,
+            'floor_label' => '1F',
+            'floorplan_image' => 'admin-floor-1.png',
+            'width' => 1200,
+            'height' => 800,
+            'geometry' => null,
+            'is_active' => true,
+        ]);
+        IndoorPath::create([
+            'indoor_map_id' => $indoorMap->id,
+            'name' => 'Main Hallway',
+            'path_type' => 'hallway',
+            'geometry' => [
+                'type' => 'LineString',
+                'coordinates' => [[124.0, 10.0], [124.01, 10.01]],
+            ],
+            'is_blocked' => false,
+        ]);
+        $firstEntrance = IndoorEntrance::create([
+            'indoor_map_id' => $indoorMap->id,
+            'name' => 'Main Entrance',
+            'ent_type' => 'main',
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [124.0, 10.0],
+            ],
+        ]);
+        $secondEntrance = IndoorEntrance::create([
+            'indoor_map_id' => $indoorMap->id,
+            'name' => 'Upper Stair Landing',
+            'ent_type' => 'stairs',
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [124.01, 10.01],
+            ],
+        ]);
+        IndoorStairLink::create([
+            'building_id' => $building->id,
+            'from_entrance_id' => $firstEntrance->id,
+            'to_entrance_id' => $secondEntrance->id,
+            'name' => 'Main Stairs',
+        ]);
+
+        $this->app->instance('request', Request::create(
+            '/admin/campus-events',
+            'POST',
+            ['building_id' => 999]
+        ));
+        $this->snapshotPath = storage_path('framework/testing/campus-snapshot-request-filter.json');
+        $this->searchIndexPath = storage_path('framework/testing/destination-keywords.json');
+        $this->indoorSnapshotDirectory = storage_path('framework/testing/indoor');
+
+        app(CampusSnapshotPublisher::class)->publish($this->snapshotPath);
+
+        $indoorSnapshot = json_decode(
+            File::get($this->indoorSnapshotDirectory.DIRECTORY_SEPARATOR.$building->id.'.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR
+        );
+        $this->assertCount(1, $indoorSnapshot['datasets']['/api/indoor-paths']['features']);
+        $this->assertCount(2, $indoorSnapshot['datasets']['/api/indoor-entrances']['features']);
+        $this->assertCount(1, $indoorSnapshot['datasets']['/api/indoor-stairs-links']);
     }
 
     public function test_republishing_reflects_keyword_edits_deletes_and_event_deactivation(): void

@@ -82,6 +82,59 @@ test('campus data uses the static snapshot first and preserves API fallback', ()
     assert.match(serviceWorker, /'\/data\/destination-keywords\.json'/);
 });
 
+test('indoor data rejects a stale cache version and repairs itself from the building API', async () => {
+    const source = readFileSync(
+        new URL('../../public/js/wayfinding-indoor-data.js', import.meta.url),
+        'utf8',
+    );
+    const staticRequests = [];
+    const apiRequests = [];
+    const apiDatasets = {
+        '/api/indoor-paths?building_id=22': { type: 'FeatureCollection', features: [{ id: 1 }] },
+        '/api/indoor-entrances?building_id=22': { type: 'FeatureCollection', features: [{ id: 2 }] },
+        '/api/indoor-stairs-links?building_id=22': [{ id: 3 }],
+    };
+    const context = {
+        self: {},
+        fetch: async (url) => {
+            staticRequests.push(url);
+
+            return {
+                ok: true,
+                json: async () => ({
+                    schema_version: 1,
+                    cache_version: 4,
+                    building_id: 22,
+                    datasets: {
+                        '/api/indoor-paths': { type: 'FeatureCollection', features: [{ id: 99 }] },
+                        '/api/indoor-entrances': { type: 'FeatureCollection', features: [{ id: 98 }] },
+                        '/api/indoor-stairs-links': [],
+                    },
+                }),
+            };
+        },
+    };
+
+    new Script(source, { filename: 'wayfinding-indoor-data.js' }).runInNewContext(context);
+    const datasets = await context.self.WayfindingIndoorDataLoader.load(22, {
+        loadSnapshot: async () => ({
+            cache_version: 5,
+            indoor_data_url_template: '/data/indoor/{building}.json',
+        }),
+        fetchJson: async (url) => {
+            apiRequests.push(url);
+
+            return apiDatasets[url];
+        },
+    });
+
+    assert.deepEqual(staticRequests, ['/data/indoor/22.json?v=5']);
+    assert.deepEqual(apiRequests, Object.keys(apiDatasets));
+    assert.equal(datasets['/api/indoor-paths'], apiDatasets['/api/indoor-paths?building_id=22']);
+    assert.equal(datasets['/api/indoor-entrances'], apiDatasets['/api/indoor-entrances?building_id=22']);
+    assert.equal(datasets['/api/indoor-stairs-links'], apiDatasets['/api/indoor-stairs-links?building_id=22']);
+});
+
 test('hazard popups show only clear essentials and level one uses yellow caution', () => {
     const routingPath = new URL(
         '../../public/js/wayfinding/03-outdoor-routing.js',
