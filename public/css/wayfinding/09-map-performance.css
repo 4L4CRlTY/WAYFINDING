@@ -76,7 +76,7 @@ body.map-moving .path-canopy-frames {
     }
 
     body.map-dragging .leaflet-popup-pane,
-    body.map-dragging .leaflet-tooltip-pane {
+    body.map-dragging .leaflet-tooltip-pane > .leaflet-tooltip:not(.building-permanent-label) {
         visibility: hidden !important;
     }
 

@@ -1621,6 +1621,161 @@ body.guest-mode .cr-navigation-modes {
     box-shadow: 0 0 0 4px rgba(245, 183, 55, 0.13);
 }
 
+/* A compact, always-visible landmark label. It lives above the building and
+   ignores pointer input, so users can still drag the map and select routes. */
+#map .building-permanent-label.leaflet-tooltip {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}
+
+#map .building-permanent-label.leaflet-tooltip::before {
+    display: none !important;
+}
+
+#map[data-z="17"] .label-z18,
+#map[data-z="17"] .label-z19,
+#map[data-z="18"] .label-z19 {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+#map .b-label-size {
+    display: inline-block;
+    transform: scale(var(--label-user-scale, 1));
+    transform-origin: center bottom;
+}
+
+#map .building-permanent-label-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 5px 10px 5px 6px;
+    border: 1px solid rgba(101, 222, 255, 0.58);
+    border-radius: 999px;
+    color: #f4fbff;
+    background: linear-gradient(145deg, rgba(17, 52, 87, 0.94), rgba(5, 25, 42, 0.92));
+    box-shadow:
+        0 8px 18px rgba(0, 18, 36, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+    font-weight: 850;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0.96;
+    transform: scale(var(--label-zoom-scale, 0.92));
+    transform-origin: center bottom;
+    transition: transform 140ms ease, opacity 140ms ease;
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+
+#map .b-label-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    overflow: visible;
+}
+
+#map .b-label-text {
+    max-width: 132px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#map .building-permanent-label-inner.has-event {
+    position: relative;
+    overflow: visible;
+}
+
+#map .bldg-event-badge {
+    position: absolute;
+    z-index: 2;
+    top: calc(100% + 3px);
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 25px;
+    min-height: 19px;
+    margin: 0;
+    padding: 3px 7px;
+    border: 1px solid rgba(111, 231, 255, 0.38);
+    border-radius: 999px;
+    color: #dffbff;
+    background: linear-gradient(135deg, rgba(10, 115, 151, 0.96), rgba(17, 80, 117, 0.98));
+    box-shadow: 0 4px 9px rgba(0, 18, 36, 0.2);
+    font: inherit;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+#map .bldg-event-badge.is-now {
+    border-color: rgba(255, 231, 143, 0.52);
+    color: #fff8d7;
+    background: linear-gradient(135deg, #b86f08, #875009);
+}
+
+#map .bldg-event-badge svg {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+
+#map .bldg-event-count {
+    min-width: 8px;
+    font-size: 8px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+}
+
+#map .bldg-event-title {
+    display: none;
+    max-width: 82px;
+    overflow: hidden;
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#map[data-z="19"] .bldg-event-title,
+#map[data-z="20"] .bldg-event-title {
+    display: block;
+}
+
+#map .b-label-icon path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+#map .b-label-icon path {
+    stroke: #dff9ff;
+    stroke-width: 1.55;
+}
+
+body.navigation-route-visible #map .building-permanent-label-inner {
+    opacity: 0.78;
+    box-shadow: 0 5px 12px rgba(0, 18, 36, 0.18);
+}
+
+body.map-moving #map .building-permanent-label-inner {
+    transition: none;
+}
+
 /* One static navigator-beacon SVG replaces the emoji-like map pin. The icon
    has no animation, filter, external asset, or JavaScript paint loop. */
 #floating-route-ui .pin-icon {

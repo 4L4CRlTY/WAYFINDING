@@ -66,7 +66,8 @@ test('campus data uses the static snapshot first and preserves API fallback', ()
     const search = readFileSync(searchPath, 'utf8');
     const serviceWorker = readFileSync(serviceWorkerPath, 'utf8');
 
-    assert.match(search, /WAYFINDING_SNAPSHOT_URL = '\/data\/campus-snapshot\.json'/);
+    assert.match(search, /meta\[name="wayfinding-snapshot"\]/);
+    assert.match(search, /\?\.getAttribute\('content'\) \|\| '\/data\/campus-snapshot\.json'/);
     assert.match(search, /async function readWayfindingSnapshotDataset\(url\)/);
     assert.match(search, /async function loadWayfindingSearchIndex\(\)/);
     assert.match(search, /\/data\/destination-keywords\.json/);
@@ -646,10 +647,25 @@ test('simple user mode keeps route cards readable and technical GPS tools option
         '../../public/js/wayfinding/09-building-indoor-ui.js',
         import.meta.url,
     );
+    const mapRenderingPath = new URL(
+        '../../public/js/wayfinding/05-map-rendering.js',
+        import.meta.url,
+    );
+    const adminBuildingsPath = new URL(
+        '../../resources/views/admin/buildings/building.blade.php',
+        import.meta.url,
+    );
+    const labelEditorPath = new URL(
+        '../../resources/views/admin/buildings/label-editor.blade.php',
+        import.meta.url,
+    );
     const styles = readFileSync(stylesPath, 'utf8');
     const dashboard = readFileSync(dashboardPath, 'utf8');
     const navigation = readFileSync(navigationPath, 'utf8');
     const indoor = readFileSync(indoorPath, 'utf8');
+    const mapRendering = readFileSync(mapRenderingPath, 'utf8');
+    const adminBuildings = readFileSync(adminBuildingsPath, 'utf8');
+    const labelEditor = readFileSync(labelEditorPath, 'utf8');
 
     assert.match(dashboard, /\$gpsDiagnosticsEnabled/);
     assert.match(dashboard, /Select Current Location when ready/);
@@ -669,6 +685,53 @@ test('simple user mode keeps route cards readable and technical GPS tools option
     assert.match(styles, /@media \(max-width:\s*480px\)[\s\S]*width:\s*min\(242px/);
     assert.match(styles, /route-building-map-popup-inner\.is-unavailable/);
     assert.match(styles, /building-map-summary\.is-unavailable/);
+    assert.match(mapRendering, /createPermanentBuildingLabel/);
+    assert.match(mapRendering, /building\?\.show_map_label/);
+    assert.match(mapRendering, /replace\(\/\\s\+building\\s\*\$\/i/);
+    assert.match(mapRendering, /permanent:\s*true/);
+    assert.match(mapRendering, /--label-zoom-scale/);
+    assert.match(mapRendering, /--label-user-scale/);
+    assert.match(mapRendering, /permanentLabel\.offsetX/);
+    assert.match(mapRendering, /permanentLabel\.offsetY - 7/);
+    assert.match(mapRendering, /map_label_min_zoom/);
+    assert.match(mapRendering, /dataset\.z/);
+    assert.match(mapRendering, /dataset\.z\s*=\s*String\(Math\.round\(zoom\)\)/);
+    assert.match(mapRendering, /label-z\$\{permanentLabel\.minZoom\}/);
+    assert.match(mapRendering, /data-bid=/);
+    assert.match(styles, /data-z="17"/);
+    assert.match(styles, /\.bldg-event-badge/);
+    assert.match(styles, /\.bldg-event-badge[\s\S]*top:\s*calc\(100% \+ 3px\)/);
+    assert.match(styles, /\.bldg-event-badge[\s\S]*transform:\s*translateX\(-50%\)/);
+    assert.match(styles, /data-z="19"[\s\S]*\.bldg-event-title/);
+    assert.match(styles, /data-z="17"[\s\S]*visibility:\s*hidden\s*!important/);
+    assert.doesNotMatch(styles, /data-z="17"[\s\S]{0,220}display:\s*none\s*!important/);
+    assert.match(styles, /\.building-permanent-label-inner/);
+    assert.match(styles, /body\.navigation-route-visible #map \.building-permanent-label-inner/);
+    assert.match(styles, /pointer-events:\s*none\s*!important/);
+    assert.match(adminBuildings, /building-map-label-toggle/);
+    assert.match(adminBuildings, /admin\.buildings\.updateMapLabel/);
+    assert.match(adminBuildings, /admin\.buildings\.labelEditor/);
+    assert.match(labelEditor, /Building Label Editor/);
+    assert.match(labelEditor, /draggable:\s*selected/);
+    assert.match(labelEditor, /marker\.on\('dragend'/);
+    assert.match(labelEditor, /map_label_offset_x/);
+    assert.match(labelEditor, /map_label_offset_y/);
+    assert.match(labelEditor, /map_label_scale/);
+    assert.match(labelEditor, /label-editor-min-zoom/);
+    assert.match(labelEditor, /Wide view · always visible/);
+    assert.match(labelEditor, /admin\.buildings\.updateLabelLayout/);
+    assert.match(labelEditor, /label-editor-device-size/);
+    assert.match(labelEditor, /360x800/);
+    assert.match(labelEditor, /390x844/);
+    assert.match(labelEditor, /412x915/);
+    assert.match(labelEditor, /\.label-editor-phone[\s\S]*border-radius:\s*30px/);
+    assert.match(labelEditor, /function applyMobileViewport\(\)/);
+    assert.match(labelEditor, /map\.invalidateSize\(\{\s*pan:\s*false\s*\}\)/);
+    assert.match(labelEditor, /@media \(max-width:\s*620px\)/);
+    assert.match(labelEditor, /height:\s*calc\(100svh - 132px\)/);
+    assert.match(labelEditor, /\.label-editor-panel[\s\S]*overscroll-behavior:\s*contain/);
+    assert.match(labelEditor, /\.label-editor-actions[\s\S]*position:\s*sticky/);
+    assert.match(labelEditor, /env\(safe-area-inset-bottom/);
     assert.match(styles, /route-building-map-popup-hint[\s\S]*display:\s*none\s*!important/);
     assert.match(styles, /\.navigation-sheet-body[\s\S]*overflow-y:\s*auto/);
     assert.match(styles, /--route-popup-scale:\s*1\s*!important/);

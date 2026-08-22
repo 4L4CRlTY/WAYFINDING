@@ -45,17 +45,6 @@
     }
 
 
-    function escapePopupHtmlFinal(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
-    }
-
-
-
     function makeRoutePopupDragFriendly() {
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
         if (!isMobile) return;
@@ -127,7 +116,7 @@ function showRouteBuildingPopup(buildingId, buildingName, center) {
 
         if (!center) return;
 
-        const safeName = escapePopupHtmlFinal(routePopupBuildingName);
+        const safeName = escapeWayfindingHtml(routePopupBuildingName);
         const hasIndoorMap = hasIndoorForBuildingFinal(routePopupBuildingId);
         const availabilityClass = hasIndoorMap ? 'is-available' : 'is-unavailable';
         const availabilityLabel = hasIndoorMap

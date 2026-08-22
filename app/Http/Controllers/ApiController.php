@@ -24,7 +24,19 @@ class ApiController extends Controller
     public function buildings()
     {
         return response()->json(
-            Building::select('id', 'name', 'geometry', 'properties', 'color')
+            Building::select(
+                'id',
+                'name',
+                'geometry',
+                'properties',
+                'color',
+                'show_map_label',
+                'map_label_text',
+                'map_label_scale',
+                'map_label_offset_x',
+                'map_label_offset_y',
+                'map_label_min_zoom',
+            )
                 ->orderBy('name')
                 ->get()
                 ->map(function ($building) {
@@ -38,6 +50,12 @@ class ApiController extends Controller
                             ? $building->properties
                             : json_decode($building->properties, true),
                         'color' => $building->color,
+                        'show_map_label' => (bool) $building->show_map_label,
+                        'map_label_text' => $building->map_label_text,
+                        'map_label_scale' => (float) ($building->map_label_scale ?? 1),
+                        'map_label_offset_x' => (int) ($building->map_label_offset_x ?? 0),
+                        'map_label_offset_y' => (int) ($building->map_label_offset_y ?? 0),
+                        'map_label_min_zoom' => (int) ($building->map_label_min_zoom ?? 18),
                     ];
                 })
                 ->values()

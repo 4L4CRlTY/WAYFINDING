@@ -5,8 +5,8 @@ namespace Tests\Feature\Api;
 use App\Models\Building;
 use App\Models\CampusEvent;
 use App\Models\DestinationKeyword;
-use App\Models\IndoorMap;
 use App\Models\IndoorEntrance;
+use App\Models\IndoorMap;
 use App\Models\IndoorPath;
 use App\Models\IndoorRoom;
 use App\Models\IndoorStairLink;
@@ -66,6 +66,12 @@ class WayfindingApiTest extends TestCase
             'geometry' => $this->buildingGeometry(124.00),
             'properties' => ['code' => 'AH'],
             'color' => '#abcdef',
+            'show_map_label' => true,
+            'map_label_text' => 'Alpha',
+            'map_label_scale' => 1.25,
+            'map_label_offset_x' => 18,
+            'map_label_offset_y' => -12,
+            'map_label_min_zoom' => 19,
         ]);
 
         $response = $this->getJson('/api/buildings');
@@ -77,6 +83,12 @@ class WayfindingApiTest extends TestCase
             ->assertJsonPath('0.geometry.type', 'Polygon')
             ->assertJsonPath('0.properties.code', 'AH')
             ->assertJsonPath('0.color', '#abcdef')
+            ->assertJsonPath('0.show_map_label', true)
+            ->assertJsonPath('0.map_label_text', 'Alpha')
+            ->assertJsonPath('0.map_label_scale', 1.25)
+            ->assertJsonPath('0.map_label_offset_x', 18)
+            ->assertJsonPath('0.map_label_offset_y', -12)
+            ->assertJsonPath('0.map_label_min_zoom', 19)
             ->assertJsonPath('1.id', $second->id);
     }
 
@@ -135,6 +147,90 @@ class WayfindingApiTest extends TestCase
             ->assertOk()
             ->assertHeader('X-Wayfinding-Cache', 'MISS')
             ->assertJsonPath('0.name', 'New Building Name');
+    }
+
+    public function test_admin_can_toggle_a_permanent_label_for_any_building(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+        $building = Building::create([
+            'name' => 'Science & Math Building',
+            'geometry' => $this->buildingGeometry(),
+            'show_map_label' => false,
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->patchJson(route('admin.buildings.updateMapLabel', $building), [
+                'show_map_label' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('show_map_label', true);
+
+        $this->assertDatabaseHas('buildings', [
+            'id' => $building->id,
+            'show_map_label' => true,
+        ]);
+
+        $this->getJson('/api/buildings')
+            ->assertOk()
+            ->assertJsonPath('0.show_map_label', true);
+    }
+
+    public function test_admin_can_visually_configure_label_text_size_and_position(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+        $building = Building::create([
+            'name' => 'Education Building',
+            'geometry' => $this->buildingGeometry(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.buildings.labelEditor'))
+            ->assertOk()
+            ->assertSeeText('Building Label Editor')
+            ->assertSee('building-label-editor-map', false)
+            ->assertSee('label-editor-size', false)
+            ->assertSee('label-editor-min-zoom', false);
+
+        $this->actingAs($admin)
+            ->patchJson(route('admin.buildings.updateLabelLayout', $building), [
+                'show_map_label' => true,
+                'map_label_text' => 'Education',
+                'map_label_scale' => 1.35,
+                'map_label_offset_x' => -24,
+                'map_label_offset_y' => 16,
+                'map_label_min_zoom' => 18,
+            ])
+            ->assertOk()
+            ->assertJsonPath('label.show_map_label', true)
+            ->assertJsonPath('label.map_label_text', 'Education')
+            ->assertJsonPath('label.map_label_scale', 1.35)
+            ->assertJsonPath('label.map_label_offset_x', -24)
+            ->assertJsonPath('label.map_label_offset_y', 16)
+            ->assertJsonPath('label.map_label_min_zoom', 18);
+
+        $this->assertDatabaseHas('buildings', [
+            'id' => $building->id,
+            'show_map_label' => true,
+            'map_label_text' => 'Education',
+            'map_label_scale' => 1.35,
+            'map_label_offset_x' => -24,
+            'map_label_offset_y' => 16,
+            'map_label_min_zoom' => 18,
+        ]);
+
+        $this->getJson('/api/buildings')
+            ->assertOk()
+            ->assertJsonPath('0.map_label_text', 'Education')
+            ->assertJsonPath('0.map_label_scale', 1.35)
+            ->assertJsonPath('0.map_label_offset_x', -24)
+            ->assertJsonPath('0.map_label_offset_y', 16)
+            ->assertJsonPath('0.map_label_min_zoom', 18);
     }
 
     public function test_destination_search_is_rate_limited(): void

@@ -71,10 +71,13 @@ Route::middleware(['auth', 'roles:admin,authorized_user', 'invalidate.wayfinding
 
     Route::middleware('authorized.feature:buildings')->group(function () {
         Route::get('/admin/buildings', [BuildingController::class, 'Buildings'])->name('admin.buildings');
+        Route::get('/admin/buildings/label-editor', [BuildingController::class, 'labelEditor'])->name('admin.buildings.labelEditor');
         Route::post('/admin/buildings/upload', [BuildingController::class, 'uploadBuildings'])->name('admin.buildings.upload');
         Route::delete('/admin/buildings/reset', [BuildingController::class, 'resetBuildings'])->name('admin.buildings.reset');
         Route::patch('/admin/buildings/{building}/update-name', [BuildingController::class, 'updateName'])->name('admin.buildings.updateName');
         Route::patch('/admin/buildings/{building}/update-color', [BuildingController::class, 'updateColor'])->name('admin.buildings.updateColor');
+        Route::patch('/admin/buildings/{building}/update-map-label', [BuildingController::class, 'updateMapLabel'])->name('admin.buildings.updateMapLabel');
+        Route::patch('/admin/buildings/{building}/update-label-layout', [BuildingController::class, 'updateLabelLayout'])->name('admin.buildings.updateLabelLayout');
     });
 
     Route::middleware('authorized.feature:paths')->group(function () {

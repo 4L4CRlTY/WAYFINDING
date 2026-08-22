@@ -52,16 +52,6 @@
         });
     }
 
-    function escapeIndoorPopupText(value, fallback = '') {
-        return String(value ?? fallback).replace(/[&<>"']/g, character => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        })[character]);
-    }
-
     function buildIndoorRoomInfoPopup(properties = {}) {
         const floorLabel = typeof formatIndoorFloorLabel === 'function'
             ? formatIndoorFloorLabel(properties.floor_number, properties.floor_label)
@@ -73,13 +63,13 @@
                     <span class="indoor-room-popup-signal" aria-hidden="true"><i></i></span>
                     <span class="indoor-room-popup-title-wrap">
                         <small>ROOM INFORMATION</small>
-                        <strong>${escapeIndoorPopupText(properties.name, 'Room')}</strong>
+                        <strong>${escapeWayfindingHtml(properties.name, 'Room')}</strong>
                     </span>
                 </header>
                 <div class="indoor-room-popup-meta">
-                    <span><small>CODE</small><strong>${escapeIndoorPopupText(properties.room_code, 'N/A')}</strong></span>
-                    <span><small>TYPE</small><strong>${escapeIndoorPopupText(properties.type, 'Room')}</strong></span>
-                    <span><small>FLOOR</small><strong>${escapeIndoorPopupText(floorLabel, '-')}</strong></span>
+                    <span><small>CODE</small><strong>${escapeWayfindingHtml(properties.room_code, 'N/A')}</strong></span>
+                    <span><small>TYPE</small><strong>${escapeWayfindingHtml(properties.type, 'Room')}</strong></span>
+                    <span><small>FLOOR</small><strong>${escapeWayfindingHtml(floorLabel, '-')}</strong></span>
                 </div>
             </article>
         `;

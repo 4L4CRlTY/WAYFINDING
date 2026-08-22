@@ -21,7 +21,7 @@ return [
     ],
     'buildings' => [
         'label' => 'Buildings',
-        'description' => 'Maintain campus buildings, names, colors, and map geometry.',
+        'description' => 'Maintain campus buildings, names, colors, permanent labels, and map geometry.',
         'icon' => 'ri-building-2-line',
         'route' => 'admin.buildings',
         'route_pattern' => 'admin.buildings*',

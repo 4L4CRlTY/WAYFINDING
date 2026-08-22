@@ -281,6 +281,16 @@
     }
 }
 
+/* Several enabled labels are still inexpensive on low-end phones: keep the
+   static badge, but remove GPU blur, transitions, and the layered shadow. */
+body.render-quality-low #map .building-permanent-label-inner {
+    background: rgba(8, 32, 53, 0.94) !important;
+    box-shadow: 0 4px 9px rgba(0, 18, 36, 0.16) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: none !important;
+}
+
 /* Mobile HUD effects are already reduced permanently above. Do not change a
    fixed element's filter at gesture start/end; that destroys and recreates its
    compositor layer and was visible as controls jumping around the screen. */

@@ -4,22 +4,7 @@
        - Room event: display above parent building, route to specific room.
        - Landuse event: display above landuse, route to area.
     ========================================================= */
-    const CAMPUS_EVENT_SCHEDULE_ICON = `
-        <svg class="wf-line-icon campus-event-schedule-symbol" viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3.5" y="4.5" width="17" height="16" rx="3" />
-            <path d="M7.5 2.8v4M16.5 2.8v4M3.5 9h17" />
-            <path class="wf-icon-accent" d="M8 17h8M9.2 17v-3.5h5.6V17M8.2 13.5l3.8-2.2 3.8 2.2" />
-        </svg>
-    `;
-
-    function escapeEventHtml(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
-    }
+    const CAMPUS_EVENT_SCHEDULE_ICON = `<svg class="wf-line-icon campus-event-schedule-symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M7.5 2.8v4M16.5 2.8v4M3.5 9h17"/><path class="wf-icon-accent" d="M8 17h8M9.2 17v-3.5h5.6V17M8.2 13.5l3.8-2.2 3.8 2.2"/></svg>`;
 
     function getFeatureCenterFromGeometry(geometry) {
         if (!geometry) return null;
@@ -117,12 +102,12 @@
         const dotClass = isNow ? '' : 'upcoming-dot';
         const statusText = isNow ? 'Now' : 'Upcoming';
 
-        const title = escapeEventHtml(event.title || 'Campus Event');
-        const place = escapeEventHtml(getEventPlaceText(event));
+        const title = escapeWayfindingHtml(event.title || 'Campus Event');
+        const place = escapeWayfindingHtml(getEventPlaceText(event));
 
-        const startsAt = escapeEventHtml(event.starts_at_display || event.starts_at || 'No start time');
+        const startsAt = escapeWayfindingHtml(event.starts_at_display || event.starts_at || 'No start time');
         const endsAt = event.ends_at_display
-            ? `<br><span>Ends: ${escapeEventHtml(event.ends_at_display)}</span>`
+            ? `<br><span>Ends: ${escapeWayfindingHtml(event.ends_at_display)}</span>`
             : '';
 
         const targetText =
@@ -132,34 +117,7 @@
                     ? 'Area'
                     : 'Building';
 
-        return `
-            <div class="campus-event-card ${cardClass}">
-                <div class="campus-event-top">
-                    <div class="campus-event-status ${statusClass}">
-                        <span class="campus-event-mini-dot ${dotClass}"></span>
-                        ${statusText}
-                    </div>
-                    <div class="campus-event-target">${targetText}</div>
-                </div>
-
-                <div class="campus-event-title">${title}</div>
-                <div class="campus-event-place">${place}</div>
-
-                <div class="campus-event-time">
-                    <span>🕒</span>
-                    <span>
-                        Starts: ${startsAt}
-                        ${endsAt}
-                    </span>
-                </div>
-
-                <button type="button"
-                        class="campus-event-route-btn"
-                        onclick="routeToCampusEvent(${Number(event.id)})">
-                    ${formatEventButtonText(event)}
-                </button>
-            </div>
-        `;
+        return `<div class="campus-event-card ${cardClass}"><div class="campus-event-top"><div class="campus-event-status ${statusClass}"><span class="campus-event-mini-dot ${dotClass}"></span>${statusText}</div><div class="campus-event-target">${targetText}</div></div><div class="campus-event-title">${title}</div><div class="campus-event-place">${place}</div><div class="campus-event-time"><span>🕒</span><span>Starts: ${startsAt}${endsAt}</span></div><button type="button" class="campus-event-route-btn" onclick="routeToCampusEvent(${Number(event.id)})">${formatEventButtonText(event)}</button></div>`;
     }
 
     function ensureCampusEventPanel() {
@@ -172,21 +130,7 @@
         wrap = document.createElement('div');
         wrap.id = 'campus-event-notification-wrap';
         wrap.className = 'campus-event-notification-wrap force-visible';
-        wrap.innerHTML = `
-            <button type="button"
-                    class="campus-event-bell-btn"
-                    id="campus-event-bell-btn"
-                    onclick="toggleCampusEventPanel()"
-                    aria-label="Open campus events">
-                <span class="campus-event-bell-pulse" id="campus-event-bell-pulse" style="display:none;"></span>
-                <span class="campus-event-bell-icon" aria-hidden="true">
-                    ${CAMPUS_EVENT_SCHEDULE_ICON}
-                </span>
-                <span class="campus-event-bell-count is-zero" id="campus-event-bell-count">0</span>
-            </button>
-
-            <div class="campus-event-panel" id="campus-event-panel"></div>
-        `;
+        wrap.innerHTML = `<button type="button" class="campus-event-bell-btn" id="campus-event-bell-btn" onclick="toggleCampusEventPanel()" aria-label="Open campus events"><span class="campus-event-bell-pulse" id="campus-event-bell-pulse" style="display:none;"></span><span class="campus-event-bell-icon" aria-hidden="true">${CAMPUS_EVENT_SCHEDULE_ICON}</span><span class="campus-event-bell-count is-zero" id="campus-event-bell-count">0</span></button><div class="campus-event-panel" id="campus-event-panel"></div>`;
 
         document.body.appendChild(wrap);
 
@@ -207,41 +151,7 @@
         const panel = document.getElementById('campus-event-panel');
         if (!panel || panel.dataset.hydrated === 'true') return panel;
 
-        panel.innerHTML = `
-            <div class="campus-event-panel-card">
-                <div class="campus-event-panel-head">
-                    <div>
-                        <div class="campus-event-panel-kicker">
-                            <span class="campus-event-kicker-icon" aria-hidden="true">
-                                ${CAMPUS_EVENT_SCHEDULE_ICON}
-                            </span>
-                            Campus Events
-                        </div>
-                        <div class="campus-event-panel-title">Campus Event Schedule</div>
-                        <div class="campus-event-panel-subtitle">
-                            Choose an active event to open its campus route.
-                        </div>
-                    </div>
-
-                    <button type="button"
-                            class="campus-event-panel-close"
-                            onclick="closeCampusEventPanel()"
-                            aria-label="Close campus events">
-                        ×
-                    </button>
-                </div>
-
-                <div class="campus-event-list" id="campus-event-list"></div>
-
-                <div class="campus-event-empty" id="campus-event-empty" style="display:none;">
-                    <span class="campus-event-empty-icon" aria-hidden="true">
-                        ${CAMPUS_EVENT_SCHEDULE_ICON}
-                    </span>
-                    <strong>No scheduled campus events</strong>
-                    <small>Current and upcoming activities will appear here.</small>
-                </div>
-            </div>
-        `;
+        panel.innerHTML = `<div class="campus-event-panel-card"><div class="campus-event-panel-head"><div><div class="campus-event-panel-kicker"><span class="campus-event-kicker-icon" aria-hidden="true">${CAMPUS_EVENT_SCHEDULE_ICON}</span>Campus Events</div><div class="campus-event-panel-title">Campus Event Schedule</div><div class="campus-event-panel-subtitle">Choose an active event to open its campus route.</div></div><button type="button" class="campus-event-panel-close" onclick="closeCampusEventPanel()" aria-label="Close campus events">×</button></div><div class="campus-event-list" id="campus-event-list"></div><div class="campus-event-empty" id="campus-event-empty" style="display:none;"><span class="campus-event-empty-icon" aria-hidden="true">${CAMPUS_EVENT_SCHEDULE_ICON}</span><strong>No scheduled campus events</strong><small>Current and upcoming activities will appear here.</small></div></div>`;
         panel.dataset.hydrated = 'true';
         return panel;
     }
@@ -282,6 +192,52 @@
         panel.classList.remove('open');
     }
 
+    function activeRoutableCampusEvents() {
+        return (campusEvents || []).filter(event => {
+            return event && event.id && event.route_type && event.route_id;
+        });
+    }
+
+    function openCampusEventsForBuilding(buildingId) {
+        const buildingEvents = activeRoutableCampusEvents().filter(
+            event => Number(event.building_id) === Number(buildingId)
+        );
+        if (!buildingEvents.length) return;
+
+        ensureCampusEventPanel();
+        ensureCampusEventPanelContents();
+        renderCampusEventPanelContents(buildingEvents);
+        document.getElementById('campus-event-panel')?.classList.add('open');
+    }
+
+    function renderBuildingEventBadges(activeEvents = []) {
+        const eventsByBuilding = new Map();
+
+        activeEvents.forEach(event => {
+            const buildingId = Number(event.building_id || 0);
+            if (!buildingId) return;
+            if (!eventsByBuilding.has(buildingId)) eventsByBuilding.set(buildingId, []);
+            eventsByBuilding.get(buildingId).push(event);
+        });
+
+        document.querySelectorAll('#map .building-permanent-label-inner[data-bid]').forEach(label => {
+            label.querySelector('.bldg-event-badge')?.remove();
+            label.classList.remove('has-event');
+
+            const buildingEvents = eventsByBuilding.get(Number(label.dataset.bid)) || [];
+            if (!buildingEvents.length) return;
+
+            const firstEvent = buildingEvents[0];
+            const hasNow = buildingEvents.some(event => event.status === 'happening_now');
+            const count = buildingEvents.length > 9 ? '9+' : String(buildingEvents.length);
+            const title = escapeWayfindingHtml(firstEvent.title || 'Campus event');
+            label.classList.add('has-event');
+            label.insertAdjacentHTML('beforeend', `<button type="button" class="bldg-event-badge${hasNow ? ' is-now' : ''}" onclick="event.stopPropagation();openCampusEventsForBuilding(${Number(label.dataset.bid)})" aria-label="${count} event${buildingEvents.length === 1 ? '' : 's'} at this building"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16"/></svg><span class="bldg-event-count">${count}</span><span class="bldg-event-title">${title}</span></button>`);
+        });
+    }
+
+    window.openCampusEventsForBuilding = openCampusEventsForBuilding;
+
     function renderCampusEventMarkers() {
         /*
         |--------------------------------------------------------------------------
@@ -298,9 +254,7 @@
 
         if (window.WAYFINDING_GUEST_MODE === true) return;
 
-        const activeEvents = (campusEvents || []).filter(event => {
-            return event && event.id && event.route_type && event.route_id;
-        });
+        const activeEvents = activeRoutableCampusEvents();
 
         const wrap = ensureCampusEventPanel();
         const count = document.getElementById('campus-event-bell-count');
@@ -331,6 +285,7 @@
                 : 'No current or upcoming campus events';
         }
 
+        renderBuildingEventBadges(activeEvents);
         renderCampusEventPanelContents(activeEvents);
     }
 

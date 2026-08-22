@@ -1,3 +1,9 @@
+    function escapeWayfindingHtml(value, fallback = '') {
+        return String(value ?? fallback).replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+        })[character]);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | MOBILE OUTDOOR ZOOM SETTINGS

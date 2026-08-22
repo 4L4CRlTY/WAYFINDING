@@ -11,11 +11,22 @@ class Building extends Model
         'geometry',
         'properties',
         'color',
+        'show_map_label',
+        'map_label_text',
+        'map_label_scale',
+        'map_label_offset_x',
+        'map_label_offset_y',
+        'map_label_min_zoom',
     ];
 
     protected $casts = [
         'geometry' => 'array',
         'properties' => 'array',
+        'show_map_label' => 'boolean',
+        'map_label_scale' => 'float',
+        'map_label_offset_x' => 'integer',
+        'map_label_offset_y' => 'integer',
+        'map_label_min_zoom' => 'integer',
     ];
 
     public function entrances()
@@ -47,5 +58,4 @@ class Building extends Model
     {
         return $this->hasMany(CampusEvent::class);
     }
-
 }

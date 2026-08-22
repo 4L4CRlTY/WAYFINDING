@@ -137,15 +137,6 @@
             .trim();
     }
 
-    function escapeBrowseHtml(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
-    }
-
     function getRoomBuildingId(room) {
         return Number(room?.properties?.building_id || 0);
     }
@@ -228,7 +219,7 @@
 
         roomBuildingFilterSelect.innerHTML = '<option value="">All Buildings</option>';
         buildings.forEach(([id, name]) => {
-            roomBuildingFilterSelect.innerHTML += `<option value="${id}">${escapeBrowseHtml(name)}</option>`;
+            roomBuildingFilterSelect.innerHTML += `<option value="${id}">${escapeWayfindingHtml(name)}</option>`;
         });
 
         if (existingValue && Array.from(roomBuildingFilterSelect.options).some(opt => opt.value === existingValue)) {
@@ -284,7 +275,7 @@
         floors.forEach(([floor, label]) => {
             html += `
                 <button type="button" class="room-floor-chip ${Number(browseRoomSelectedFloor) === Number(floor) ? 'active' : ''}" data-floor="${floor}">
-                    ${escapeBrowseHtml(label)}
+                    ${escapeWayfindingHtml(label)}
                 </button>
             `;
         });
@@ -364,7 +355,7 @@
             html += `
                 <div class="room-floor-group">
                     <div class="room-floor-group-title">
-                        <span>${escapeBrowseHtml(floorLabel)}</span>
+                        <span>${escapeWayfindingHtml(floorLabel)}</span>
                         <small>${floorRooms.length} ${floorRooms.length === 1 ? 'choice' : 'choices'}</small>
                     </div>
             `;
@@ -381,9 +372,9 @@
                     <button type="button" class="room-office-card ${active ? 'active' : ''}" onclick="selectBrowseRoom(${roomId})">
                         <span class="room-office-card-icon">${active ? '✅' : '🚪'}</span>
                         <span class="room-office-card-main">
-                            <strong>${escapeBrowseHtml(getRoomDisplayName(room))}</strong>
-                            <small>${escapeBrowseHtml([code, type].filter(Boolean).join(' · '))}</small>
-                            <em>${escapeBrowseHtml(buildingName)}</em>
+                            <strong>${escapeWayfindingHtml(getRoomDisplayName(room))}</strong>
+                            <small>${escapeWayfindingHtml([code, type].filter(Boolean).join(' · '))}</small>
+                            <em>${escapeWayfindingHtml(buildingName)}</em>
                         </span>
                     </button>
                 `;
@@ -652,15 +643,6 @@
             iconAnchor: [17, 38],
             popupAnchor: [0, -32]
         });
-    }
-
-    function escapeHazardHtml(value) {
-        return String(value ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
     }
 
 function formatCoordKey(lng, lat) {

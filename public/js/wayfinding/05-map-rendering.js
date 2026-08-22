@@ -4,6 +4,69 @@
     let buildingFarDepthLayerGroup = null;
     let buildingNearDepthLayerGroup = null;
 
+    function getPermanentBuildingLabel(building) {
+        const properties = building?.properties || {};
+        const visibilityValue = building?.show_map_label ?? properties.show_map_label ?? false;
+        const showMapLabel = visibilityValue === true
+            || visibilityValue === 1
+            || ['1', 'true'].includes(String(visibilityValue).toLowerCase());
+
+        if (!showMapLabel) return null;
+
+        const fullName = String(building?.name || properties.name || 'Building').trim();
+        const shortName = fullName.replace(/\s+building\s*$/i, '').trim();
+        const customText = String(
+            building?.map_label_text ?? properties.map_label_text ?? ''
+        ).trim();
+        const scale = Math.max(0.65, Math.min(
+            1.6,
+            Number(building?.map_label_scale ?? properties.map_label_scale ?? 1) || 1
+        ));
+        const offsetX = Math.max(-120, Math.min(
+            120,
+            Number(building?.map_label_offset_x ?? properties.map_label_offset_x ?? 0) || 0
+        ));
+        const offsetY = Math.max(-120, Math.min(
+            120,
+            Number(building?.map_label_offset_y ?? properties.map_label_offset_y ?? 0) || 0
+        ));
+        const minZoom = Number(
+            building?.map_label_min_zoom ?? properties.map_label_min_zoom
+        ) || 18;
+
+        return {
+            text: customText || shortName || fullName,
+            scale,
+            offsetX,
+            offsetY,
+            minZoom
+        };
+    }
+
+    function createPermanentBuildingLabel(label, buildingId) {
+        return `<span class="b-label-size" style="--label-user-scale:${label.scale.toFixed(2)}"><span class="building-permanent-label-inner" data-bid="${Number(buildingId)}"><svg class="b-label-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V7l7-3 7 3v13M3 20h18M9 10h1m4 0h1M9 14h1m4 0h1M12 4v16" /></svg><span class="b-label-text">${escapeWayfindingHtml(label.text)}</span></span></span>`;
+    }
+
+    function syncPermanentBuildingLabelScale() {
+        if (typeof map === 'undefined' || !map) return;
+
+        const zoom = Number(map.getZoom());
+        const zoomProgress = Math.max(0, Math.min(1, (zoom - 17.25) / 1.75));
+        const scale = 0.78 + (zoomProgress * 0.26);
+
+        map.getContainer().style.setProperty(
+            '--label-zoom-scale',
+            scale.toFixed(3)
+        );
+        map.getContainer().dataset.z = String(Math.round(zoom));
+    }
+
+    window.WayfindingInteraction?.register(
+        'label-scale',
+        syncPermanentBuildingLabelScale
+    );
+    syncPermanentBuildingLabelScale();
+
     function syncAdaptiveBuildingDepth() {
         if (!buildingDepthLayerGroup || !buildingFarDepthLayerGroup) return;
 
@@ -35,6 +98,7 @@
                 );
             });
         });
+
     }
 
     function getPathType(feature) {
@@ -389,6 +453,24 @@
                 }
             }).addTo(map);
 
+            const permanentLabel = getPermanentBuildingLabel(building);
+            if (permanentLabel) {
+                layer.bindTooltip(
+                    createPermanentBuildingLabel(permanentLabel, building.id),
+                    {
+                        permanent: true,
+                        direction: 'top',
+                        offset: [
+                            permanentLabel.offsetX,
+                            permanentLabel.offsetY - 7
+                        ],
+                        opacity: 1,
+                        interactive: false,
+                        className: `building-permanent-label label-z${permanentLabel.minZoom}`
+                    }
+                );
+            }
+
             applyBuildingDepthVariables(layer, baseColor);
             buildingVisualLayers.set(Number(building.id), layer);
             geojsonLayers.push(layer);
@@ -399,6 +481,7 @@
         }
 
         syncAdaptiveBuildingDepth();
+        syncPermanentBuildingLabelScale();
 
         if (geojsonLayers.length > 0) {
             const group = L.featureGroup(geojsonLayers);

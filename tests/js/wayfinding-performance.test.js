@@ -42,6 +42,8 @@ test('dashboard navigation icons are local static SVGs with a mobile GPU guard',
     assert.match(campusEvents, /campus-event-bell-icon[\s\S]{0,180}CAMPUS_EVENT_SCHEDULE_ICON/);
     assert.match(campusEvents, /campus-event-schedule-symbol/);
     assert.match(campusEvents, /Campus Event Schedule/);
+    assert.match(campusEvents, /renderBuildingEventBadges/);
+    assert.match(campusEvents, /openCampusEventsForBuilding/);
     assert.doesNotMatch(campusEvents, /M18 9a6 6 0 0 0-12 0/);
     assert.doesNotMatch(campusEvents, /🔕/);
     assert.match(mobileBudget, /\.campus-event-bell-pulse,[\s\S]{0,180}animation:\s*none !important/);
@@ -189,6 +191,10 @@ test('mobile dragging uses one lightweight map interaction controller', () => {
         new URL('../../public/js/wayfinding/02-map-data-ui.js', import.meta.url),
         'utf8',
     );
+    const performanceStyles = readFileSync(
+        new URL('../../public/css/wayfinding/09-map-performance.css', import.meta.url),
+        'utf8',
+    );
 
     assert.match(mapCore, /function createWayfindingInteractionController\(mapInstance\)/);
     assert.match(mapCore, /mapInstance\.on\('movestart zoomstart dragstart', beginInteraction\)/);
@@ -201,6 +207,22 @@ test('mobile dragging uses one lightweight map interaction controller', () => {
     assert.doesNotMatch(responsivePerformance, /leaflet-buildingsPane-pane/);
     assert.doesNotMatch(mapDataUi, /mapInstance\.on\('zoom move', this\._queueUpdate\)/);
     assert.doesNotMatch(responsivePerformance, /map\.on\('(?:move|zoom|drag)/);
+    assert.match(
+        performanceStyles,
+        /leaflet-tooltip:not\(\.building-permanent-label\)/
+    );
+});
+
+test('low-end devices render permanent building labels without GPU effects', () => {
+    const gpuBudgetStyles = readFileSync(
+        new URL('../../public/css/wayfinding/17-mobile-gpu-budget.css', import.meta.url),
+        'utf8',
+    );
+
+    assert.match(
+        gpuBudgetStyles,
+        /body\.render-quality-low #map \.building-permanent-label-inner[\s\S]*backdrop-filter:\s*none\s*!important[\s\S]*transition:\s*none\s*!important/
+    );
 });
 
 test('low-end indoor map uses a one-pixel canvas budget without changing geometry', () => {

@@ -247,6 +247,54 @@
         pointer-events: none;
     }
 
+    .building-label-control {
+        min-width: 178px;
+    }
+
+    .building-label-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        padding: 7px 11px;
+        border: 1px solid #dbe3ef;
+        border-radius: 999px;
+        background: #f8fafc;
+    }
+
+    .building-label-switch .form-check-input {
+        width: 2.25rem;
+        height: 1.2rem;
+        margin: 0;
+        cursor: pointer;
+        border-color: #94a3b8;
+        box-shadow: none;
+    }
+
+    .building-label-switch .form-check-input:checked {
+        border-color: #0f9f78;
+        background-color: #0f9f78;
+    }
+
+    .building-label-status {
+        min-width: 44px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .building-label-status.is-visible {
+        color: #047857;
+    }
+
+    .building-label-help {
+        display: block;
+        margin-top: 6px;
+        color: #94a3b8;
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
     .empty-building-box {
         padding: 36px;
         text-align: center;
@@ -367,11 +415,33 @@
         color: #0f172a;
     }
 
+    .building-label-editor-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 44px;
+        padding: 10px 16px;
+        border-radius: 14px;
+        color: #fff;
+        background: linear-gradient(135deg, #0f766e, #287bc2);
+        box-shadow: 0 12px 24px rgba(40, 123, 194, .18);
+        font-size: 12px;
+        font-weight: 850;
+        text-decoration: none;
+    }
+
+    .building-label-editor-link:hover {
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
     @media (max-width: 768px) {
         .building-search-form,
         .building-search-box,
         .building-search-btn,
-        .building-clear-btn {
+        .building-clear-btn,
+        .building-label-editor-link {
             width: 100%;
         }
 
@@ -390,7 +460,7 @@
         }
 
         .building-table {
-            min-width: 900px;
+            min-width: 1080px;
         }
 
         .building-form-actions {
@@ -437,7 +507,7 @@
     <div class="building-card">
         <div class="building-card-header">
             <h4>Buildings Manager</h4>
-            <p>Upload, reset, rename, and customize building colors for the campus map.</p>
+            <p>Upload, reset, rename, customize colors, and choose which building labels stay visible on the campus map.</p>
         </div>
 
         <div class="building-form-body">
@@ -490,7 +560,7 @@
             <div>
                 <h5>Uploaded Buildings</h5>
                 <span class="muted-small">
-                    Double click / tap name to edit, click color picker or recommended colors.
+                    Edit names and colors, then toggle a permanent map label for any building.
                 </span>
             </div>
 
@@ -522,6 +592,11 @@
             <span class="muted-small">
                 Total Buildings: {{ $buildings->total() ?? $buildings->count() }}
             </span>
+
+            <a href="{{ route('admin.buildings.labelEditor') }}" class="building-label-editor-link">
+                <i class="ri-drag-move-2-line"></i>
+                Open Label Editor
+            </a>
         </div>
 
         <div class="table-responsive">
@@ -531,6 +606,7 @@
                         <tr>
                             <th width="80">ID</th>
                             <th>Name</th>
+                            <th width="210">Map label</th>
                             <th width="300">Color</th>
                             <th width="210">Created</th>
                         </tr>
@@ -557,6 +633,27 @@
                                     <span class="building-name-text">
                                         {{ $building->name }}
                                     </span>
+                                </td>
+
+                                <td>
+                                    <div class="building-label-control">
+                                        <label class="building-label-switch" for="building-map-label-{{ $building->id }}">
+                                            <input
+                                                type="checkbox"
+                                                role="switch"
+                                                class="form-check-input building-map-label-toggle"
+                                                id="building-map-label-{{ $building->id }}"
+                                                data-url="{{ route('admin.buildings.updateMapLabel', $building->id) }}"
+                                                @checked($building->show_map_label)
+                                            >
+                                            <span class="building-label-status {{ $building->show_map_label ? 'is-visible' : '' }}">
+                                                {{ $building->show_map_label ? 'Visible' : 'Hidden' }}
+                                            </span>
+                                        </label>
+                                        <small class="building-label-help">
+                                            Permanent icon + shortened building name
+                                        </small>
+                                    </div>
                                 </td>
 
                                 <td>
@@ -770,6 +867,44 @@ document.querySelectorAll('.recommended-color-btn').forEach(button => {
         const cellTd = this.closest('td');
 
         await saveBuildingColor(url, color, cellTd);
+    });
+});
+
+document.querySelectorAll('.building-map-label-toggle').forEach(input => {
+    input.addEventListener('change', async function () {
+        const enabled = this.checked;
+        const status = this.closest('.building-label-switch')
+            ?.querySelector('.building-label-status');
+
+        this.disabled = true;
+
+        try {
+            const res = await fetch(this.dataset.url, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ show_map_label: enabled })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Failed to update the map label');
+            }
+
+            this.checked = Boolean(data.show_map_label);
+            if (status) {
+                status.textContent = this.checked ? 'Visible' : 'Hidden';
+                status.classList.toggle('is-visible', this.checked);
+            }
+        } catch (error) {
+            this.checked = !enabled;
+            alert(error.message || 'Failed to update the map label');
+        } finally {
+            this.disabled = false;
+        }
     });
 });
 </script>

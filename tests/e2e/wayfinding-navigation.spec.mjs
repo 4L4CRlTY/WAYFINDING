@@ -120,7 +120,7 @@ test('lazy voice search opens once and leaves the dashboard responsive', async (
 
 test('keeps the outdoor map usable when optional campus-event data fails', async ({ page }) => {
     const runtime = monitorRuntimeErrors(page);
-    await page.route('**/data/campus-snapshot.json', route => route.abort('failed'));
+    await page.route('**/data/campus-snapshot.json*', route => route.abort('failed'));
     await page.route('**/api/campus-events', route => route.abort('failed'));
     await loginAsUser(page);
 
@@ -228,6 +228,66 @@ test('Mobile Low keeps GPS routing active after acquiring a trusted fix', async 
     const state = await page.evaluate(() => window.WayfindingGpsCalibration.getState());
     expect(state.acceptedFix).toBe(true);
     expect(state.routeActive).toBe(true);
+    runtime.expectNone();
+});
+
+test('Mobile Low reveals labels in one zoom step and opens the event chip below its label', async ({ page }) => {
+    const runtime = monitorRuntimeErrors(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.route('**/data/campus-snapshot.json*', async route => {
+        const response = await route.fetch();
+        const snapshot = await response.json();
+        const buildings = snapshot.datasets?.['/api/buildings'] || [];
+        const coveredCourt = buildings.find(building => building.name === 'Covered Court');
+
+        snapshot.datasets['/api/campus-events'] = coveredCourt ? [{
+            id: 999999,
+            title: 'Campus Seminar',
+            event_target_type: 'building',
+            display_type: 'building',
+            display_id: coveredCourt.id,
+            route_type: 'building',
+            route_id: coveredCourt.id,
+            building_id: coveredCourt.id,
+            building_name: coveredCourt.name,
+            starts_at_display: 'Aug 22, 2026 09:00 AM',
+            status: 'happening_now',
+            priority: 1,
+        }] : [];
+
+        await route.fulfill({ response, json: snapshot });
+    });
+
+    await loginAsUser(page, '/user/dashboard?mobile_emulator=low');
+    await expect(page.locator('.building-permanent-label')).not.toHaveCount(0);
+
+    await page.evaluate(() => {
+        window.map.setZoom(17, { animate: false });
+    });
+    await expect(page.locator('.building-permanent-label.label-z18').first()).toBeHidden();
+    await page.locator('.leaflet-control-zoom-in').click();
+    await expect(page.locator('.building-permanent-label.label-z18').first()).toBeVisible();
+
+    const eventBadge = page.locator('.bldg-event-badge').first();
+    await expect(eventBadge).toBeVisible();
+    const placement = await eventBadge.evaluate(button => {
+        const badge = button.getBoundingClientRect();
+        const label = button.closest('.building-permanent-label-inner').getBoundingClientRect();
+        return {
+            badgeTop: badge.top,
+            labelBottom: label.bottom,
+            centerDelta: Math.abs(
+                (badge.left + badge.width / 2) - (label.left + label.width / 2)
+            ),
+        };
+    });
+    expect(placement.badgeTop).toBeGreaterThanOrEqual(placement.labelBottom);
+    expect(placement.centerDelta).toBeLessThan(2);
+
+    await eventBadge.click();
+    await expect(page.locator('#campus-event-panel')).toHaveClass(/open/);
+    await expect(page.locator('#campus-event-list .campus-event-card')).toHaveCount(1);
+    await expect(page.locator('#campus-event-list')).toContainText('Campus Seminar');
     runtime.expectNone();
 });
 

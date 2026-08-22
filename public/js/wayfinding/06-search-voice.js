@@ -164,7 +164,9 @@
     const WAYFINDING_RESPONSE_CACHE_PREFIX = 'wayfinding:last-known:v1:';
     const WAYFINDING_CACHEABLE_ENDPOINT = /^\/api\/(?:buildings|paths|entry-points|building-entrances|hazard-points|landuses|indoor-maps|indoor-rooms|indoor-paths|indoor-entrances|building-entrance-links|indoor-stairs-links|campus-events)(?:\?|$)/;
     const WAYFINDING_MAX_CACHED_RESPONSE_CHARS = 750000;
-    const WAYFINDING_SNAPSHOT_URL = '/data/campus-snapshot.json';
+    const WAYFINDING_SNAPSHOT_URL = document
+        .querySelector('meta[name="wayfinding-snapshot"]')
+        ?.getAttribute('content') || '/data/campus-snapshot.json';
     const WAYFINDING_SNAPSHOT_ENDPOINTS = new Set([
         '/api/buildings',
         '/api/paths',
@@ -1437,7 +1439,7 @@
 
             destinationRoomSelect.innerHTML += `
                 <option value="${p.id}">
-                    ${escapeBrowseHtml(label)}
+                    ${escapeWayfindingHtml(label)}
                 </option>
             `;
         });

@@ -28,6 +28,8 @@
     <meta name="apple-mobile-web-app-title" content="Campus Nav">
     <meta name="wayfinding-service-worker"
           content="/sw.js?v={{ filemtime(public_path('sw.js')) }}">
+    <meta name="wayfinding-snapshot"
+          content="{{ asset('data/campus-snapshot.json') }}?v={{ filemtime(public_path('data/campus-snapshot.json')) }}">
     <link rel="manifest"
           href="/manifest.webmanifest?v={{ filemtime(public_path('manifest.webmanifest')) }}">
     <link rel="apple-touch-icon" href="/icons/pwa-icon-180.png">

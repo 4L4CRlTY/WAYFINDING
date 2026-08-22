@@ -798,12 +798,12 @@
                     <div class="hazard-popup-content">
                         <div class="hazard-popup-title">
                             <span class="hazard-popup-dot" style="--hazard-dot:${severityColor}"></span>
-                            <span>${escapeHazardHtml(hazard.title || 'Hazard')}</span>
+                            <span>${escapeWayfindingHtml(hazard.title || 'Hazard')}</span>
                         </div>
 
                         <div class="hazard-popup-type">
                             <span class="hazard-popup-label">Type</span>
-                            <strong>${escapeHazardHtml(hazard.warning_type || 'Unknown')}</strong>
+                            <strong>${escapeWayfindingHtml(hazard.warning_type || 'Unknown')}</strong>
                         </div>
 
                         <div class="hazard-popup-badge ${severityClass}">

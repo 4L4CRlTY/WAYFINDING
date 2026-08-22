@@ -33,6 +33,26 @@ class BuildingController extends Controller
         return view('admin.buildings.building', compact('buildings', 'search'));
     }
 
+    public function labelEditor()
+    {
+        $buildings = Building::query()
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'geometry',
+                'color',
+                'show_map_label',
+                'map_label_text',
+                'map_label_scale',
+                'map_label_offset_x',
+                'map_label_offset_y',
+                'map_label_min_zoom',
+            ]);
+
+        return view('admin.buildings.label-editor', compact('buildings'));
+    }
+
     public function uploadBuildings(Request $request)
     {
         $request->validate([
@@ -168,6 +188,60 @@ class BuildingController extends Controller
         ]);
     }
 
+    public function updateMapLabel(Request $request, Building $building)
+    {
+        $validated = $request->validate([
+            'show_map_label' => ['required', 'boolean'],
+        ]);
+
+        $building->show_map_label = $validated['show_map_label'];
+        $building->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $building->show_map_label
+                ? 'Permanent map label enabled.'
+                : 'Permanent map label hidden.',
+            'show_map_label' => $building->show_map_label,
+        ]);
+    }
+
+    public function updateLabelLayout(Request $request, Building $building)
+    {
+        $validated = $request->validate([
+            'show_map_label' => ['required', 'boolean'],
+            'map_label_text' => ['nullable', 'string', 'max:80'],
+            'map_label_scale' => ['required', 'numeric', 'min:0.65', 'max:1.6'],
+            'map_label_offset_x' => ['required', 'integer', 'min:-120', 'max:120'],
+            'map_label_offset_y' => ['required', 'integer', 'min:-120', 'max:120'],
+            'map_label_min_zoom' => ['required', 'integer', 'between:17,19'],
+        ]);
+
+        $labelText = trim((string) ($validated['map_label_text'] ?? ''));
+
+        $building->fill([
+            'show_map_label' => $validated['show_map_label'],
+            'map_label_text' => $labelText !== '' ? $labelText : null,
+            'map_label_scale' => round((float) $validated['map_label_scale'], 2),
+            'map_label_offset_x' => (int) $validated['map_label_offset_x'],
+            'map_label_offset_y' => (int) $validated['map_label_offset_y'],
+            'map_label_min_zoom' => (int) $validated['map_label_min_zoom'],
+        ])->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Building label layout saved.',
+            'label' => [
+                'show_map_label' => $building->show_map_label,
+                'map_label_text' => $building->map_label_text,
+                'map_label_scale' => $building->map_label_scale,
+                'map_label_offset_x' => $building->map_label_offset_x,
+                'map_label_offset_y' => $building->map_label_offset_y,
+                'map_label_min_zoom' => $building->map_label_min_zoom,
+            ],
+        ]);
+    }
+
     private function isValidGeoJson($geojson): bool
     {
         return is_array($geojson)
@@ -179,6 +253,27 @@ class BuildingController extends Controller
 
     private function replaceBuildingsFromGeoJson(array $geojson): void
     {
+        $savedLabelSettings = Building::query()
+            ->get([
+                'name',
+                'show_map_label',
+                'map_label_text',
+                'map_label_scale',
+                'map_label_offset_x',
+                'map_label_offset_y',
+                'map_label_min_zoom',
+            ])
+            ->mapWithKeys(fn (Building $building) => [
+                mb_strtolower(trim((string) $building->name)) => [
+                    'show_map_label' => (bool) $building->show_map_label,
+                    'map_label_text' => $building->map_label_text,
+                    'map_label_scale' => (float) $building->map_label_scale,
+                    'map_label_offset_x' => (int) $building->map_label_offset_x,
+                    'map_label_offset_y' => (int) $building->map_label_offset_y,
+                    'map_label_min_zoom' => (int) $building->map_label_min_zoom,
+                ],
+            ]);
+
         Building::query()->delete();
 
         foreach ($geojson['features'] as $feature) {
@@ -192,12 +287,44 @@ class BuildingController extends Controller
 
             $featureProperties = $feature['properties'] ?? [];
             $featureColor = $featureProperties['color'] ?? '#2b82cc';
+            $buildingName = $featureProperties['name'] ?? 'No Name';
+            $normalizedBuildingName = mb_strtolower(trim((string) $buildingName));
+            $savedSettings = $savedLabelSettings->get($normalizedBuildingName, []);
+            $showMapLabel = array_key_exists('show_map_label', $featureProperties)
+                ? filter_var($featureProperties['show_map_label'], FILTER_VALIDATE_BOOL)
+                : (bool) ($savedSettings['show_map_label'] ?? false);
+            $mapLabelText = trim((string) (
+                $featureProperties['map_label_text']
+                ?? ($savedSettings['map_label_text'] ?? '')
+            ));
+            $mapLabelScale = max(0.65, min(1.6, (float) (
+                $featureProperties['map_label_scale']
+                ?? ($savedSettings['map_label_scale'] ?? 1)
+            )));
+            $mapLabelOffsetX = max(-120, min(120, (int) (
+                $featureProperties['map_label_offset_x']
+                ?? ($savedSettings['map_label_offset_x'] ?? 0)
+            )));
+            $mapLabelOffsetY = max(-120, min(120, (int) (
+                $featureProperties['map_label_offset_y']
+                ?? ($savedSettings['map_label_offset_y'] ?? 0)
+            )));
+            $mapLabelMinZoom = max(17, min(19, (int) (
+                $featureProperties['map_label_min_zoom']
+                ?? ($savedSettings['map_label_min_zoom'] ?? 18)
+            )));
 
             Building::create([
-                'name' => $featureProperties['name'] ?? 'No Name',
+                'name' => $buildingName,
                 'geometry' => $feature['geometry'],
                 'properties' => $featureProperties,
                 'color' => $featureColor,
+                'show_map_label' => $showMapLabel,
+                'map_label_text' => $mapLabelText !== '' ? mb_substr($mapLabelText, 0, 80) : null,
+                'map_label_scale' => round($mapLabelScale, 2),
+                'map_label_offset_x' => $mapLabelOffsetX,
+                'map_label_offset_y' => $mapLabelOffsetY,
+                'map_label_min_zoom' => $mapLabelMinZoom,
             ]);
         }
     }
